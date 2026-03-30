@@ -1,0 +1,75 @@
+# Cloud Build configuration for deploying to Cloud Run
+# Usage: gcloud builds submit --config cloudbuild.yaml .
+
+substitutions:
+  _SERVICE_NAME: explainer-mograph
+  _REGION: us-central1
+  _TIMEOUT: 3600s  # 60 minute timeout for long video generation
+  _MEMORY: 8Gi
+  _CPU: "2"
+  _CONCURRENCY: "1"  # One request per container to avoid disk/memory contention
+  _MAX_INSTANCES: "10"
+  _MIN_INSTANCES: "0"
+  _ENV: prod
+
+steps:
+  # Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$BUILD_ID'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:latest'
+      - '-f'
+      - 'cloudrun/Dockerfile'
+      - '.'
+
+  # Push the image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$BUILD_ID'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:latest'
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE_NAME}'
+      - '--image'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$BUILD_ID'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--memory'
+      - '${_MEMORY}'
+      - '--cpu'
+      - '${_CPU}'
+      - '--timeout'
+      - '${_TIMEOUT}'
+      - '--concurrency'
+      - '${_CONCURRENCY}'
+      - '--max-instances'
+      - '${_MAX_INSTANCES}'
+      - '--min-instances'
+      - '${_MIN_INSTANCES}'
+      - '--set-secrets'
+      - 'OPENAI_API_KEY=openai-api-key:latest,REPLICATE_API_TOKEN=replicate-api-token:latest,ELEVENLABS_API_KEY=elevenlabs-api-key:latest,GOOGLE_API_KEY=google-api-key:latest'
+      - '--allow-unauthenticated'  # Remove this line if you want to require authentication
+
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:$BUILD_ID'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE_NAME}:latest'
+
+timeout: 1800s  # 30 minute build timeout
+
+options:
+  logging: CLOUD_LOGGING_ONLY

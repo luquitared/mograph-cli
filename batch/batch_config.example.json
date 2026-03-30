@@ -1,0 +1,14 @@
+{
+  "service_url": "https://explainer-mograph-YOUR_PROJECT_ID.us-central1.run.app",
+  "output_bucket": "YOUR_PROJECT_ID-explainer-outputs",
+  "service_account_key": "./path-to-service-account-key.json",
+  "defaults": {
+    "video_model": "fast",
+    "video_seconds": 6,
+    "start_frame_mode": "animate",
+    "stage": "final",
+    "concurrency": 5,
+    "voice": "Rachel",
+    "enable_text_verification": false
+  }
+}

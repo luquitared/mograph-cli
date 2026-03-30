@@ -1,0 +1,27 @@
+# Ignore files for Cloud Build
+.git
+.gitignore
+.env
+*.pyc
+__pycache__
+*.egg-info
+.venv
+venv
+node_modules
+
+# Ignore local runs and test outputs
+runs/
+test-runs/
+
+# Ignore SaaS starter kit (separate deployment)
+saas-starter-kit/
+
+# Ignore test images but keep main-ref-images
+images/test-brand/
+style-explorer/
+scripts/
+
+# IDE
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,17 @@
+.env
+.env.*
+*.json
+!requirements.txt
+!cloudbuild.yaml
+.git
+.gitignore
+runs/
+__pycache__
+*.pyc
+.sisyphus/
+docs/
+tests/
+batch/
+scripts/
+*.md
+!CLOUDRUN.md

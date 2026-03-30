@@ -1,0 +1,13 @@
+# API Keys (required)
+REPLICATE_API_TOKEN=r8_your_replicate_token
+OPENAI_API_KEY=sk-your_openai_key
+ELEVENLABS_API_KEY=sk_your_elevenlabs_key
+GOOGLE_API_KEY=your_google_api_key
+
+# Google Cloud (required for Cloud Run deployment)
+GCP_PROJECT_ID=your-gcp-project-id
+GCS_OUTPUT_BUCKET=gs://your-bucket-name
+GOOGLE_APPLICATION_CREDENTIALS=./your-service-account.json
+
+# Cloud Run (set after deployment)
+CLOUD_RUN_SERVICE_URL=https://explainer-mograph-xxxxx.us-central1.run.app

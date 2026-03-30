@@ -1,0 +1,40 @@
+{
+  "script_title": "Mock Test Video",
+  "subject": "Testing the pipeline",
+  "brand_name": "Test Brand",
+  "style_notes": "Simple, clean, minimal design",
+  "scenes": [
+    {
+      "scene_number": 1,
+      "scene_type": "Hook",
+      "narrator": "This is scene one of the test video.",
+      "scene_overview": "Opening scene to test the pipeline",
+      "start_time": 0.0,
+      "end_time": 3.0,
+      "visuals": [
+        {
+          "concept_name": "test_scene_1",
+          "image_prompt": "Simple white background with bold black text saying 'Scene 1' in the center, minimal design",
+          "animation_prompt": "Text fades in smoothly from black",
+          "duration": 4
+        }
+      ]
+    },
+    {
+      "scene_number": 2,
+      "scene_type": "Conclusion",
+      "narrator": "And this is scene two, the end.",
+      "scene_overview": "Closing scene to complete the test",
+      "start_time": 3.0,
+      "end_time": 6.0,
+      "visuals": [
+        {
+          "concept_name": "test_scene_2",
+          "image_prompt": "Simple white background with bold black text saying 'Scene 2' in the center, minimal design",
+          "animation_prompt": "Text slides in from the right",
+          "duration": 4
+        }
+      ]
+    }
+  ]
+}

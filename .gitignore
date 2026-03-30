@@ -1,0 +1,30 @@
+runs/
+.env
+.env.*
+*.json.bak
+
+# GCP credentials
+*.json
+!batch/batch_config.example.json
+!batch/test-scripts/script.json
+!tests/fixtures/*.json
+
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+
+# Sisyphus sessions
+.sisyphus/
+
+# Claude Code
+.claude/
+
+# Asset subsets
+assets/spin-quest-imgs
+assets/makeover-imgs
+assets/makeover-original-imgs
+assets/royal-match-imgs
+assets/coins-images

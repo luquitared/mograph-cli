@@ -1,0 +1,255 @@
+{
+  "script_title": "The Day the Rules Were Broken",
+  "subject": "The paradox of power and international law",
+  "brand_name": "Atomic Cut",
+  "reference_images": [],
+  "scenes": [
+    {
+      "scene_number": 1,
+      "scene_type": "Hook",
+      "narrator": "The world runs on rules we all pretend are unbreakable.",
+      "scene_overview": "Establishing shot of Earth bound by glowing rule threads",
+      "visuals": [
+        {
+          "concept_name": "earth_held_together",
+          "image_prompt": "Anime shot of Earth in space, wrapped in glowing blue and white threads labeled 'Law', 'Sovereignty', 'Norms', threads shimmer softly against the dark void, dramatic lighting",
+          "animation_prompt": "Slow zoom toward Earth, threads pulse gently with light"
+        }
+      ]
+    },
+    {
+      "scene_number": 2,
+      "scene_type": "Problem",
+      "narrator": "But those rules have been thinning for a long time.",
+      "scene_overview": "Close-up showing fraying threads",
+      "visuals": [
+        {
+          "concept_name": "threads_fraying",
+          "image_prompt": "Extreme close-up on one glowing thread in space, visibly frayed and worn, pulsing weakly with fading blue light, anime style with dramatic contrast",
+          "animation_prompt": "Thread pulses irregularly, small particles drift away from frayed sections"
+        }
+      ]
+    },
+    {
+      "scene_number": 3,
+      "scene_type": "Problem",
+      "narrator": "Some leaders learned how to hide behind them.",
+      "scene_overview": "Shadow figure on throne, protected by the rules",
+      "visuals": [
+        {
+          "concept_name": "shadow_ruler",
+          "image_prompt": "Dark anime scene, shadowed figure sitting on an ornate throne, glowing threads pass through the figure harmlessly like they have no effect, dramatic backlighting, ominous atmosphere",
+          "animation_prompt": "Threads drift through the shadow figure, camera slowly pushes in"
+        }
+      ]
+    },
+    {
+      "scene_number": 4,
+      "scene_type": "Problem",
+      "narrator": "While people paid the price.",
+      "scene_overview": "Citizens suffering in dystopian streets",
+      "visuals": [
+        {
+          "concept_name": "people_below",
+          "image_prompt": "Street-level anime shot of tired citizens walking past empty shelves and flickering lights, rain falling, dark urban dystopia, washed out colors, oppressive atmosphere",
+          "animation_prompt": "Rain falls, lights flicker, citizens shuffle past slowly"
+        }
+      ]
+    },
+    {
+      "scene_number": 5,
+      "scene_type": "Solution",
+      "narrator": "So one power finally stopped pretending.",
+      "scene_overview": "The enforcer appears",
+      "visuals": [
+        {
+          "concept_name": "enforcer_appears",
+          "image_prompt": "Dramatic anime shot, sharp-edged figure in dark military coat steps into frame from shadow, hand resting on a glowing blade at their hip, intense rim lighting, heroic but ominous pose",
+          "animation_prompt": "Figure steps forward into light, coat billows slightly"
+        }
+      ]
+    },
+    {
+      "scene_number": 6,
+      "scene_type": "Solution",
+      "narrator": "And chose action over patience.",
+      "scene_overview": "The blade is drawn and ignited",
+      "visuals": [
+        {
+          "concept_name": "blade_drawn",
+          "image_prompt": "Close-up anime shot of glowing ethereal blade being drawn, intense white and blue light emanating from the blade, dramatic lens flare, hand gripping the hilt firmly",
+          "animation_prompt": "Blade ignites with brilliant light, energy pulses outward"
+        }
+      ]
+    },
+    {
+      "scene_number": 7,
+      "scene_type": "Climax",
+      "narrator": "If the rules don't stop criminals, then the rules have failed.",
+      "scene_overview": "The glowing thread is cut",
+      "visuals": [
+        {
+          "concept_name": "thread_cut",
+          "image_prompt": "Dynamic anime action shot, glowing blade slicing through a large glowing thread in space, the thread snapping with a bright flash of energy, dramatic diagonal composition",
+          "animation_prompt": "Blade swings through, thread snaps with explosive light burst"
+        }
+      ]
+    },
+    {
+      "scene_number": 8,
+      "scene_type": "Resolution",
+      "narrator": "And for a moment, it worked.",
+      "scene_overview": "The shadow throne crumbles",
+      "visuals": [
+        {
+          "concept_name": "throne_cracks",
+          "image_prompt": "Anime shot of ornate shadow throne fracturing with visible cracks spreading, the shadow figure dissolving into particles, dramatic lighting from the cracks",
+          "animation_prompt": "Cracks spread across throne, shadow figure dissolves into darkness"
+        }
+      ]
+    },
+    {
+      "scene_number": 9,
+      "scene_type": "Resolution",
+      "narrator": "The weight lifted.",
+      "scene_overview": "Citizens look up at clearing sky",
+      "visuals": [
+        {
+          "concept_name": "people_look_up",
+          "image_prompt": "Anime street scene, citizens looking upward with hopeful expressions, sunlight breaking through dark clouds for the first time, warm golden light on their faces",
+          "animation_prompt": "Clouds part, golden light rays descend, citizens tilt heads up"
+        }
+      ]
+    },
+    {
+      "scene_number": 10,
+      "scene_type": "Complication",
+      "narrator": "But the world was watching.",
+      "scene_overview": "Another power observes from afar",
+      "visuals": [
+        {
+          "concept_name": "world_notices",
+          "image_prompt": "Anime shot of distant silhouetted figure standing on a cliff or tower, watching a glowing snap of light on the horizon, ominous red sky behind them",
+          "animation_prompt": "Distant flash reflects in figure's eyes, they stand motionless watching"
+        }
+      ]
+    },
+    {
+      "scene_number": 11,
+      "scene_type": "Complication",
+      "narrator": "And learning.",
+      "scene_overview": "Another blade is drawn",
+      "visuals": [
+        {
+          "concept_name": "another_blade",
+          "image_prompt": "Close-up anime shot of different hands slowly drawing their own glowing blade from a sheath, similar ethereal glow but with slightly different color, menacing angle",
+          "animation_prompt": "Blade slowly slides out of sheath, begins to glow"
+        }
+      ]
+    },
+    {
+      "scene_number": 12,
+      "scene_type": "Rising Tension",
+      "narrator": "Because when one rule breaks...",
+      "scene_overview": "Other threads around Earth begin flickering",
+      "visuals": [
+        {
+          "concept_name": "other_threads_flicker",
+          "image_prompt": "Wide anime shot of Earth from space, multiple glowing threads wrapped around it now flickering irregularly, some dimming, unstable energy pulses traveling along them",
+          "animation_prompt": "Threads flicker asynchronously, some fade momentarily"
+        }
+      ]
+    },
+    {
+      "scene_number": 13,
+      "scene_type": "Rising Tension",
+      "narrator": "The system that held everything together weakens.",
+      "scene_overview": "Earth with fewer threads, rotating unevenly",
+      "visuals": [
+        {
+          "concept_name": "planet_less_stable",
+          "image_prompt": "Anime shot of Earth from space with noticeably fewer glowing threads, planet rotating slightly off-axis or wobbling, dark space behind, sense of instability",
+          "animation_prompt": "Earth rotates slightly unevenly, remaining threads pulse weakly"
+        }
+      ]
+    },
+    {
+      "scene_number": 14,
+      "scene_type": "Reflection",
+      "narrator": "The problem was real.",
+      "scene_overview": "Enforcer stands still, contemplating",
+      "visuals": [
+        {
+          "concept_name": "enforcer_pauses",
+          "image_prompt": "Anime shot of the enforcer figure standing still in silhouette, blade lowered at their side, head slightly bowed in contemplation, dramatic backlighting",
+          "animation_prompt": "Figure stands motionless, only coat moves slightly"
+        }
+      ]
+    },
+    {
+      "scene_number": 15,
+      "scene_type": "Reflection",
+      "narrator": "The solution was powerful.",
+      "scene_overview": "Severed thread lies on the ground",
+      "visuals": [
+        {
+          "concept_name": "broken_thread_ground",
+          "image_prompt": "Close-up anime shot of the severed glowing thread lying on dark ground, its light slowly dimming, energy dissipating into particles, melancholic mood",
+          "animation_prompt": "Thread's glow fades slowly, particles drift upward and disappear"
+        }
+      ]
+    },
+    {
+      "scene_number": 16,
+      "scene_type": "Reflection",
+      "narrator": "And the system it was used in was fragile.",
+      "scene_overview": "The glowing blade fades",
+      "visuals": [
+        {
+          "concept_name": "fading_blade",
+          "image_prompt": "Anime close-up of the glowing blade slowly fading in brightness, its ethereal light dimming, reflections becoming weaker, bittersweet atmosphere",
+          "animation_prompt": "Blade's glow slowly diminishes, light reflections fade"
+        }
+      ]
+    },
+    {
+      "scene_number": 17,
+      "scene_type": "Warning",
+      "narrator": "Because tools like this never stay in one hand.",
+      "scene_overview": "Multiple blades being forged in darkness",
+      "visuals": [
+        {
+          "concept_name": "many_blades_forged",
+          "image_prompt": "Dark anime scene with multiple unseen figures hammering glowing blades on anvils in deep shadows, sparks flying, many blades being created simultaneously, ominous red underglow",
+          "animation_prompt": "Hammers strike, sparks fly, multiple blades glow brighter"
+        }
+      ]
+    },
+    {
+      "scene_number": 18,
+      "scene_type": "Conclusion",
+      "narrator": "He solved a real problem with a tool that only works if no one else uses it.",
+      "scene_overview": "Blade reflected in a dark eye",
+      "visuals": [
+        {
+          "concept_name": "blade_in_eye",
+          "image_prompt": "Extreme close-up anime shot of one glowing blade reflected in a dark human eye, dramatic and intimate, the eye's pupil dilated, tension visible",
+          "animation_prompt": "Eye reflects the blade's glow, pupil contracts slightly"
+        }
+      ]
+    },
+    {
+      "scene_number": 19,
+      "scene_type": "Closing",
+      "narrator": "That is the paradox of power.",
+      "scene_overview": "Fade to black with single pulsing thread",
+      "visuals": [
+        {
+          "concept_name": "closing_thread",
+          "image_prompt": "Minimal anime scene fading to black, one faint glowing thread pulses weakly in the darkness, isolated and fragile, vast empty black space around it",
+          "animation_prompt": "Screen fades to black, single thread pulses faintly before fading"
+        }
+      ]
+    }
+  ]
+}
