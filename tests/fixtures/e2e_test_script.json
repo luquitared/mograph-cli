@@ -1,0 +1,33 @@
+{
+  "script_title": "What Is Photosynthesis",
+  "subject": "A simple explainer about how plants convert sunlight into energy",
+  "brand_name": "ScienceSimple",
+  "scenes": [
+    {
+      "scene_number": 1,
+      "scene_type": "Hook",
+      "narrator": "Every single day, plants perform an incredible chemical reaction that powers nearly all life on Earth.",
+      "scene_overview": "Hook the viewer by revealing the hidden power of plants",
+      "visuals": [
+        {
+          "concept_name": "sunlit_leaf",
+          "image_prompt": "Extreme close-up of a vibrant green leaf with sunlight streaming through, showing translucent veins and chlorophyll cells, macro photography style, warm golden light",
+          "animation_prompt": "Camera slowly pushes in as sunlight beams intensify through the leaf, particles of light drift downward"
+        }
+      ]
+    },
+    {
+      "scene_number": 2,
+      "scene_type": "Conclusion",
+      "narrator": "That process is called photosynthesis, and without it, life as we know it simply would not exist.",
+      "scene_overview": "Name the process and leave the viewer with a sense of awe",
+      "visuals": [
+        {
+          "concept_name": "earth_glow",
+          "image_prompt": "Wide shot of planet Earth from space with lush green continents glowing, surrounded by a soft halo of oxygen atmosphere, cinematic lighting, deep blue and green palette",
+          "animation_prompt": "Camera slowly pulls back from Earth as the green glow pulses gently, stars twinkle in background"
+        }
+      ]
+    }
+  ]
+}

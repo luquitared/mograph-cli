@@ -1123,7 +1123,7 @@ def _extract_scene_audio_segments(
     original_audio: Path,
     script_data: Dict[str, Any],
     output_dir: Path,
-    extension: str = "mp3",
+    extension: str = "m4a",
 ) -> Dict[int, Path]:
     """Extract audio segments from original voice file based on scene timestamps.
 
@@ -1546,7 +1546,7 @@ def run_stage_final(
             original_audio=original_audio_path,
             script_data=script_data,
             output_dir=audio_dir,
-            extension="mp3",
+            extension="m4a",
         )
         print(f"Extracted {len(audio_by_scene)} scene audio segments")
     else:
