@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
-Batch video generator for Google Veo 3.1 models via Replicate.
+Batch video generator via Replicate.
 
 Supported Models:
   - google/veo-3.1      (quality): Full Veo 3.1, higher quality, supports 1080p
   - google/veo-3.1-fast (fast):    Veo 3.1 Fast, faster generation
+  - kwaivgi/kling-v3-omni-video (kling): Kling Video 3.0, 720p/1080p, native audio
 
 Veo models use the image/last_frame API for frame-to-frame interpolation.
+Kling uses start_image/end_image with mode (standard/pro) selection.
 
 Jobs JSON shape (array of jobs):
   [
@@ -61,9 +63,13 @@ VEO_31_OWNER = "google"
 VEO_31_NAME = "veo-3.1"
 VEO_31_FAST_NAME = "veo-3.1-fast"
 
+KLING_OWNER = "kwaivgi"
+KLING_NAME = "kling-v3-omni-video"
+
 # Model tuples for selection
 QUALITY_MODEL = (VEO_31_OWNER, VEO_31_NAME)        # Full Veo 3.1 - higher quality, reference_images API
 FAST_MODEL = (VEO_31_OWNER, VEO_31_FAST_NAME)     # Veo 3.1 Fast - quicker, image/last_frame API
+KLING_MODEL = (KLING_OWNER, KLING_NAME)            # Kling v3 Omni - 720p/1080p, native audio
 
 # Default model (Fast variant for backwards compatibility)
 MODEL_OWNER = VEO_31_OWNER
@@ -119,8 +125,8 @@ async def process_job(
 ) -> Path:
     """Process a single video generation job with retry logic for content moderation and rate limits.
 
-    Supports both Veo 3.1 and Veo 3.1 Fast using the image/last_frame API for
-    frame-to-frame interpolation. Both models accept the same input parameters.
+    Supports Veo 3.1, Veo 3.1 Fast (image/last_frame API), and Kling v3 Omni
+    (start_image/end_image API with mode selection).
 
     Rate limit retries use exponential backoff with jitter (up to max_rate_limit_retries).
     Content moderation retries use max_retries with a brief fixed delay.
@@ -158,21 +164,31 @@ async def process_job(
         while True:
             total_attempts += 1
             try:
-                # Build Replicate inputs
-                inputs = {
-                    "prompt": prompt,
-                    "duration": config["duration"],
-                    "aspect_ratio": config["aspect_ratio"],
-                    "resolution": config["resolution"],
-                    "generate_audio": config["generate_audio"],
-                }
-
-                # Add image inputs - both Veo 3.1 and Veo 3.1 Fast use the same API
-                # for frame-to-frame interpolation (image + last_frame).
-                if first_url:
-                    inputs["image"] = first_url
-                if last_url:
-                    inputs["last_frame"] = last_url
+                # Build Replicate inputs — Kling vs Veo have different param names
+                if is_kling_model(model_owner, model_name):
+                    inputs = {
+                        "prompt": prompt,
+                        "duration": config["duration"],
+                        "aspect_ratio": config["aspect_ratio"],
+                        "mode": "pro" if config["resolution"] == "1080p" else "standard",
+                        "generate_audio": config["generate_audio"],
+                    }
+                    if first_url:
+                        inputs["start_image"] = first_url
+                    if last_url:
+                        inputs["end_image"] = last_url
+                else:
+                    inputs = {
+                        "prompt": prompt,
+                        "duration": config["duration"],
+                        "aspect_ratio": config["aspect_ratio"],
+                        "resolution": config["resolution"],
+                        "generate_audio": config["generate_audio"],
+                    }
+                    if first_url:
+                        inputs["image"] = first_url
+                    if last_url:
+                        inputs["last_frame"] = last_url
 
                 if config["negative_prompt"]:
                     inputs["negative_prompt"] = config["negative_prompt"]
@@ -237,9 +253,16 @@ def get_model_for_kind(model_kind: str) -> Tuple[str, str]:
         return QUALITY_MODEL  # Full Veo 3.1
     elif model_kind == "fast":
         return FAST_MODEL     # Veo 3.1 Fast
+    elif model_kind == "kling":
+        return KLING_MODEL    # Kling v3 Omni
     else:
         # Default to fast for backwards compatibility
         return FAST_MODEL
+
+
+def is_kling_model(model_owner: str, model_name: str) -> bool:
+    """Check if the given model is a Kling model."""
+    return model_owner == KLING_OWNER
 
 
 async def run_batch_async(
@@ -254,7 +277,7 @@ async def run_batch_async(
     """Run batch video generation with retry logic for content moderation and rate limits.
 
     Args:
-        model_kind: "quality" for full Veo 3.1, "fast" for Veo 3.1 Fast
+        model_kind: "quality" for full Veo 3.1, "fast" for Veo 3.1 Fast, "kling" for Kling v3 Omni
         max_retries: Max retries for content moderation errors (default 3)
         max_rate_limit_retries: Max retries for rate limit errors with exponential backoff (default 10)
     """
@@ -316,9 +339,9 @@ def main():
     parser.add_argument("--max-rate-limit-retries", type=int, default=10, help="Max retries for rate limit errors with exponential backoff (default: 10).")
     parser.add_argument(
         "--model",
-        choices=["quality", "fast"],
+        choices=["quality", "fast", "kling"],
         default="quality",
-        help="Model to use: 'quality' for Veo 3.1, 'fast' for Veo 3.1 Fast. Default: quality",
+        help="Model to use: 'quality' for Veo 3.1, 'fast' for Veo 3.1 Fast, 'kling' for Kling v3 Omni. Default: quality",
     )
     args = parser.parse_args()
 

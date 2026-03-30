@@ -1899,9 +1899,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--video-model",
-        choices=["quality", "fast"],
+        choices=["quality", "fast", "kling"],
         default="fast",
-        help="Video generation model preset: 'quality' for Veo 3.1, 'fast' for Veo 3.1 Fast (default: fast)",
+        help="Video generation model preset: 'quality' for Veo 3.1, 'fast' for Veo 3.1 Fast, 'kling' for Kling v3 Omni (default: fast)",
     )
     parser.add_argument(
         "--video-concurrency",

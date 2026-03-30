@@ -19,7 +19,7 @@ pipeline.py:
 
   # Models
   --image-model MODEL        # Image model (default: gemini-2.5-flash-image-preview)
-  --video-model {quality,fast}  # Video model (default: fast)
+  --video-model {quality,fast,kling}  # Video model (default: fast)
 
   # Video settings
   --video-seconds SEC       # Video duration per scene (default: 6)
@@ -75,10 +75,11 @@ python pipeline.py --resume-dir runs/my-video-20250122-120000 --stage final
 
 ## Video Models
 
-| Model        | CLI Flag                | Resolution    | Duration Options | Best For                      |
-| ------------ | ----------------------- | ------------- | ---------------- | ----------------------------- |
-| Veo 3.1      | `--video-model quality` | Up to 1080p   | 4, 6, 8s         | Higher quality output         |
-| Veo 3.1 Fast | `--video-model fast`    | Up to 720p    | 4, 6, 8s         | Faster generation             |
+| Model            | CLI Flag                | Resolution              | Duration Options | Best For                      |
+| ---------------- | ----------------------- | ----------------------- | ---------------- | ----------------------------- |
+| Veo 3.1          | `--video-model quality` | Up to 1080p             | 4, 6, 8s         | Higher quality output         |
+| Veo 3.1 Fast     | `--video-model fast`    | Up to 720p              | 4, 6, 8s         | Faster generation             |
+| Kling v3 Omni    | `--video-model kling`   | 720p (standard) / 1080p (pro) | 3–15s      | Flexible duration, native audio |
 
 ## Mock Mode (Testing)
 
