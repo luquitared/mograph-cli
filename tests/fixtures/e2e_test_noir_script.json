@@ -1,0 +1,33 @@
+{
+  "script_title": "The Art of Espresso",
+  "subject": "A moody, cinematic look at how espresso is made",
+  "brand_name": "DarkRoast",
+  "scenes": [
+    {
+      "scene_number": 1,
+      "scene_type": "Hook",
+      "narrator": "In the dim glow of morning, the espresso machine hisses to life like a whispered secret.",
+      "scene_overview": "Set the moody, noir atmosphere of the espresso ritual",
+      "visuals": [
+        {
+          "concept_name": "espresso_machine_steam",
+          "image_prompt": "Dramatic close-up of a vintage chrome espresso machine with billowing steam rising, dark moody lighting, film noir aesthetic, high contrast with warm amber highlights against deep shadows",
+          "animation_prompt": "Steam slowly curls upward from the espresso machine portafilter, dramatic side lighting flickers subtly"
+        }
+      ]
+    },
+    {
+      "scene_number": 2,
+      "scene_type": "Conclusion",
+      "narrator": "And there it is, the perfect shot, dark as midnight, crowned in liquid gold.",
+      "scene_overview": "Reveal the beauty of the finished espresso with cinematic drama",
+      "visuals": [
+        {
+          "concept_name": "espresso_pour_crema",
+          "image_prompt": "Slow pour of rich dark espresso into a white ceramic cup, golden crema forming on the surface, dramatic shadows cast across a marble counter, cinematic film noir lighting, shallow depth of field",
+          "animation_prompt": "Espresso streams down into the cup as golden crema swirls and forms on the surface, camera slowly pushes in"
+        }
+      ]
+    }
+  ]
+}

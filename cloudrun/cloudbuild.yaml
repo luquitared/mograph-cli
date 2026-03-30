@@ -10,7 +10,6 @@ substitutions:
   _CONCURRENCY: "1"  # One request per container to avoid disk/memory contention
   _MAX_INSTANCES: "10"
   _MIN_INSTANCES: "0"
-  _ENV: prod
 
 steps:
   # Build the Docker image
@@ -62,7 +61,7 @@ steps:
       - '--min-instances'
       - '${_MIN_INSTANCES}'
       - '--set-secrets'
-      - 'OPENAI_API_KEY=openai-api-key:latest,REPLICATE_API_TOKEN=replicate-api-token:latest,ELEVENLABS_API_KEY=elevenlabs-api-key:latest,GOOGLE_API_KEY=google-api-key:latest'
+      - 'OPENAI_API_KEY=openai-api-key:latest,REPLICATE_API_TOKEN=replicate-api-token:latest,ELEVENLABS_API_KEY=elevenlabs-api-key:latest,GOOGLE_API_KEY=google-api-key:latest,PIPELINE_API_KEY=pipeline-api-key:latest'
       - '--allow-unauthenticated'  # Remove this line if you want to require authentication
 
 images:

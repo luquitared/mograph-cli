@@ -300,7 +300,7 @@ Health check endpoint.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `video_model` | string | "fast" | Video model: quality or fast |
+| `video_model` | string | "fast" | Video model: quality, fast, or kling |
 | `video_seconds` | int | 6 | Video duration per scene (4, 6, or 8) |
 | `video_resolution` | string | "720p" | Video resolution |
 | `video_concurrency` | int | 8 | Concurrent video generation jobs |

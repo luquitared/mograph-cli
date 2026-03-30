@@ -68,7 +68,7 @@ echo "Version info: commit=${GIT_COMMIT}${GIT_DIRTY} branch=${GIT_BRANCH}"
 # Build substitutions for staging environment
 SUBSTITUTIONS=""
 if [ "$ENV" = "staging" ]; then
-    SUBSTITUTIONS="_SERVICE_NAME=explainer-mograph-staging,_MAX_INSTANCES=3,_ENV=staging"
+    SUBSTITUTIONS="_SERVICE_NAME=explainer-mograph-staging,_MAX_INSTANCES=3"
 fi
 
 # Submit build to Cloud Build

@@ -95,6 +95,7 @@ class VideoModel(str, Enum):
     """Available video generation models."""
     QUALITY = "quality"
     FAST = "fast"
+    KLING = "kling"
 
 
 class StartFrameMode(str, Enum):
@@ -142,7 +143,7 @@ class GenerateRequest(BaseModel):
     stage: PipelineStage = Field(PipelineStage.FINAL, description="Pipeline stage: images, videos, or final")
 
     # Video generation options
-    video_model: VideoModel = Field(VideoModel.FAST, description="Video model: quality or fast")
+    video_model: VideoModel = Field(VideoModel.FAST, description="Video model: quality, fast, or kling")
     video_seconds: int = Field(6, description="Video duration per scene (4, 6, or 8)")
     video_resolution: str = Field("720p", description="Video resolution")
     video_concurrency: int = Field(8, description="Concurrent video generation jobs")
@@ -462,15 +463,21 @@ def _run_pipeline_sync(request: GenerateRequest, job_id: str) -> dict:
                     return
 
                 # Wait for file to be stable (not being written)
-                # Videos need longer wait due to moov atom being written at the end
-                wait_time = 2 if file_path.suffix.lower() == ".mp4" else 1
+                # Finals need extra checks — ffmpeg writes data then seeks back to write moov atom
+                is_mp4 = file_path.suffix.lower() == ".mp4"
+                checks = 3 if (is_mp4 and asset_type == "final") else 2
+                wait_per_check = 3 if (is_mp4 and asset_type == "final") else 2 if is_mp4 else 1
                 try:
-                    size1 = file_path.stat().st_size
-                    time.sleep(wait_time)
-                    size2 = file_path.stat().st_size
-                    if size1 != size2 or size1 == 0:
-                        print(f"[WATCHER] File still being written, skipping for now: {file_path.name}")
-                        return  # Will be picked up on next scan
+                    prev_size = file_path.stat().st_size
+                    if prev_size == 0:
+                        return
+                    for _ in range(checks):
+                        time.sleep(wait_per_check)
+                        curr_size = file_path.stat().st_size
+                        if curr_size != prev_size or curr_size == 0:
+                            print(f"[WATCHER] File still being written, skipping for now: {file_path.name}")
+                            return  # Will be picked up on next scan
+                        prev_size = curr_size
                 except Exception:
                     return  # File might have been deleted
 
@@ -490,12 +497,11 @@ def _run_pipeline_sync(request: GenerateRequest, job_id: str) -> dict:
                         asset_url = f"gs://{bucket_name}/{gcs_path}"
                         print(f"[WATCHER] Uploaded {asset_type}: {file_path.name}")
 
-                        # Delete local file after successful GCS upload to prevent tmpfs exhaustion
-                        try:
-                            file_path.unlink()
-                            print(f"[WATCHER] Deleted local file after upload: {file_path.name}")
-                        except OSError:
-                            pass  # File may have already been deleted
+                        # Note: we intentionally do NOT delete local files here.
+                        # The watcher runs concurrently with the pipeline, and deleting files
+                        # causes race conditions (images needed for video generation, scene videos
+                        # needed for final concat, final mp4 needed for ffmpeg moov atom faststart).
+                        # Cleanup happens in the finally block via workspace.cleanup().
 
                     _emit_progress(
                         external_job_id,
