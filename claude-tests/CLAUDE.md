@@ -91,6 +91,14 @@ Each mode should produce in its `final/` directory:
 - `final_with_sfx.mp4` — video with narration + Veo sound effects
 - `final_images_only.mp4` — static images + narration (may be skipped if audio extraction fails)
 
+**Important:** Each agent must print the full absolute path of every output file when reporting results. For example:
+```
+/Users/.../runs/what-is-photosynthesis-20260329-235104/final/final.mp4
+/Users/.../runs/what-is-photosynthesis-20260329-235104/final/final_with_sfx.mp4
+/Users/.../runs/what-is-photosynthesis-20260329-235104/final/final_images_only.mp4
+```
+This allows the user to immediately open and review each video without searching for the run directory.
+
 ## Known Issues
 
 - Voice mode: if `start_time`/`end_time` are missing or zero, audio extraction falls back to silence. The timestamps from the transcript are required.
