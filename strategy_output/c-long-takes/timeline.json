@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "project": {
+    "name": "Throne Room Anime — Two Long Takes",
+    "description": "2 long clips with timestamp-annotated prompts for internal scene pacing"
+  },
+  "defaults": {
+    "video": {
+      "model": "veo-3.1-lite",
+      "duration": 8,
+      "generate_audio": true,
+      "aspect_ratio": "9:16",
+      "resolution": "720p"
+    },
+    "image": {
+      "model": "nano-banana-pro",
+      "aspect_ratio": "9:16"
+    }
+  },
+  "tracks": [
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "vid-1",
+          "label": "Opening exchange (shots 1-4)",
+          "source": {
+            "type": "video",
+            "prompt": "Anime scene in a candlelit throne room, portrait framing, anime art style with detailed cel-shading. [0:00] A stern bearded king in dark ornate robes over red garment sits rigidly, an advisor's hand gestures toward him from the right. [0:02] Cut to a concerned heavier advisor in dark patterned robes with gold trim, leaning forward with clasped hands. [0:04] The king's expression shifts to agitation, brow furrowing deeply. [0:06] A young servant with mustache and goatee in dark robes speaks seriously, warm amber candlelight throughout.",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "Anime art style, detailed cel-shading with bold outlines, a stern-faced bearded man in dark ornate robes over red inner garment, hair in top knot with elaborate dark headpiece, sitting in a candlelit ornate throne room, a hand gesturing toward him from the right, warm amber lighting, medium close-up, portrait orientation",
+                "reference_images": ["../../scene_export_012d38e0/frames/shot_001.jpg"]
+              }
+            }
+          }
+        },
+        {
+          "id": "vid-2",
+          "label": "Escalation to fury (shots 5-7)",
+          "source": {
+            "type": "video",
+            "prompt": "Anime scene continuing in candlelit throne room, portrait framing, anime art style with detailed cel-shading. [0:00] The determined king with small beard speaks forcefully, furrowed brow and tight lips, gesturing as he talks about barbarian states entering the capital. [0:03] A heavier advisor with clasped hands looks down with a serious worried expression. [0:05] The king's expression turns to outright fury, narrowed eyes and clenched jaw, speaking through gritted teeth about defending honor, dramatic candlelight shadows flicker across his face.",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "Anime art style, detailed cel-shading with bold outlines, a determined and slightly angry bearded man with furrowed brow and tight lips, wearing dark ornate robes over red inner garment, hair in top knot with elaborate dark headpiece, sitting in ornate candlelit throne room, intense expression, medium close-up, portrait orientation",
+                "reference_images": ["../../scene_export_012d38e0/frames/shot_005.jpg"]
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4"
+  }
+}

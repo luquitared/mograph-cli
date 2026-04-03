@@ -1056,7 +1056,7 @@ def execute_timeline(
         RunResult with all completed node results and error information.
     """
     # Defense-in-depth: validate timeline before execution
-    validation_result = validate(timeline)
+    validation_result = validate(timeline, timeline_dir=timeline_dir)
     if not validation_result.is_valid:
         error_msgs = [f"{e.severity}: {e.message}" for e in validation_result.errors]
         raise ValueError(f"Timeline validation failed:\n" + "\n".join(error_msgs))

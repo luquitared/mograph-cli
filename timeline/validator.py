@@ -581,12 +581,13 @@ def _validate_file_or_url(
                 path, f"File not found: {value}", "error",
             ))
     else:
-        # No timeline_dir (inline timeline) — local file paths not allowed
-        errors.append(ValidationError(
-            path,
-            "Local file paths are not supported with inline timelines. Use a URL instead.",
-            "error",
-        ))
+        # No timeline_dir — resolve relative to CWD, existence check only.
+        # Security enforcement happens at execution time where timeline_dir is set.
+        file_path = Path.cwd() / value
+        if not file_path.resolve().exists():
+            errors.append(ValidationError(
+                path, f"File not found: {value}", "error",
+            ))
 
 
 

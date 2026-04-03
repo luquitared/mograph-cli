@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "project": {
+    "name": "Throne Room Anime — Granular Reference",
+    "description": "4 independent clips, each with its own anime first frame from original reference"
+  },
+  "defaults": {
+    "video": {
+      "model": "veo-3.1-lite",
+      "duration": 4,
+      "generate_audio": true,
+      "aspect_ratio": "9:16",
+      "resolution": "720p"
+    },
+    "image": {
+      "model": "nano-banana-pro",
+      "aspect_ratio": "9:16"
+    }
+  },
+  "tracks": [
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "vid-1",
+          "label": "King stern, Advisor pleads (shots 1-2)",
+          "source": {
+            "type": "video",
+            "prompt": "Anime scene, a stern bearded king in dark ornate robes with red inner garment sits in a candlelit throne room, an advisor's hand gestures toward him pleadingly, warm amber lighting, the king's expression shifts from irritation to guarded concern, medium close-up, anime art style",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "Anime art style, cel-shaded, a stern-faced bearded man in dark ornate robes over red inner garment, hair in top knot with elaborate dark headpiece, sitting in a candlelit ornate throne room, a hand gesturing toward him from the right, warm amber lighting, medium close-up, portrait orientation",
+                "reference_images": ["../../scene_export_012d38e0/frames/shot_001.jpg"],
+                "candidates": [
+                  {"prompt": "Anime art style, detailed cel-shading with bold outlines, a stern-faced bearded man in dark ornate robes over red inner garment, hair in top knot with elaborate dark headpiece, sitting in a candlelit ornate throne room, a hand gesturing toward him from the right, warm amber lighting, medium close-up, portrait orientation"},
+                  {"prompt": "Anime art style, soft watercolor aesthetic with muted tones, a stern-faced bearded man in dark ornate robes over red inner garment, hair in top knot with elaborate dark headpiece, sitting in a candlelit ornate throne room, a hand gesturing toward him from the right, warm amber lighting, medium close-up, portrait orientation"},
+                  {"prompt": "Studio Ghibli inspired anime style, rich colors and soft shading, a stern-faced bearded man in dark ornate robes over red inner garment, hair in top knot with elaborate dark headpiece, sitting in a candlelit ornate throne room, a hand gesturing toward him from the right, warm amber lighting, medium close-up, portrait orientation"}
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "vid-2",
+          "label": "King agitated, Servant reports (shots 3-4)",
+          "source": {
+            "type": "video",
+            "prompt": "Anime scene, a young servant with mustache and goatee in dark robes with patterned sash speaks seriously in a candlelit throne room, the king visible in background looking agitated, warm amber lighting, medium close-up, anime art style",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "Anime art style, cel-shaded, a serious young man with mustache and goatee, wearing dark robes with patterned sash, hair in ponytail with gold ornament, standing in ornate candlelit throne room, slightly concerned expression, medium close-up, portrait orientation",
+                "reference_images": ["../../scene_export_012d38e0/frames/shot_004.jpg"]
+              }
+            }
+          }
+        },
+        {
+          "id": "vid-3",
+          "label": "King's determined speech (shot 5)",
+          "source": {
+            "type": "video",
+            "prompt": "Anime scene, an angry determined king with small beard in dark ornate robes over red garment speaks forcefully in a candlelit throne room, his brow furrowed and lips tight, subtle head movements as he delivers his speech, warm amber lighting, medium close-up, anime art style",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "Anime art style, cel-shaded, a determined and slightly angry bearded man with furrowed brow, wearing dark ornate robes over red inner garment, hair in top knot with elaborate dark headpiece, sitting in ornate candlelit throne room, medium close-up, portrait orientation",
+                "reference_images": ["../../scene_export_012d38e0/frames/shot_005.jpg"]
+              }
+            }
+          }
+        },
+        {
+          "id": "vid-4",
+          "label": "Advisor worried, King furious (shots 6-7)",
+          "source": {
+            "type": "video",
+            "prompt": "Anime scene, a very angry king with small beard in dark ornate robes slams his fist, furious expression with narrowed eyes, candlelit throne room with flickering shadows, intense dramatic lighting, medium close-up, anime art style",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "Anime art style, cel-shaded, a very angry frustrated man with small beard and narrowed eyes, wearing dark ornate robes over red inner garment, hair in top knot with elaborate dark headpiece, sitting in ornate candlelit throne room, intense expression, medium close-up, portrait orientation",
+                "reference_images": ["../../scene_export_012d38e0/frames/shot_007.jpg"]
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4"
+  }
+}

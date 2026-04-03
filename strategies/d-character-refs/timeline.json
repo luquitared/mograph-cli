@@ -1,0 +1,91 @@
+{
+  "_comment": "Phase 2: Video generation using character/scene references from Phase 1. Run after copying refs to refs/ folder.",
+  "version": 1,
+  "project": {
+    "name": "Throne Room Anime — Character Refs",
+    "description": "3 video clips guided by pre-generated character and scene reference images"
+  },
+  "defaults": {
+    "video": {
+      "model": "veo-3.1-lite",
+      "generate_audio": true,
+      "aspect_ratio": "9:16",
+      "resolution": "720p"
+    },
+    "image": {
+      "model": "nano-banana-pro",
+      "aspect_ratio": "9:16"
+    }
+  },
+  "tracks": [
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "vid-1",
+          "label": "King stern, Advisor pleads (shots 1-2)",
+          "source": {
+            "type": "video",
+            "duration": 4,
+            "prompt": "Anime scene in a candlelit throne room, a stern bearded king in dark ornate robes over red garment sits rigidly while a heavier-set advisor in gold-trimmed robes gestures pleadingly toward him, warm amber candlelight, medium close-up, anime art style with detailed cel-shading",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "Anime art style, detailed cel-shading, a stern bearded king in dark ornate robes over red inner garment with top knot and dark headpiece, sitting in a candlelit throne room, a heavier advisor in gold-trimmed robes visible gesturing from the right, warm amber lighting, medium close-up, portrait orientation",
+                "reference_images": [
+                  "refs/characters/king.png",
+                  "refs/characters/advisor.png",
+                  "refs/scenes/throne-room.png"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "vid-2",
+          "label": "King agitated, Servant reports (shots 3-4)",
+          "source": {
+            "type": "video",
+            "duration": 4,
+            "prompt": "Anime scene in a candlelit throne room, a young servant with mustache and goatee in dark robes with patterned sash speaks seriously, the agitated king visible in background, warm amber candlelight, medium close-up, anime art style with detailed cel-shading",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "Anime art style, detailed cel-shading, a serious young man with mustache and goatee wearing dark robes with geometric patterned sash, ponytail with gold ornament, standing in an ornate candlelit throne room, the king faintly visible behind, warm amber lighting, medium close-up, portrait orientation",
+                "reference_images": [
+                  "refs/characters/servant.png",
+                  "refs/characters/king.png",
+                  "refs/scenes/throne-room.png"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "vid-3",
+          "label": "King's angry speech, Advisor worried (shots 5-7)",
+          "source": {
+            "type": "video",
+            "duration": 8,
+            "prompt": "Anime scene in a candlelit throne room, the king with small beard in dark ornate robes speaks with rising fury about defending honor, his expression intensifies from determined to enraged, a worried heavier advisor with clasped hands briefly visible, candlelight flickers casting dramatic shadows, medium close-up with subtle camera push-in, anime art style with detailed cel-shading",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "Anime art style, detailed cel-shading, a determined angry bearded king in dark ornate robes over red inner garment with top knot and dark headpiece, furrowed brow and tight lips, sitting in candlelit throne room, intense expression, warm amber lighting, medium close-up, portrait orientation",
+                "reference_images": [
+                  "refs/characters/king.png",
+                  "refs/characters/advisor.png",
+                  "refs/scenes/throne-room.png"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4"
+  }
+}

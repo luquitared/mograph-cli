@@ -259,7 +259,7 @@ def _run_timeline_sync(request: GenerateRequest, job_id: str) -> dict:
         # Parse the timeline
         if request.timeline_json:
             timeline = parse_timeline(request.timeline_json)
-            timeline_dir = None
+            timeline_dir = workspace.local_base
         elif request.timeline_file:
             # Download from GCS
             inputs = workspace.download_inputs(
