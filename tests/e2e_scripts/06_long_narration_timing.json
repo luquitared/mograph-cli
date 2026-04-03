@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "project": {
+    "name": "E2E Long Narration Timing",
+    "description": "Tests timing edge case: scene 1 has very long narration (many words), scene 2 is short — exercises audio/video duration matching and padding"
+  },
+  "defaults": {
+    "video": {
+      "model": "veo-3.1-fast",
+      "duration": 6,
+      "generate_audio": false
+    },
+    "image": {
+      "model": "nano-banana-pro",
+      "aspect_ratio": "16:9"
+    },
+    "tts": {
+      "voice": "Kore"
+    }
+  },
+  "tracks": [
+    {
+      "id": "narration",
+      "type": "narration",
+      "clips": [
+        {
+          "id": "narr-1",
+          "source": {
+            "type": "tts",
+            "text": "In nineteen sixty nine, three astronauts climbed aboard a rocket the size of a thirty-six story building, strapped themselves into a tiny capsule at the very top, and trusted that four hundred thousand engineers had gotten every single calculation right, because if even one decimal point was wrong, they would not be coming home. That is the story of Apollo eleven."
+          }
+        },
+        {
+          "id": "narr-2",
+          "source": {
+            "type": "tts",
+            "text": "They made it."
+          }
+        }
+      ]
+    },
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "vid-1",
+          "fit_to": "narr-1",
+          "source": {
+            "type": "video",
+            "prompt": "Steam intensifies at the base. Countdown lights flash. The rocket begins to lift off slowly, flames erupting from the engines. Camera holds steady as the rocket rises, tracking it upward.",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "The Saturn V rocket on the launch pad at Kennedy Space Center, dawn light casting long shadows. Steam vents from the base of the rocket. The sky is a gradient from dark navy blue at the top to warm orange at the horizon. Photorealistic, cinematic wide shot, slight low angle looking up at the towering rocket."
+              }
+            }
+          }
+        },
+        {
+          "id": "vid-2",
+          "fit_to": "narr-2",
+          "source": {
+            "type": "video",
+            "prompt": "Camera is still. A tiny dust particle drifts across the frame. Earth glows faintly in the background. The scene is almost motionless, contemplative.",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "Close-up of a single boot footprint in grey lunar soil, sharp and well-defined with no wind to disturb it. The surface is dusty and cratered. Earth is visible as a small blue marble in the black sky above the horizon. Photorealistic, iconic composition, high contrast between the bright surface and black sky."
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4",
+    "variants": {
+      "narration_only": true,
+      "narration_sfx": false
+    }
+  }
+}

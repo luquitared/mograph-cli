@@ -221,11 +221,11 @@ class GCSWorkspace:
         self,
         reference_images: List[str],
         main_ref: Optional[str] = None,
-        script_file: Optional[str] = None,
+        timeline_file: Optional[str] = None,
         voice_file: Optional[str] = None,
     ) -> dict:
         """Download input files from GCS and return local paths."""
-        result = {"reference_images": [], "main_ref": None, "script_file": None, "voice_file": None}
+        result = {"reference_images": [], "main_ref": None, "timeline_file": None, "voice_file": None}
 
         if reference_images:
             ref_dir = self.inputs_dir / "brand"  # Keep dir name for backwards compat
@@ -237,10 +237,10 @@ class GCSWorkspace:
             download_file(main_ref, main_ref_path)
             result["main_ref"] = main_ref_path
 
-        if script_file:
-            script_path = self.inputs_dir / "script.json"
-            download_file(script_file, script_path)
-            result["script_file"] = script_path
+        if timeline_file:
+            timeline_path = self.inputs_dir / "timeline.json"
+            download_file(timeline_file, timeline_path)
+            result["timeline_file"] = timeline_path
 
         if voice_file:
             # Preserve original extension (mp3, wav, m4a, etc.)

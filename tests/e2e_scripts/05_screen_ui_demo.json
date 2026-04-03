@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "project": {
+    "name": "E2E Screen UI Demo",
+    "description": "Tests generation of software UI and screen recordings — common in product explainer videos, hard for AI models"
+  },
+  "defaults": {
+    "video": {
+      "model": "veo-3.1-fast",
+      "duration": 6,
+      "generate_audio": false
+    },
+    "image": {
+      "model": "nano-banana-pro",
+      "aspect_ratio": "16:9"
+    },
+    "tts": {
+      "voice": "Kore"
+    }
+  },
+  "tracks": [
+    {
+      "id": "narration",
+      "type": "narration",
+      "clips": [
+        {
+          "id": "narr-1",
+          "source": {
+            "type": "tts",
+            "text": "Managing your tasks should not feel like a second job."
+          }
+        },
+        {
+          "id": "narr-2",
+          "source": {
+            "type": "tts",
+            "text": "With a cleaner design, you see only what matters right now."
+          }
+        }
+      ]
+    },
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "vid-1",
+          "fit_to": "narr-1",
+          "source": {
+            "type": "video",
+            "prompt": "New notification badges pop up. Another modal window slides in on top of existing ones. A loading spinner appears in the corner. The feeling of chaos builds.",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "A laptop screen displaying an overly complex project management dashboard. Dozens of tiny cards in columns, too many notification badges showing '99+', overlapping modal windows, a cramped sidebar with 30+ menu items. The screen feels chaotic and overwhelming. Realistic product screenshot style, slight perspective angle showing the laptop on a desk."
+              }
+            }
+          }
+        },
+        {
+          "id": "vid-2",
+          "fit_to": "narr-2",
+          "source": {
+            "type": "video",
+            "prompt": "A cursor smoothly clicks a checkbox on the top task. The task fades out with a satisfying animation. The remaining tasks slide up gently to fill the space.",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "The same laptop now displays a beautifully minimal task manager. A clean white interface with just three task cards visible, each with a simple checkbox, title, and subtle color-coded priority dot. Generous whitespace, a minimal top navigation bar with only four items. The screen feels calm and focused. Realistic product screenshot style, same desk angle."
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4",
+    "variants": {
+      "narration_only": true,
+      "narration_sfx": false
+    }
+  }
+}

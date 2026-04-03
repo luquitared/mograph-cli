@@ -1,20 +1,20 @@
 # batch/
 
-Batch processing client for Cloud Run — submits multiple video generation jobs in parallel, handles reference image uploads, and downloads results from GCS.
+Batch processing client for Cloud Run — submits multiple video generation jobs from timeline JSON files in parallel and downloads results from GCS.
 
 ## Files
 
-- `batch_cloudrun.py` — Async CLI client that reads script JSON files from a directory, uploads reference images to GCS, submits jobs to `/generate` endpoint concurrently via `aiohttp`, and downloads results. Supports per-script `pipeline_config` overrides.
-- `batch_config.example.json` — Config template with service URL, output bucket, and pipeline defaults
+- `batch_cloudrun.py` — Async CLI client that reads timeline JSON files from a directory, submits jobs to `/generate` endpoint concurrently via `aiohttp`, and downloads results.
+- `batch_config.example.json` — Config template with service URL, output bucket, and defaults (stage, concurrency, mock)
 - `README.md` — Setup and usage documentation
-- `test-scripts/` — Test fixture scripts for batch testing
+- `test-scripts/` — Test fixture timelines for batch testing
 
 ## Key Interfaces
 
-- **CLI**: `python batch/batch_cloudrun.py --config batch_config.json --scripts-dir ./scripts`
-- **Config layering**: JSON config file → CLI args → per-script `pipeline_config` in each script JSON
+- **CLI**: `python batch/batch_cloudrun.py --config batch_config.json --timelines-dir ./timelines`
+- **Config layering**: JSON config file → CLI args
 - **Auth**: Uses Google Cloud identity token for IAM + API key for app-level auth
-- **Script discovery**: Finds `*.json` files with a `scenes` key in the scripts directory
+- **Timeline discovery**: Finds `*.json` files with `project` and `tracks` keys (timeline format)
 
 ## Dependencies
 

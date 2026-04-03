@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "project": {
+    "name": "E2E Text Heavy Infographic",
+    "description": "Tests image generation with on-screen text, numbers, and data — common failure mode for AI image models"
+  },
+  "defaults": {
+    "video": {
+      "model": "veo-3.1-fast",
+      "duration": 6,
+      "generate_audio": false
+    },
+    "image": {
+      "model": "nano-banana-pro",
+      "aspect_ratio": "16:9"
+    },
+    "tts": {
+      "voice": "Kore"
+    }
+  },
+  "tracks": [
+    {
+      "id": "narration",
+      "type": "narration",
+      "clips": [
+        {
+          "id": "narr-1",
+          "source": {
+            "type": "tts",
+            "text": "Every year, Americans throw away over forty million tons of food."
+          }
+        },
+        {
+          "id": "narr-2",
+          "source": {
+            "type": "tts",
+            "text": "That is roughly one hundred and thirty billion dollars lost, straight from our kitchens to the landfill."
+          }
+        }
+      ]
+    },
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "vid-1",
+          "fit_to": "narr-1",
+          "source": {
+            "type": "video",
+            "prompt": "The number counter animates upward from zero to 40 million. Food icons gently drift downward like falling leaves.",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "Clean infographic style. A large bold number '40 MILLION TONS' dominates the center in dark navy blue. Below it, small text reads 'of food wasted per year'. Background is light cream with subtle icons of bread, apples, and milk cartons scattered around the edges. Flat design, no gradients."
+              }
+            }
+          }
+        },
+        {
+          "id": "vid-2",
+          "fit_to": "narr-2",
+          "source": {
+            "type": "video",
+            "prompt": "Dollar bills peel off the stack and float into the trash bin one by one. The '$130 BILLION' text pulses once.",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "Split composition infographic. Left side: a tall stack of green dollar bills with '$130 BILLION' printed in bold white text on a dark green banner across it. Right side: a large grey trash bin overflowing with colorful food items — lettuce, tomatoes, bread. Clean white background, flat vector illustration style."
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4",
+    "variants": {
+      "narration_only": true,
+      "narration_sfx": false
+    }
+  }
+}

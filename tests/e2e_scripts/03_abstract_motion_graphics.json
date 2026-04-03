@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "project": {
+    "name": "E2E Abstract Motion Graphics",
+    "description": "Tests pure motion graphics with geometric shapes and transitions — no characters, no text"
+  },
+  "defaults": {
+    "video": {
+      "model": "veo-3.1-fast",
+      "duration": 6,
+      "generate_audio": false
+    },
+    "image": {
+      "model": "nano-banana-pro",
+      "aspect_ratio": "16:9"
+    },
+    "tts": {
+      "voice": "Kore"
+    }
+  },
+  "tracks": [
+    {
+      "id": "narration",
+      "type": "narration",
+      "clips": [
+        {
+          "id": "narr-1",
+          "source": {
+            "type": "tts",
+            "text": "Sound travels as a wave, an invisible ripple through the air around us."
+          }
+        },
+        {
+          "id": "narr-2",
+          "source": {
+            "type": "tts",
+            "text": "When those waves reach your ear, your brain turns vibrations into music, into language, into meaning."
+          }
+        }
+      ]
+    },
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "vid-1",
+          "fit_to": "narr-1",
+          "source": {
+            "type": "video",
+            "prompt": "The concentric circles pulse outward in rhythm. The horizontal waveform lines oscillate up and down smoothly like a living equalizer. Subtle particle dust drifts in the background.",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "Abstract motion graphics composition on a deep black background. Concentric circles in electric blue and cyan radiate outward from a central point, like ripples in water. Thin white horizontal lines cross the frame at varying heights, resembling an audio waveform. Minimalist, no text, high contrast."
+              }
+            }
+          }
+        },
+        {
+          "id": "vid-2",
+          "fit_to": "narr-2",
+          "source": {
+            "type": "video",
+            "prompt": "The chaotic waves on the left flow rightward, transforming mid-frame into the structured gold hexagonal grid. The transition sweeps from left to right like a reveal.",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "Abstract motion graphics on deep black background. Chaotic blue and cyan wave lines on the left side gradually converge and organize into a perfect geometric hexagonal grid pattern on the right side, glowing in warm gold and amber. A visual metaphor for disorder becoming order. Minimalist, high contrast, no text."
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4",
+    "variants": {
+      "narration_only": true,
+      "narration_sfx": false
+    }
+  }
+}

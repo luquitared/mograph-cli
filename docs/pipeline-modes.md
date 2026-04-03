@@ -1,69 +1,37 @@
 # Pipeline Modes
 
-## Mode Summary
+## Timeline Format
 
-| Mode | Input | Best For |
-|------|-------|----------|
-| **Script Mode** (default) | Full script JSON with scenes | Full creative control |
-| **TTS-Only Mode** | Narration text + `--tts-only` | Generate audio first, design script manually |
-| **Voice Mode** | Voice recording + `--voice-file` | Your own narration |
-
-## 1. Script Mode (default)
-
-Provide a complete script JSON with scenes, narration, and visual prompts:
+The pipeline uses a timeline JSON format for all video generation. A timeline defines tracks with clips, where each clip specifies its media sources (images, video, TTS audio).
 
 ```bash
-python pipeline.py \
-  --script-file my-complete-script.json \
-  --main-ref images/main-ref-images/blank_white_9x16.png \
-  --stage final
+python pipeline.py --timeline-file my-timeline.json --stage final
 ```
 
-Flow: Script loaded -> images -> videos -> TTS per scene -> audio reconciled with video -> final assembly.
+## Staged Execution
 
-## 2. TTS-Only Mode
+| Stage | What happens |
+|-------|-------------|
+| `images` | Generate images from clip prompts |
+| `videos` | Generate images + video clips |
+| `final` | Full pipeline: images, videos, TTS, and final assembly |
 
-Generate TTS and timestamps, then stop. Design your script manually with Claude, then resume:
+## Exploration Mode
+
+When a timeline uses `explore` settings, the pipeline generates multiple candidates and pauses for selection:
 
 ```bash
-python pipeline.py \
-  --script-file my-narration-script.json \
-  --tts-only
+# Initial run generates candidates and pauses
+python pipeline.py --timeline-file my-timeline.json --stage final
 
-# Design script using timestamps, then resume:
-python pipeline.py \
-  --resume-dir runs/my-video-20251209-142627 \
-  --stage final
+# After selecting candidates, resume
+python pipeline.py --timeline-file my-timeline.json --resume-dir runs/<run-dir> --stage final
 ```
 
-## 3. Voice Mode (Voice-to-Video)
+## Dry Run
 
-Create videos from your own voice recordings:
+Preview the execution plan without running:
 
 ```bash
-python pipeline.py \
-  --voice-file my-narration.mp3 \
-  --main-ref images/main-ref-images/blank_white_9x16.png \
-  --style-notes "Minimalist tech aesthetic, blue and white" \
-  --stage final
+python pipeline.py --timeline-file my-timeline.json --dry-run
 ```
-
-Flow: Deepgram transcription (word-level timestamps) -> segments into scenes -> images -> videos -> original audio sliced per scene -> final assembly.
-
-Tips: Speak clearly with natural pauses between topics. The AI uses pauses to create logical scene breaks.
-
-### Transcription Module
-
-```bash
-python transcribe.py my-audio.mp3          # Basic transcription
-python transcribe.py my-audio.mp3 --llm-format  # LLM-friendly output
-```
-
-## Start Frame Modes (`--start-frame-mode`)
-
-| Mode | How It Works | Parallel? | Best For |
-|------|-------------|-----------|----------|
-| `animate` (default) | Each scene's image is the start frame, no end frame constraint | Yes | Creative freedom for the model |
-| `transition` | Previous scene's image is the start frame | Yes | Visual continuity between scenes |
-| `reference` | Always uses blank reference as start frame | Yes | Each scene starts fresh |
-| `sequential` | Extracts last frame from previous video | No (slower) | Seamless video-to-video transitions |

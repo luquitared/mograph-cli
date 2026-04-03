@@ -2,7 +2,7 @@
 
 Deploy the Explainer MoGraph pipeline as a serverless HTTP API on Google Cloud Run.
 
-> **For batch processing multiple videos**, use [`batch/batch_cloudrun.py`](../batch/README.md) which handles script uploads, reference images, and result downloads automatically.
+> **For batch processing multiple videos**, use [`batch/batch_cloudrun.py`](../batch/README.md) which handles timeline uploads, reference images, and result downloads automatically.
 
 ## Overview
 
@@ -92,7 +92,7 @@ SERVICE_URL=$(gcloud run services describe explainer-mograph --region us-central
 curl -X POST "$SERVICE_URL/generate" \
   -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
   -H "Content-Type: application/json" \
-  -d '{"script_file": "gs://bucket/inputs/script.json", "output_uri": "gs://bucket/path"}'
+  -d '{"timeline_file": "gs://bucket/inputs/timeline.json", "output_uri": "gs://bucket/output"}'
 ```
 
 ### From a SaaS Application
@@ -131,25 +131,21 @@ Run video generation synchronously (one job per Cloud Run instance).
 **Request Body:**
 ```json
 {
-  "script_file": "gs://your-bucket/inputs/script.json",
+  "timeline_file": "gs://your-bucket/inputs/timeline.json",
   "output_uri": "gs://explainer-mograph-test-output/my-video",
-  "reference_images": [
-    "gs://your-bucket/inputs/logo.png",
-    "gs://your-bucket/inputs/style-guide.png"
-  ],
-  "main_ref": "gs://your-bucket/inputs/blank_white_9x16.png",
-  "stage": "final",
-  "video_model": "fast",
-  "video_seconds": 6,
-  "voice": "Kore"
+  "stage": "final"
 }
 ```
 
-**Voice Mode** (alternative to script):
+Or with inline timeline JSON:
 ```json
 {
-  "voice_file": "gs://your-bucket/inputs/narration.m4a",
-  "output_uri": "gs://explainer-mograph-test-output/voice-video",
+  "timeline_json": {
+    "version": 1,
+    "project": {"name": "my-explainer"},
+    "tracks": [...]
+  },
+  "output_uri": "gs://explainer-mograph-test-output/my-video",
   "stage": "final"
 }
 ```
@@ -160,9 +156,8 @@ Run video generation synchronously (one job per Cloud Run instance).
   "success": true,
   "job_id": "uuid-string",
   "output_uri": "gs://your-bucket/runs/my-video",
-  "run_name": "create-an-explainer-video-20250126-143022",
+  "run_name": "my-explainer-20250126-143022",
   "files": [
-    "gs://your-bucket/runs/my-video/script.json",
     "gs://your-bucket/runs/my-video/final/final.mp4"
   ],
   "duration_seconds": 1234.5
@@ -184,13 +179,15 @@ data: {"event": "generation.completed", "jobId": "abc123", "videoUrl": "gs://...
 ```
 
 **Events:**
-- `job.started` - Pipeline has started
-- `asset.image` - An image was generated and uploaded (includes `assetUrl`)
-- `asset.video` - A video was generated and uploaded (includes `assetUrl`)
-- `asset.audio` - Audio was generated and uploaded (includes `assetUrl`)
-- `asset.final` - Final video was generated and uploaded (includes `assetUrl`)
-- `generation.completed` - Full pipeline completed successfully
-- `generation.failed` - Pipeline failed with error
+- `job.started` — Pipeline has started
+- `asset.image` — An image was generated and uploaded (includes `assetUrl`)
+- `asset.video` — A video was generated and uploaded (includes `assetUrl`)
+- `asset.audio` — Audio was generated and uploaded (includes `assetUrl`)
+- `asset.final` — Final video was generated and uploaded (includes `assetUrl`)
+- `candidates.generated` — Exploration candidates are ready for selection (includes `manifest`)
+- `selection.required` — Job is paused waiting for candidate selection (includes endpoint URLs)
+- `generation.completed` — Full pipeline completed successfully
+- `generation.failed` — Pipeline failed with error
 
 **Asset Event Example:**
 ```json
@@ -201,6 +198,18 @@ data: {"event": "generation.completed", "jobId": "abc123", "videoUrl": "gs://...
   "assetUrl": "gs://bucket/runs/my-video/images/scene01_hook.png",
   "fileName": "scene01_hook.png",
   "timestamp": "2025-01-26T14:30:22.123456"
+}
+```
+
+**Exploration Pause Example:**
+```json
+{
+  "event": "selection.required",
+  "jobId": "abc123",
+  "timestamp": "2025-01-26T14:30:22.123456",
+  "phase": "images",
+  "selectEndpoint": "/jobs/abc123/select",
+  "candidatesEndpoint": "/jobs/abc123/candidates"
 }
 ```
 
@@ -233,8 +242,37 @@ while (true) {
       if (event.event === 'generation.completed') {
         console.log('Video URL:', event.videoUrl);
       }
+
+      if (event.event === 'selection.required') {
+        // Handle exploration mode: fetch candidates and submit selections
+        console.log('Selection needed for phase:', event.phase);
+      }
     }
   }
+}
+```
+
+### POST /validate
+
+Validate a timeline document without executing it.
+
+**Request Body:**
+```json
+{
+  "timeline_json": {
+    "version": 1,
+    "project": {"name": "test"},
+    "tracks": [...]
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "valid": true,
+  "errors": [],
+  "warnings": []
 }
 ```
 
@@ -248,6 +286,75 @@ Check if a job is currently active (streaming).
   "job_id": "abc123",
   "active": true,
   "timestamp": "2025-01-26T14:30:22.123456"
+}
+```
+
+### POST /jobs/{job_id}/select
+
+Submit candidate selections for exploration mode. When a timeline uses exploration (generating multiple candidates per node), the pipeline pauses and emits a `selection.required` SSE event. Use this endpoint to submit your selections and resume execution.
+
+**Request Body:**
+```json
+{
+  "phase": "images",
+  "selections": {
+    "node_id_1": [0],
+    "node_id_2": [2]
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "status": "resumed",
+  "phase": "images"
+}
+```
+
+### GET /jobs/{job_id}/candidates
+
+Get the current candidate manifest for a paused exploration job. Returns details about each node's candidates so you can make selections.
+
+**Response:**
+```json
+{
+  "job_id": "abc123",
+  "phase": "images",
+  "pending_selections": [
+    {
+      "id": "node_id_1",
+      "type": "image",
+      "media_type": "image/png",
+      "select": 1,
+      "candidates": [...]
+    }
+  ]
+}
+```
+
+### GET /download/{job_id}/{file_path}
+
+Download a single file from a job's output. Redirects (307) to a signed GCS URL.
+
+```bash
+curl -L "$SERVICE_URL/download/abc123/final/final.mp4" \
+  -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
+  -o final.mp4
+```
+
+### GET /download/{job_id}
+
+List all files in a job's output with signed download URLs.
+
+**Response:**
+```json
+{
+  "job_id": "abc123",
+  "files": [
+    {"path": "images/scene01.png", "url": "https://storage.googleapis.com/..."},
+    {"path": "final/final.mp4", "url": "https://storage.googleapis.com/..."}
+  ]
 }
 ```
 
@@ -266,79 +373,35 @@ Health check endpoint.
 
 ## Request Parameters
 
-### Input Options (one required)
+### Generate Request
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `script_file` | string | - | GCS URI to existing script.json |
-| `script_json` | object | - | Inline script JSON (alternative to script_file) |
-| `voice_file` | string | - | GCS URI to voice recording (mp3, wav, m4a) |
-
-### References & Output
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `reference_images` | array | [] | GCS URIs to style reference images |
-| `main_ref` | string | - | GCS URI to aspect ratio reference (blank image) |
-| `output_uri` | string | **required** | GCS URI for output (gs://bucket/path) |
-
-### Callback Options
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `callback_url` | string | - | URL to POST status updates (webhook) |
+| `timeline_json` | object | — | Inline timeline JSON (provide this or `timeline_file`) |
+| `timeline_file` | string | — | GCS URI to timeline JSON file (provide this or `timeline_json`) |
+| `output_uri` | string | — | GCS URI for output (gs://bucket/path) |
+| `callback_url` | string | — | URL to POST status updates (webhook) |
+| `callback_secret` | string | — | Secret for webhook authentication |
 | `job_id` | string | auto | External job ID for tracking |
-| `project_id` | string | - | External project ID |
-
-### Pipeline Control
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `stage` | string | "final" | Pipeline stage: images, videos, or final |
-
-### Video Generation
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `video_model` | string | "fast" | Video model: quality, fast, or kling |
-| `video_seconds` | int | 6 | Video duration per scene (4, 6, or 8) |
-| `video_resolution` | string | "720p" | Video resolution |
+| `project_id` | string | — | External project ID |
+| `stage` | string | "final" | Pipeline stage: `images`, `videos`, or `final` |
 | `video_concurrency` | int | 8 | Concurrent video generation jobs |
-| `video_buffer_ms` | int | 0 | Add/subtract ms from video duration |
-| `timing_mode` | string | "audio-match" | Audio/video sync: audio-match (speed up audio) or video-match (speed up video) |
-| `start_frame_mode` | string | "animate" | Frame mode: transition, reference, sequential, animate |
-
-### Audio/TTS (Gemini TTS)
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `voice` | string | "Kore" | Gemini TTS voice (e.g., Kore, Puck, Charon, Aoede) |
-| `tts_model` | string | "gemini-2.5-flash-preview-tts" | Gemini TTS model |
-| `tts_concurrency` | int | 5 | Concurrent TTS requests |
-| `veo_audio_volume` | float | 0.3 | Veo SFX volume (0.0-1.0) |
-
-### Pipeline Modes
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `tts_only` | bool | false | Generate TTS + timestamps only, then stop |
-| `images_only` | bool | false | Skip video generation, produce slideshow with narration |
-
-### Image Generation
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `image_model` | string | "google/nano-banana-pro" | Image generation model |
-| `concurrency` | int | 6 | Concurrent image generation jobs |
-| `max_images` | int | - | Maximum images to generate |
-| `disable_text_verification` | bool | true | Skip image quality verification |
-| `alternatives` | bool | false | Generate alternative visuals |
-
-### Testing
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
 | `mock` | bool | false | Use mock fixtures instead of API calls |
+
+### Validate Request
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `timeline_json` | object | Timeline JSON to validate (required) |
+
+### Select Request
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `phase` | string | Selection phase: `images`, `videos`, or `tts` (required) |
+| `selections` | object | Mapping of node_id to list of selected candidate indices (required) |
+
+> For full timeline format documentation, see [`docs/timeline/`](../docs/timeline/).
 
 ## Usage Examples
 
@@ -347,17 +410,27 @@ Health check endpoint.
 ```bash
 SERVICE_URL=$(gcloud run services describe explainer-mograph --region us-central1 --format='value(status.url)')
 
-# Generate video
+# Generate video from a GCS timeline file
 curl -X POST "$SERVICE_URL/generate" \
   -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
   -H "Content-Type: application/json" \
   -d '{
-    "script_file": "gs://explainer-mograph-test-output/inputs/script.json",
+    "timeline_file": "gs://explainer-mograph-test-output/inputs/timeline.json",
     "output_uri": "gs://explainer-mograph-test-output/runs/cloud-explainer",
-    "video_model": "fast",
-    "video_seconds": 6,
-    "voice": "Kore"
+    "stage": "final"
   }'
+
+# Validate a timeline before running
+curl -X POST "$SERVICE_URL/validate" \
+  -H "Authorization: Bearer $(gcloud auth print-identity-token)" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "timeline_json": {"version": 1, "project": {"name": "test"}, "tracks": []}
+  }'
+
+# List job files
+curl "$SERVICE_URL/download/JOB_ID" \
+  -H "Authorization: Bearer $(gcloud auth print-identity-token)"
 ```
 
 ### Using Python
@@ -367,13 +440,14 @@ import requests
 
 SERVICE_URL = "https://explainer-mograph-xxxxx-uc.a.run.app"
 
-# Generate video
+# Generate video from inline timeline
 response = requests.post(f"{SERVICE_URL}/generate", json={
-    "script_file": "gs://explainer-mograph-test-output/inputs/script.json",
+    "timeline_json": {
+        "version": 1,
+        "project": {"name": "ml-basics"},
+        "tracks": [...]
+    },
     "output_uri": "gs://explainer-mograph-test-output/runs/ml-basics",
-    "reference_images": ["gs://explainer-mograph-test-output/inputs/brand-logo.png"],
-    "video_model": "quality",
-    "video_seconds": 6,
 })
 
 result = response.json()
@@ -440,7 +514,7 @@ gcloud run jobs create explainer-job \
   --cpu 2 \
   --task-timeout 3600s \
   --set-secrets 'OPENAI_API_KEY=openai-api-key:latest,REPLICATE_API_TOKEN=replicate-api-token:latest,ELEVENLABS_API_KEY=elevenlabs-api-key:latest' \
-  --set-env-vars 'PIPELINE_CONFIG={"script_file":"gs://bucket/inputs/script.json","output_uri":"gs://bucket/path"}'
+  --set-env-vars 'PIPELINE_CONFIG={"timeline_file":"gs://bucket/inputs/timeline.json","output_uri":"gs://bucket/path"}'
 
 # Execute the job
 gcloud run jobs execute explainer-job --region us-central1 --wait
@@ -453,7 +527,7 @@ gcloud run jobs execute explainer-job --region us-central1 --wait
 **1. Timeout Errors**
 - Cloud Run has a max timeout of 60 minutes
 - For longer jobs, use Cloud Run Jobs or break into stages
-- Reduce video quality (`video_model: fast`) for faster generation
+- Run just the `images` stage first, then `videos`, then `final`
 
 **2. Memory Issues**
 - Increase memory allocation: `--memory 8Gi`
@@ -483,7 +557,7 @@ gcloud run services logs read explainer-mograph --region us-central1 --limit 100
 - **External APIs**: OpenAI, Replicate, ElevenLabs have their own pricing
 
 To minimize costs:
-- Use `video_model: fast` for drafts
+- Use `--stage images` to preview before generating videos
 - Set `_MIN_INSTANCES: "0"` to scale to zero when idle
 - Clean up old runs in GCS regularly
 
@@ -502,10 +576,10 @@ GOOGLE_APPLICATION_CREDENTIALS="./your-service-account.json" python cloudrun/ser
 
 ```bash
 curl -X POST "http://localhost:8080/generate" \
-  -H "X-API-Key: explainer-mograph-secret-key-2024" \
+  -H "X-API-Key: your-api-key" \
   -H "Content-Type: application/json" \
   -d '{
-    "script_json": {...},
+    "timeline_json": {"version": 1, "project": {"name": "test"}, "tracks": []},
     "output_uri": "gs://explainer-mograph-test-output/test",
     "mock": true
   }'
@@ -516,7 +590,7 @@ curl -X POST "http://localhost:8080/generate" \
 ```bash
 python batch/batch_cloudrun.py \
   --config batch/batch_config.json \
-  --scripts-dir ./scripts \
+  --timelines-dir ./timelines \
   --service-url http://localhost:8080 \
   --mock \
   --local

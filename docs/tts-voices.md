@@ -8,10 +8,10 @@ Google Gemini 2.5 Flash/Pro TTS -- deeply multimodal, understands the full scrip
 
 ```bash
 # Use a specific Gemini voice
-python pipeline.py --script-file my-script.json --voice Puck --stage final
+python pipeline.py --timeline-file my-timeline.json --voice Puck --stage final
 
 # Default voice (Kore)
-python pipeline.py --script-file my-script.json --stage final
+python pipeline.py --timeline-file my-timeline.json --stage final
 
 # List available voices
 python pipeline.py --list-voices

@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "project": {
+    "name": "E2E Character Animation",
+    "description": "Tests character consistency across scenes and smooth human motion — common failure for video models"
+  },
+  "defaults": {
+    "video": {
+      "model": "veo-3.1-fast",
+      "duration": 6,
+      "generate_audio": false
+    },
+    "image": {
+      "model": "nano-banana-pro",
+      "aspect_ratio": "16:9"
+    },
+    "tts": {
+      "voice": "Kore"
+    }
+  },
+  "tracks": [
+    {
+      "id": "narration",
+      "type": "narration",
+      "clips": [
+        {
+          "id": "narr-1",
+          "source": {
+            "type": "tts",
+            "text": "Meet Sarah. She just got the worst news of her morning: the coffee machine is broken."
+          }
+        },
+        {
+          "id": "narr-2",
+          "source": {
+            "type": "tts",
+            "text": "But then she remembers: there is a cafe right next door."
+          }
+        }
+      ]
+    },
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "vid-1",
+          "fit_to": "narr-1",
+          "source": {
+            "type": "video",
+            "prompt": "Sarah slowly lowers her hands from her cheeks and slumps her shoulders. She looks left and right as if hoping someone else has a solution. Subtle body sway.",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "A young woman with short brown hair and a yellow cardigan stands in a modern office kitchen, staring at a coffee machine with an 'OUT OF ORDER' sign taped to it. Her expression is one of exaggerated despair, mouth slightly open, hands on cheeks. Warm interior lighting, Pixar-style 3D render, soft shadows."
+              }
+            }
+          }
+        },
+        {
+          "id": "vid-2",
+          "fit_to": "narr-2",
+          "source": {
+            "type": "video",
+            "prompt": "Her face lights up. She spins on her heel and walks confidently toward the glass door. The camera follows her slightly.",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "The same young woman with short brown hair and a yellow cardigan, now smiling brightly with a lightbulb moment expression. She points toward a glass door that shows a sunny street outside with a small cafe visible across the road. Same modern office kitchen background. Pixar-style 3D render, warm lighting."
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4",
+    "variants": {
+      "narration_only": true,
+      "narration_sfx": false
+    }
+  }
+}

@@ -3,12 +3,8 @@
   "output_bucket": "YOUR_PROJECT_ID-explainer-outputs",
   "service_account_key": "./path-to-service-account-key.json",
   "defaults": {
-    "video_model": "fast",
-    "video_seconds": 6,
-    "start_frame_mode": "animate",
     "stage": "final",
     "concurrency": 5,
-    "voice": "Rachel",
-    "enable_text_verification": false
+    "mock": false
   }
 }

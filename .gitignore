@@ -8,6 +8,10 @@ runs/
 !batch/batch_config.example.json
 !batch/test-scripts/script.json
 !tests/fixtures/*.json
+!tests/e2e_scripts/*.json
+
+# E2E generation log (output of tests/e2e_log.py)
+tests/e2e_generation_log.jsonl
 
 # Python
 __pycache__/

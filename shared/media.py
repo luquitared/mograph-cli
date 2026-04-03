@@ -291,8 +291,11 @@ def combine_audio_tracks(
         "-i", video_path.as_posix(),
         "-i", narration_path.as_posix(),
         "-filter_complex", filter_complex,
+        "-map", "0:v:0",
         "-map", "[out]",
+        "-c:v", "copy",
         *AAC_SETTINGS,
+        "-movflags", "+faststart",
         dest.as_posix(),
     ]
     run_cmd(cmd)
@@ -448,6 +451,26 @@ def extract_last_frame(video_path: Path, dest: Path) -> Path:
     return dest
 
 
+def extract_first_frame(video_path: Path, dest: Path) -> Path:
+    """Extract first frame from video as image."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run([
+        "ffmpeg", "-y", "-i", str(video_path),
+        "-frames:v", "1", str(dest)
+    ], capture_output=True, check=True)
+    return dest
+
+
+def extract_audio_track(video_path: Path, dest: Path) -> Path:
+    """Extract audio track from video file."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run([
+        "ffmpeg", "-y", "-i", str(video_path),
+        "-vn", "-acodec", "copy", str(dest)
+    ], capture_output=True, check=True)
+    return dest
+
+
 def image_to_video(image_path: Path, duration: float, dest: Path) -> None:
     """Create a video from a static image with the specified duration."""
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -504,15 +527,26 @@ def concat_audio(input_files: List[Path], output_path: Path, reencode: bool = Tr
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
         for p in input_files:
-            f.write(f"file '{p.as_posix()}'\n")
+            p = Path(p)
+            abs_path = p if p.is_absolute() else p.resolve()
+            f.write(f"file '{abs_path.as_posix()}'\n")
         list_file = f.name
 
     try:
         if reencode:
+            # Choose codec based on output format
+            ext = output_path.suffix.lower()
+            if ext in (".aac", ".m4a"):
+                codec_args = ["-c:a", "aac", "-b:a", "192k"]
+            elif ext == ".wav":
+                codec_args = ["-c:a", "pcm_s16le"]
+            else:
+                # Default to MP3 for .mp3 and other formats
+                codec_args = ["-c:a", "libmp3lame", "-b:a", "128k"]
             cmd = [
                 "ffmpeg", "-y",
                 "-f", "concat", "-safe", "0", "-i", list_file,
-                "-c:a", "libmp3lame", "-b:a", "128k",
+                *codec_args,
                 output_path.as_posix(),
             ]
         else:

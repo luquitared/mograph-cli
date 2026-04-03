@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "project": {
+    "name": "E2E Multi Clip Concatenation",
+    "description": "Tests multi-clip scenes (2 visuals per scene) to exercise within-scene concatenation and cross-clip continuity"
+  },
+  "defaults": {
+    "video": {
+      "model": "veo-3.1-fast",
+      "duration": 4,
+      "generate_audio": false
+    },
+    "image": {
+      "model": "nano-banana-pro",
+      "aspect_ratio": "16:9"
+    },
+    "tts": {
+      "voice": "Kore"
+    }
+  },
+  "tracks": [
+    {
+      "id": "narration",
+      "type": "narration",
+      "clips": [
+        {
+          "id": "narr-1",
+          "source": {
+            "type": "tts",
+            "text": "The ocean covers seventy percent of our planet, yet we have explored less than five percent of it."
+          }
+        },
+        {
+          "id": "narr-2",
+          "source": {
+            "type": "tts",
+            "text": "What we find down there could change everything we know about life on this planet."
+          }
+        }
+      ]
+    },
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "vid-1a",
+          "fit_to": "narr-1",
+          "source": {
+            "type": "video",
+            "prompt": "Camera slowly tilts downward from the horizon toward the water surface, as if preparing to dive in. Waves roll gently.",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "Aerial drone view of a vast deep blue ocean stretching to the horizon under a clear sky. Gentle white-capped waves create a subtle texture across the surface. Golden hour sunlight reflects off the water. Cinematic, photorealistic, wide angle."
+              }
+            }
+          }
+        },
+        {
+          "id": "vid-1b",
+          "duration": 4,
+          "source": {
+            "type": "video",
+            "prompt": "Camera descends slowly into deeper water. Sunlight shafts sweep gently. Particles drift upward past the camera. The coral reef grows slightly closer.",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "Underwater view looking down into deep ocean. Shafts of sunlight pierce through the turquoise water from above, fading into dark navy blue depths below. Small particles float in the water. A distant coral reef is barely visible at the bottom edge. Photorealistic, cinematic lighting."
+              }
+            }
+          }
+        },
+        {
+          "id": "vid-2a",
+          "fit_to": "narr-2",
+          "source": {
+            "type": "video",
+            "prompt": "The jellyfish pulses gently, its glow intensifying and dimming in a slow rhythm. Tentacles drift with invisible currents. Particles float slowly.",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "Close-up of a bioluminescent deep sea jellyfish glowing bright cyan and purple against pitch black ocean depths. Delicate tentacles trail behind it. Tiny glowing particles surround it like underwater stars. Photorealistic macro photography style, dramatic lighting from the creature itself."
+              }
+            }
+          }
+        },
+        {
+          "id": "vid-2b",
+          "duration": 4,
+          "source": {
+            "type": "video",
+            "prompt": "Camera slowly pans across the vent field. Thermal plumes rise and shimmer. Tubeworms sway gently. A faint new glow appears at the far edge of frame.",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "Wide shot of an alien-looking deep ocean floor landscape. Hydrothermal vents release shimmering plumes of white mineral-rich water. Strange tubeworm colonies glow faintly near the vents. The scene is lit only by bioluminescence and vent glow against total darkness. Cinematic, photorealistic."
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4",
+    "variants": {
+      "narration_only": true,
+      "narration_sfx": false
+    }
+  }
+}
