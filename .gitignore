@@ -9,6 +9,7 @@ runs/
 !batch/test-scripts/script.json
 !tests/fixtures/*.json
 !tests/e2e_scripts/*.json
+!docs/timeline/examples/*.json
 
 # E2E generation log (output of tests/e2e_log.py)
 tests/e2e_generation_log.jsonl

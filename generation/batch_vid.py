@@ -157,21 +157,21 @@ async def process_job(
         if is_seedance_model(model_owner, model_name):
             from generation.seedance_client import process_seedance_job
 
+            if first_path_str:
+                raise ValueError(
+                    f"Job {idx}: Seedance 2.0 Omni Reference does not support first_frame "
+                    "(the API has no starting frame input). "
+                    "Use reference_images instead — images are referenced in the prompt as @image1, @image2, etc."
+                )
+
             # Choose upload function: R2 for public URLs (Seedance needs them), fallback to Replicate
             use_r2 = r2_configured()
             _upload = (lambda s, p: upload_to_r2(s, p)) if use_r2 else upload_file_to_replicate
             if use_r2:
                 print(f"📤 [{idx}] Using R2 for Seedance image uploads (public URLs)")
 
-            # Collect all local paths to upload concurrently
+            # Upload reference images concurrently
             upload_tasks = []
-            first_path = None
-            if first_path_str:
-                first_path = Path(first_path_str).expanduser().resolve()
-                if not first_path.exists():
-                    raise FileNotFoundError(f"Job {idx}: first frame image not found: {first_path}")
-                upload_tasks.append(_upload(session, first_path))
-
             seedance_ref_paths = job.get("reference_images", [])
             for ref_path_str in seedance_ref_paths:
                 ref_path = Path(ref_path_str).expanduser().resolve()
@@ -179,11 +179,7 @@ async def process_job(
                     raise FileNotFoundError(f"Job {idx}: reference image not found: {ref_path}")
                 upload_tasks.append(_upload(session, ref_path))
 
-            # Upload all images concurrently
-            uploaded_urls = await asyncio.gather(*upload_tasks) if upload_tasks else []
-
-            first_frame_url = uploaded_urls[0] if first_path else None
-            seedance_ref_urls = list(uploaded_urls[1 if first_path else 0:])
+            seedance_ref_urls = list(await asyncio.gather(*upload_tasks)) if upload_tasks else []
 
             return await process_seedance_job(
                 session=session,
@@ -194,7 +190,6 @@ async def process_job(
                 duration=config["duration"],
                 aspect_ratio=config["aspect_ratio"],
                 quality=config.get("quality", "basic"),
-                first_frame_url=first_frame_url,
                 reference_image_urls=seedance_ref_urls or None,
                 poll_sec=poll_sec,
             )

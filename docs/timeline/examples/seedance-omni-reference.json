@@ -1,0 +1,54 @@
+{
+  "_comment": "Seedance 2.0 Omni Reference: uses reference images for visual consistency. Images are referenced in the prompt as @image1, @image2, etc. (positional). Note: Seedance Omni does NOT support first_frame — use reference_images instead.",
+  "version": 1,
+  "project": {
+    "name": "Throne Room — Seedance Omni Reference",
+    "description": "Anime throne room scene using character and environment reference images"
+  },
+  "defaults": {
+    "video": {
+      "model": "seedance-2.0",
+      "duration": 10,
+      "aspect_ratio": "16:9"
+    }
+  },
+  "tracks": [
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "scene-1",
+          "label": "Warrior enters the throne room",
+          "source": {
+            "type": "video",
+            "prompt": "Animate this scene: the warrior @image1 walks through the marble throne room @image2 toward the king @image3 on the golden throne. Dramatic candlelight flickers across the pillars.",
+            "reference_images": [
+              "refs/warrior.png",
+              "refs/throne-room.png",
+              "refs/king.png"
+            ],
+            "quality": "basic"
+          }
+        },
+        {
+          "id": "scene-2",
+          "label": "King speaks to the warrior",
+          "source": {
+            "type": "video",
+            "prompt": "The king @image2 raises his hand and speaks from the golden throne in @image1. The warrior @image3 grips his sword hilt. Camera slowly pushes in.",
+            "reference_images": [
+              "refs/throne-room.png",
+              "refs/king.png",
+              "refs/warrior.png"
+            ],
+            "quality": "basic"
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4"
+  }
+}
