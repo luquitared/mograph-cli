@@ -66,6 +66,42 @@ Alternative video model from Kuaishou via Replicate.
 - **When to use:** When Veo produces undesirable results, or for stylistic variety.
 - **Limitations:** Duration is not constrained to 4/6/8 like Veo models.
 
+### Seedance 2.0 (`seedance-2.0`)
+
+ByteDance's video generation model via MuAPI. Supports text-to-video and image-to-video (via `first_frame`).
+
+| Parameter | Values | Default |
+|-----------|--------|---------|
+| `duration` | any integer (seconds) | 5 |
+| `aspect_ratio` | `"16:9"`, `"9:16"`, `"4:3"`, `"3:4"` | `"16:9"` |
+| `quality` | `"basic"`, `"high"` | `"basic"` |
+| `first_frame` | ref, generate, or path | `null` |
+
+- **When to use:** Image-to-video workflows, stylistic variety, or when Veo/Kling results are unsatisfactory.
+- **Limitations:** No `last_frame` support (only `first_frame` for I2V). No native audio generation. No `negative_prompt` or `seed`. Requires `MUAPI_API_KEY` env var (not Replicate). `"high"` quality produces 2K resolution output.
+
+**Example (text-to-video):**
+```json
+{
+  "type": "video",
+  "prompt": "A cinematic shot of a futuristic city with neon lights",
+  "model": "seedance-2.0",
+  "duration": 5,
+  "quality": "high"
+}
+```
+
+**Example (image-to-video with DAG reference):**
+```json
+{
+  "type": "video",
+  "prompt": "Camera slowly pans across the scene",
+  "model": "seedance-2.0",
+  "first_frame": { "ref": "my-image-asset" },
+  "duration": 5
+}
+```
+
 ---
 
 ## Image Models
@@ -127,6 +163,7 @@ Generation costs vary by model and parameters:
 | `veo-3.1-fast` | Medium | Good default for iteration |
 | `veo-3.1-lite` | Low | Cheapest video option |
 | `kling-v3` | Medium | Alternative provider |
+| `seedance-2.0` | Medium | MuAPI, basic/high quality |
 | `nano-banana-pro` | Low | Fast image generation |
 | `gemini-2.5-flash-tts` | Low | Per-character pricing |
 

@@ -31,7 +31,7 @@ class ImageSource:
 
 @dataclass
 class VideoSource:
-    """Video generation source (Veo 3.1 / Kling v3)."""
+    """Video generation source (Veo 3.1 / Kling v3 / Seedance 2.0)."""
     type: Literal["video"] = "video"
     prompt: str = ""
     first_frame: Optional[Union[str, "Ref", "Generate"]] = None
@@ -43,6 +43,8 @@ class VideoSource:
     generate_audio: bool = True
     negative_prompt: Optional[str] = None
     seed: Optional[int] = None
+    quality: Optional[str] = None  # Seedance 2.0: "basic" or "high"
+    reference_images: List[str] = field(default_factory=list)  # Kling v3: up to 7 reference images
     candidates: Optional[List[Dict[str, Any]]] = None
     select: Optional[int] = None
 

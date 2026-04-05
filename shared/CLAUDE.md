@@ -7,6 +7,7 @@ Common utilities shared across the codebase: FFmpeg media processing, Replicate 
 - `media.py` — FFmpeg wrappers for video/audio operations: `probe_duration`, `trim_video`, `extend_video`, `change_video_speed`, `overlay_audio`, `overlay_combined_audio`, `concat_videos`, `concat_audio`, `change_audio_speed`, `extract_last_frame`, `image_to_video`, `extract_audio_segment`, `generate_silence`, `detect_aspect_ratio`. Each has an `_async` variant for parallel Stage 3 processing.
 - `replicate_client.py` — Replicate API client with async upload (cached), predict, poll, and download. Thread-safe state via `threading.local()` for `mock_mode`, `tts_test_mode`, and `upload_cache`.
 - `common.py` — Small helpers: `ensure_dir`, `guess_mime_image`, `sanitize_filename`, `slugify_identifier`, `encode_image_as_data_url`
+- `r2_storage.py` — Async Cloudflare R2 upload via S3 API with aiohttp + SigV4 signing. Used by models needing public URLs (Seedance). Dedup-cached, thread-safe, no new deps.
 - `env_loader.py` — Shared `.env` file loader: `load_env_file`
 
 ## Key Interfaces

@@ -249,11 +249,21 @@ async def _dispatch_videos(
         first_path = _resolve_video_frame(source.first_frame, results, run_dir, anon_identity_map)
         last_path = _resolve_video_frame(source.last_frame, results, run_dir, anon_identity_map)
 
+        # Resolve reference image paths (relative to CWD, same as timeline file)
+        ref_paths = []
+        for ref_img in getattr(source, "reference_images", []):
+            p = Path(ref_img).expanduser().resolve()
+            if p.exists():
+                ref_paths.append(p)
+            else:
+                logger.warning("Reference image not found: %s", p)
+
         jobs.append(VideoJob(
             clip_id=nid,
             source=source,
             first_frame_path=first_path,
             last_frame_path=last_path,
+            reference_image_paths=ref_paths,
         ))
 
     return await generate_videos(jobs, run_dir, timeline.defaults.video, concurrency)
@@ -491,7 +501,7 @@ def _get_prompt_for_source(source: Source) -> str:
 # exfiltration or redirection to arbitrary endpoints.
 _CANDIDATE_OVERRIDE_ALLOWLIST: Dict[str, Set[str]] = {
     "image": {"prompt", "aspect_ratio", "resolution", "output_format", "safety_filter_level"},
-    "video": {"prompt", "negative_prompt", "seed", "duration", "aspect_ratio", "resolution", "generate_audio"},
+    "video": {"prompt", "negative_prompt", "seed", "duration", "aspect_ratio", "resolution", "generate_audio", "quality"},
     "tts": {"text", "voice", "voice_prompt"},
 }
 

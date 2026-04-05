@@ -38,9 +38,10 @@ from timeline.security import SecurityError, validate_path, validate_url
 
 VALID_TRACK_TYPES = {"video", "narration", "audio"}
 VALID_SOURCE_TYPES = {"image", "video", "tts", "file", "silence", "still"}
-VALID_VIDEO_MODELS = {"veo-3.1", "veo-3.1-fast", "veo-3.1-lite", "kling-v3"}
+VALID_VIDEO_MODELS = {"veo-3.1", "veo-3.1-fast", "veo-3.1-lite", "kling-v3", "seedance-2.0"}
 VEO_MODELS = {"veo-3.1", "veo-3.1-fast", "veo-3.1-lite"}
 VEO_DURATIONS = {4, 6, 8}
+SEEDANCE_QUALITY_VALUES = {"basic", "high"}
 VALID_IMAGE_FORMATS = {"png", "jpg"}
 VALID_EXTRACT_VALUES = {"first_frame", "last_frame", "audio"}
 ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
@@ -362,6 +363,54 @@ def _validate_video_source(
             "generate_audio is ignored for veo-3.1-lite (audio is always generated)",
             "warning",
         ))
+
+    # REQ-SVAL-013: Kling reference_images validation
+    ref_imgs = getattr(source, "reference_images", [])
+    if ref_imgs:
+        if source.model not in ("kling-v3", "seedance-2.0"):
+            warnings.append(ValidationError(
+                f"{path}.reference_images",
+                f"reference_images is only supported for kling-v3 and seedance-2.0, ignored for {source.model}",
+                "warning",
+            ))
+        elif source.model == "kling-v3":
+            max_refs = 4 if source.first_frame is not None else 7
+            if len(ref_imgs) > max_refs:
+                errors.append(ValidationError(
+                    f"{path}.reference_images",
+                    f"kling-v3 supports max {max_refs} reference images ({'4 with' if max_refs == 4 else '7 without'} start_image), got {len(ref_imgs)}",
+                    "error",
+                ))
+        elif source.model == "seedance-2.0":
+            # Omni Reference: up to 9 images total (first_frame counts as one)
+            total = len(ref_imgs) + (1 if source.first_frame is not None else 0)
+            if total > 9:
+                errors.append(ValidationError(
+                    f"{path}.reference_images",
+                    f"seedance-2.0 supports max 9 images total (first_frame + reference_images), got {total}",
+                    "error",
+                ))
+
+    # REQ-SVAL-012: Seedance 2.0 validation
+    if source.model == "seedance-2.0":
+        if source.quality and source.quality not in SEEDANCE_QUALITY_VALUES:
+            errors.append(ValidationError(
+                f"{path}.quality",
+                f"Invalid quality '{source.quality}' for seedance-2.0. Must be 'basic' or 'high'",
+                "error",
+            ))
+        if source.last_frame is not None:
+            warnings.append(ValidationError(
+                f"{path}.last_frame",
+                "last_frame is ignored for seedance-2.0 (only first_frame is supported for I2V)",
+                "warning",
+            ))
+        if source.generate_audio is True:
+            warnings.append(ValidationError(
+                f"{path}.generate_audio",
+                "generate_audio is ignored for seedance-2.0 (no native audio support)",
+                "warning",
+            ))
 
     # REQ-SVAL-016: candidates non-empty
     _validate_candidates(source, path, errors)

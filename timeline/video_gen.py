@@ -29,6 +29,7 @@ MODEL_KIND_MAP = {
     "veo-3.1-fast": "fast",
     "veo-3.1-lite": "lite",
     "kling-v3": "kling",
+    "seedance-2.0": "seedance",
 }
 
 
@@ -43,6 +44,7 @@ class VideoJob:
     source: VideoSource
     first_frame_path: Optional[Path] = None
     last_frame_path: Optional[Path] = None
+    reference_image_paths: List[Path] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -65,7 +67,7 @@ def _build_job_dict(job: VideoJob, defaults: VideoDefaults) -> Dict:
     resolution = source.resolution or defaults.resolution
     generate_audio = source.generate_audio if source.generate_audio is not None else defaults.generate_audio
 
-    return {
+    result = {
         "prompt": source.prompt,
         "first_frame_image": str(job.first_frame_path) if job.first_frame_path else None,
         "last_frame_image": str(job.last_frame_path) if job.last_frame_path else None,
@@ -76,8 +78,12 @@ def _build_job_dict(job: VideoJob, defaults: VideoDefaults) -> Dict:
             "generate_audio": generate_audio,
             "negative_prompt": source.negative_prompt,
             "seed": source.seed,
+            "quality": source.quality or "basic",
         },
     }
+    if job.reference_image_paths:
+        result["reference_images"] = [str(p) for p in job.reference_image_paths]
+    return result
 
 
 def _get_model_owner_name(model: str) -> tuple:
@@ -180,10 +186,21 @@ async def generate_videos(
     outdir = run_dir / "videos"
     outdir.mkdir(parents=True, exist_ok=True)
 
-    token = os.getenv("REPLICATE_API_TOKEN")
-    if not token and not batch_vid.MOCK_REPLICATE:
+    # Check for required API tokens based on which models are in the batch
+    has_seedance = any(
+        MODEL_KIND_MAP.get(_resolve_model(j.source, defaults)) == "seedance"
+        for j in jobs
+    )
+    has_replicate = any(
+        MODEL_KIND_MAP.get(_resolve_model(j.source, defaults)) != "seedance"
+        for j in jobs
+    )
+    if has_replicate and not os.getenv("REPLICATE_API_TOKEN") and not batch_vid.MOCK_REPLICATE:
         raise EnvironmentError("REPLICATE_API_TOKEN not set.")
+    if has_seedance and not os.getenv("MUAPI_API_KEY") and not batch_vid.MOCK_REPLICATE:
+        raise EnvironmentError("MUAPI_API_KEY not set (required for Seedance 2.0).")
 
+    token = os.getenv("REPLICATE_API_TOKEN", "")
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     sem = asyncio.Semaphore(concurrency)
 

@@ -78,7 +78,7 @@ _SOURCE_FIELDS_BY_TYPE: Dict[str, set] = {
               "output_format", "safety_filter_level", "candidates", "select"},
     "video": {"type", "prompt", "first_frame", "last_frame", "model", "duration",
               "aspect_ratio", "resolution", "generate_audio", "negative_prompt", "seed",
-              "candidates", "select"},
+              "quality", "reference_images", "candidates", "select"},
     "tts": {"type", "text", "voice", "voice_prompt", "model", "candidates", "select"},
     "file": {"type", "path", "start", "end"},
     "silence": {"type", "duration"},
@@ -457,6 +457,8 @@ def _parse_video_source(raw: dict, json_path: str, vid_defaults: VideoDefaults) 
         generate_audio=raw.get("generate_audio", vid_defaults.generate_audio),
         negative_prompt=raw.get("negative_prompt"),
         seed=raw.get("seed"),
+        quality=raw.get("quality"),
+        reference_images=raw.get("reference_images", []),
         candidates=raw.get("candidates"),
         select=raw.get("select"),
     )
