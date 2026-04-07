@@ -75,10 +75,10 @@ _CLIP_FIELDS = {"id", "source", "start_time", "duration", "fit_to", "fit_method"
 
 _SOURCE_FIELDS_BY_TYPE: Dict[str, set] = {
     "image": {"type", "prompt", "reference_images", "model", "aspect_ratio", "resolution",
-              "output_format", "safety_filter_level", "candidates", "select"},
+              "output_format", "safety_filter_level", "candidates", "select", "verify"},
     "video": {"type", "prompt", "first_frame", "last_frame", "model", "duration",
               "aspect_ratio", "resolution", "generate_audio", "negative_prompt", "seed",
-              "quality", "reference_images", "candidates", "select"},
+              "quality", "reference_images", "candidates", "select", "verify"},
     "tts": {"type", "text", "voice", "voice_prompt", "model", "candidates", "select"},
     "file": {"type", "path", "start", "end"},
     "silence": {"type", "duration"},
@@ -249,6 +249,7 @@ def _parse_defaults(raw: Any, warnings: List[str]) -> Defaults:
         generate_audio=video_raw.get("generate_audio", True),
         aspect_ratio=video_raw.get("aspect_ratio", "16:9"),
         resolution=video_raw.get("resolution", "720p"),
+        verify=video_raw.get("verify"),
     )
 
     image_defaults = ImageDefaults(
@@ -258,6 +259,7 @@ def _parse_defaults(raw: Any, warnings: List[str]) -> Defaults:
         output_format=image_raw.get("output_format", "png"),
         reference_images=image_raw.get("reference_images", []),
         safety_filter_level=image_raw.get("safety_filter_level", "block_only_high"),
+        verify=image_raw.get("verify"),
     )
 
     tts_defaults = TTSDefaults(
@@ -441,6 +443,7 @@ def _parse_image_source(raw: dict, json_path: str, img_defaults: ImageDefaults) 
         safety_filter_level=raw.get("safety_filter_level", img_defaults.safety_filter_level),
         candidates=raw.get("candidates"),
         select=raw.get("select"),
+        verify=raw.get("verify") if "verify" in raw else img_defaults.verify,
     )
 
 
@@ -461,6 +464,7 @@ def _parse_video_source(raw: dict, json_path: str, vid_defaults: VideoDefaults) 
         reference_images=raw.get("reference_images", []),
         candidates=raw.get("candidates"),
         select=raw.get("select"),
+        verify=raw.get("verify") if "verify" in raw else vid_defaults.verify,
     )
 
 

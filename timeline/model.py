@@ -27,6 +27,7 @@ class ImageSource:
     safety_filter_level: str = "block_only_high"
     candidates: Optional[List[Dict[str, Any]]] = None
     select: Optional[int] = None
+    verify: Union[bool, str, None] = None  # True, custom prompt string, or None/False
 
 
 @dataclass
@@ -47,6 +48,7 @@ class VideoSource:
     reference_images: List[str] = field(default_factory=list)  # Kling v3: up to 7 reference images
     candidates: Optional[List[Dict[str, Any]]] = None
     select: Optional[int] = None
+    verify: Union[bool, str, None] = None  # True, custom prompt string, or None/False
 
 
 @dataclass
@@ -156,6 +158,7 @@ class VideoDefaults:
     generate_audio: bool = True
     aspect_ratio: str = "16:9"
     resolution: str = "720p"
+    verify: Union[bool, str, None] = None  # Default verify setting for all video sources
 
 
 @dataclass
@@ -166,6 +169,7 @@ class ImageDefaults:
     output_format: str = "png"
     reference_images: List[str] = field(default_factory=list)
     safety_filter_level: str = "block_only_high"
+    verify: Union[bool, str, None] = None  # Default verify setting for all image sources
 
 
 @dataclass
@@ -261,6 +265,19 @@ class ValidationResult:
 
 
 # ---------------------------------------------------------------------------
+# Verification types
+# ---------------------------------------------------------------------------
+
+@dataclass
+class VerificationEntry:
+    """Result of verifying a single generated clip."""
+    passed: bool = False
+    attempts: int = 0
+    reason: str = ""
+    used_anyway: bool = False  # True if all retries failed but we used the last result
+
+
+# ---------------------------------------------------------------------------
 # Exports
 # ---------------------------------------------------------------------------
 
@@ -296,4 +313,6 @@ __all__ = [
     # Validation
     "ValidationError",
     "ValidationResult",
+    # Verification
+    "VerificationEntry",
 ]

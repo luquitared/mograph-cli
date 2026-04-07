@@ -43,6 +43,7 @@ Fields prefixed with `_` (e.g. `_comment`) are silently ignored by the parser an
 | `generate_audio` | `bool` | `true` | Whether to generate audio with the video. |
 | `aspect_ratio` | `string` | `"16:9"` | Aspect ratio. |
 | `resolution` | `string` | `"720p"` | Resolution. Model-specific constraints apply. |
+| `verify` | `bool\|string` | `null` | Enable verification for all video clips. See [Verification](#verification). |
 
 ### ImageDefaults
 
@@ -54,6 +55,7 @@ Fields prefixed with `_` (e.g. `_comment`) are silently ignored by the parser an
 | `output_format` | `string` | `"png"` | `"png"` or `"jpg"`. |
 | `reference_images` | `string[]` | `[]` | Paths or URLs to reference images. |
 | `safety_filter_level` | `string` | `"block_only_high"` | Safety filter level. |
+| `verify` | `bool\|string` | `null` | Enable verification for all image clips. See [Verification](#verification). |
 
 ### TTSDefaults
 
@@ -107,6 +109,7 @@ Generates an image via Replicate Nano Banana Pro.
 | `safety_filter_level` | `string` | No | from defaults | Safety filter level. |
 | `candidates` | `object[]` | No | `null` | Array of prompt variant overrides for exploration. |
 | `select` | `int` | No | `null` | 1-based index into candidates to use. |
+| `verify` | `bool\|string` | No | from defaults | Post-generation verification. See [Verification](#verification). |
 
 ### VideoSource (`type: "video"`)
 
@@ -127,6 +130,7 @@ Generates a video clip via Veo 3.1 or Kling v3.
 | `seed` | `int` | No | `null` | Random seed for reproducibility. |
 | `candidates` | `object[]` | No | `null` | Prompt variant overrides for exploration. |
 | `select` | `int` | No | `null` | 1-based index into candidates. |
+| `verify` | `bool\|string` | No | from defaults | Post-generation verification. See [Verification](#verification). |
 
 ### TTSSource (`type: "tts"`)
 
@@ -251,3 +255,97 @@ Inline generation instruction. Embeds a source definition directly in a `first_f
 | `veo-3.1-fast` | 4, 6, 8 | 720p only |
 | `veo-3.1-lite` | 4, 6, 8 | 720p, 1080p |
 | `kling-v3` | — | 720p, 1080p |
+
+---
+
+## Verification
+
+Post-generation quality check using Gemini vision. After an image or video is generated, the output is sent to Gemini to verify it matches the generation prompt. If verification fails, the clip is regenerated (up to 3 total attempts). If all attempts fail, the last result is used anyway and the failure is logged.
+
+### The `verify` field
+
+Available on `ImageSource`, `VideoSource`, `ImageDefaults`, and `VideoDefaults`.
+
+| Value | Behavior |
+|-------|----------|
+| `true` | Check prompt adherence: "Does this output match the prompt?" |
+| `"custom criteria"` | Check prompt adherence + custom criteria |
+| `false` | Skip verification (overrides default) |
+| omitted / `null` | Inherit from defaults (or skip if no default) |
+
+### Setting a default
+
+Enable verification for all video clips:
+
+```json
+"defaults": {
+  "video": {
+    "model": "veo-3.1-fast",
+    "verify": true
+  }
+}
+```
+
+Individual clips can override:
+
+```json
+{
+  "id": "vid-2",
+  "source": {
+    "type": "video",
+    "prompt": "...",
+    "verify": "The optic nerve must be clearly visible as a distinct pathway."
+  }
+}
+```
+
+Or disable for a specific clip:
+
+```json
+{
+  "id": "vid-3",
+  "source": {
+    "type": "video",
+    "prompt": "...",
+    "verify": false
+  }
+}
+```
+
+### How it works
+
+1. Clip is generated normally (image or video)
+2. If `verify` is enabled, the output is sent to Gemini 2.5 Flash vision
+3. For images: the image file is sent directly
+4. For videos: a frame is extracted from the middle of the clip
+5. Gemini evaluates against the generation prompt (and custom criteria if provided)
+6. **Pass** → clip proceeds to assembly
+7. **Fail** → clip is regenerated and verified again (up to 3 total attempts)
+8. **All attempts fail** → last result is used anyway
+
+### Output
+
+Results are written to `runs/<run>/verification.json`:
+
+```json
+{
+  "vid-1": {
+    "passed": true,
+    "attempts": 1,
+    "reason": "Video shows a translucent brain with blue-highlighted occipital lobe as requested.",
+    "used_anyway": false
+  },
+  "vid-2": {
+    "passed": false,
+    "attempts": 3,
+    "reason": "Optic nerve is present but signals appear as a continuous stream rather than discrete pulses.",
+    "used_anyway": true
+  }
+}
+```
+
+### Requirements
+
+- `GEMINI_API_KEY` or `GOOGLE_API_KEY` environment variable must be set
+- `ffmpeg` / `ffprobe` must be available for video frame extraction
+- If no API key is available, verification is skipped with a warning

@@ -27,6 +27,15 @@ __pycache__/
 # Claude Code
 .claude/
 
+# Downloaded videos & watch outputs
+*.mp4
+!tests/fixtures/*.mp4
+watch-outputs/
+
+# Strategy & scene export artifacts
+strategy_output/
+scene_export_*/
+
 # Asset subsets
 assets/spin-quest-imgs
 assets/makeover-imgs

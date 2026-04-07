@@ -26,8 +26,10 @@ from timeline.model import (
     TTSSource,
     Timeline,
     Track,
+    VerificationEntry,
     VideoSource,
 )
+from timeline.verifier import should_verify, verify_media, write_verification_results
 from timeline.dag import DAG, DAGNode, build_dag_with_identity_map, topological_sort
 from timeline.validator import validate
 from timeline.timing import compute_timeline_timing, ClipLayout, TimelineLayout
@@ -769,6 +771,7 @@ async def _execute_async(
     failed_ids: Set[str] = set()
     skipped_ids: Set[str] = set()
     errors: List[str] = []
+    verification_results: Dict[str, VerificationEntry] = {}
 
     # Load existing results for resume
     if resume:
@@ -873,6 +876,58 @@ async def _execute_async(
                     # Record costs for successful nodes
                     if successful_nodes:
                         _record_batch_cost(run_dir, stype, successful_nodes, br)
+
+                    # --- Verification: check generated media against prompts ---
+                    for nid in list(successful_nodes):
+                        source = source_map.get(nid)
+                        if source is None or not should_verify(source):
+                            continue
+
+                        node_result = results[nid]
+                        max_retries = 3
+                        logger.info("Verifying %s (%s)...", nid, stype)
+
+                        entry = await verify_media(node_result.path, source, max_attempts=3)
+
+                        if entry.passed:
+                            verification_results[nid] = entry
+                            continue
+
+                        # Verification failed — retry generation up to max_retries
+                        for retry in range(1, max_retries):
+                            logger.warning(
+                                "Verification failed for %s, regenerating (retry %d/%d): %s",
+                                nid, retry, max_retries - 1, entry.reason,
+                            )
+                            # Re-dispatch single node
+                            retry_result = None
+                            try:
+                                if stype == "image":
+                                    retry_batch = await _dispatch_images([nid], source_map, run_dir, timeline, 1)
+                                    retry_result = retry_batch.get(nid)
+                                elif stype == "video":
+                                    retry_batch = await _dispatch_videos(
+                                        [nid], source_map, results, run_dir, timeline, 1, anon_identity_map,
+                                    )
+                                    retry_result = retry_batch.get(nid)
+                            except Exception as e:
+                                logger.error("Retry generation failed for %s: %s", nid, e)
+                                break
+
+                            if retry_result is None:
+                                break
+
+                            results[nid] = retry_result
+                            entry = await verify_media(retry_result.path, source, max_attempts=3)
+                            if entry.passed:
+                                break
+
+                        verification_results[nid] = entry
+                        if not entry.passed:
+                            logger.warning(
+                                "Verification exhausted for %s — using last result anyway: %s",
+                                nid, entry.reason,
+                            )
 
         logger.info(
             "Level %d: %d nodes dispatched, %d results so far",
@@ -1001,6 +1056,16 @@ async def _execute_async(
     run_result.errors = errors
     run_result.success = not has_real_failure and not has_real_skip
     run_result.layout = layout
+
+    # Write verification results if any nodes were verified
+    if verification_results:
+        write_verification_results(run_dir, verification_results)
+        failed_verifications = [nid for nid, v in verification_results.items() if not v.passed]
+        if failed_verifications:
+            logger.warning(
+                "Verification failed for %d node(s) (used anyway): %s",
+                len(failed_verifications), ", ".join(failed_verifications),
+            )
 
     # Mark stage complete if successful
     if run_result.success:

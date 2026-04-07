@@ -293,6 +293,9 @@ def _validate_image_source(
     for ri, ref_img in enumerate(source.reference_images):
         _validate_file_or_url(ref_img, f"{path}.reference_images[{ri}]", timeline_dir, errors)
 
+    # Verify field type check
+    _validate_verify_field(source, path, errors)
+
 
 def _validate_video_source(
     source: VideoSource,
@@ -418,6 +421,9 @@ def _validate_video_source(
     # Validate first_frame / last_frame
     _validate_frame_input(source.first_frame, f"{path}.first_frame", timeline_dir, errors, warnings, nesting_level)
     _validate_frame_input(source.last_frame, f"{path}.last_frame", timeline_dir, errors, warnings, nesting_level)
+
+    # Verify field type check
+    _validate_verify_field(source, path, errors)
 
 
 def _validate_frame_input(
@@ -602,6 +608,27 @@ def _validate_candidates(
                 f"select value {select} exceeds number of candidates ({len(candidates)})",
                 "error",
             ))
+
+
+def _validate_verify_field(
+    source, path: str, errors: List[ValidationError]
+) -> None:
+    """Validate the verify field: must be bool, str, or absent."""
+    verify = getattr(source, "verify", None)
+    if verify is None:
+        return
+    if not isinstance(verify, (bool, str)):
+        errors.append(ValidationError(
+            f"{path}.verify",
+            f"verify must be true, false, or a string (custom criteria), got {type(verify).__name__}",
+            "error",
+        ))
+    if isinstance(verify, str) and len(verify.strip()) == 0:
+        errors.append(ValidationError(
+            f"{path}.verify",
+            "verify string must not be empty — use true for default prompt adherence check",
+            "error",
+        ))
 
 
 def _validate_file_or_url(
