@@ -1,161 +1,122 @@
 # Strategy E: Studio Workflow (UI-Driven)
 
-## Approach
-Multi-phase pipeline driven by the MoGraph Studio UI. Each phase maps to a step in the UI. The key difference from Strategy D is that **moodboard images are the style anchor** — they replace extracted video frames as the initial reference source. Characters and environments are generated from moodboard + descriptions, then every scene image uses the full reference chain.
+## Core Concept
 
-## Why this strategy
-- **No source footage required**: Strategy D depends on extracted frames for initial references. Strategy E starts from scratch — a text description or curated moodboard folder sets the visual direction.
-- **Reference chain ensures consistency**: Moodboard → character/environment refs → scene first-frames → videos. Each phase inherits references from the one before.
-- **UI-friendly**: Each phase is a discrete step with review/iteration before committing to the next. The studio UI provides edit/regenerate controls at every stage.
-- **Works with any project**: Not locked to a specific scene or character set.
+Every reference is a **single collage image** — not multiple files. This makes references predictable, compact, and easy to review. The video model is always **Seedance 2.0** with **15-second clips**.
+
+## Collage Formats
+
+### Moodboard Collage (1 image)
+A grid of panels showing the visual style from different angles. User specifies grid size (e.g. 2x2, 2x3, 3x3).
+
+**Prompt structure:**
+```
+"A [NxM] grid collage moodboard. [style description]. 
+Top-left: [establishing wide shot]. Top-right: [close-up detail]. 
+Bottom-left: [character study]. Bottom-right: [action scene].
+Each panel separated by thin white borders. Landscape orientation, 16:9 aspect ratio."
+```
+
+Each panel should be labeled in the prompt (top-left, top-right, etc.) to give the model clear composition instructions.
+
+### Character Sheet (1 image per character)
+A uniform character turnaround sheet. Always the same layout:
+
+**Prompt structure:**
+```
+"Character reference sheet for [name]. [style prefix].
+3/4 front view (left), front facing view (center), profile view facing right (right).
+[detailed appearance description].
+Clean white/neutral background, full body, consistent proportions across all views.
+Three views in a horizontal row, separated by thin borders. Landscape orientation, 16:9 aspect ratio."
+```
+
+This ensures every character sheet is predictable — 3 views, always the same order, always full body on a clean background.
+
+### Environment Storyboard (1 image)
+A collage showing the environment from multiple angles and times of day.
+
+**Prompt structure:**
+```
+"Environment reference storyboard for [setting name]. [style prefix].
+Top-left: wide establishing shot. Top-right: interior/close detail.
+Bottom-left: different angle or time of day. Bottom-right: atmospheric mood shot.
+[environment description]. No characters. 2x2 grid with thin borders. Landscape orientation, 16:9 aspect ratio."
+```
+
+### Scene Storyboard (1 image per 15-second clip)
+A collage showing the key moments within a single 15-second clip. Includes timestamps.
+
+**Prompt structure:**
+```
+"Storyboard for a 15-second scene: [scene label]. [style prefix].
+Panel 1 (0:00-0:03): [opening action]. 
+Panel 2 (0:04-0:07): [development]. 
+Panel 3 (0:08-0:11): [climax]. 
+Panel 4 (0:12-0:15): [resolution].
+[characters involved]. 4 panels in a 2x2 grid with timestamps labeled below each panel.
+Thin white borders between panels. Landscape orientation, 16:9 aspect ratio."
+```
 
 ## Phases
 
-### Phase 1: Moodboard (`moodboard-timeline.json`)
-Generate 4-6 reference images that establish the visual style: color palette, art style, lighting mood, composition language.
+### Phase 1: Moodboard
+Generate **1 collage image** establishing the visual style.
 
-**Input**: A style description (e.g. "Dark fantasy anime, candlelit medieval interiors, warm amber palette, cel-shaded").
-**Output**: `runs/<name>_Moodboard-<timestamp>/images/mood-*.png`
-
-These moodboard images become `reference_images` for ALL subsequent generation.
-
-```bash
-python pipeline.py --timeline-file moodboard-timeline.json --stage images
-```
-
-### Phase 2: Character & Environment Refs (`refs-timeline.json`)
-Generate dedicated reference sheets for each character and the environment. **Every ref clip uses moodboard images as reference_images** to lock in the style.
-
-**Input**: Character names + visual descriptions, environment description, moodboard image paths.
-**Output**: `runs/<name>_Refs-<timestamp>/images/<character-name>-ref.png`, `env-ref.png`
-
-```bash
-python pipeline.py --timeline-file refs-timeline.json --stage images
-```
-
-After review, copy the best refs to a `refs/` folder for Phase 4.
-
-### Phase 3: Story Arc (no pipeline — planning only)
-Define the scenes. This is a creative step — the UI asks Claude to break a story prompt into 3-6 scenes, each with:
-- `label` — Scene title
-- `prompt` — Video prompt (describes motion/action)
-- `firstFramePrompt` — Still image prompt for the first frame
-
-No pipeline runs in this phase. Output is a scenes JSON structure.
-
-### Phase 4: Images (`timeline.json --stage images`)
-Write the full timeline and generate first-frame images. **Every scene's `first_frame.generate.reference_images` includes the character refs + environment ref + moodboard images.** This is the critical consistency mechanism.
-
-```bash
-python pipeline.py --timeline-file timeline.json --stage images
-```
-
-Review images. Edit prompts and regenerate individual clips as needed. The reference images ensure characters look the same across all scenes.
-
-### Phase 5: Videos (`--resume-dir <run> --stage videos`)
-Generate video clips from approved first-frame images.
-
-```bash
-python pipeline.py --resume-dir runs/<run-dir> --stage videos
-```
-
-### Phase 6: Final Assembly (`--resume-dir <run> --stage final`)
-Concatenate all clips, overlay narration (if any), mix audio.
-
-```bash
-python pipeline.py --resume-dir runs/<run-dir> --stage final
-```
-
-## Reference chain diagram
-
-```
-Moodboard images (style anchor)
-  ├── Character ref generation (moodboard as reference_images)
-  │     ├── king-ref.png
-  │     ├── advisor-ref.png
-  │     └── ...
-  ├── Environment ref generation (moodboard as reference_images)
-  │     └── env-ref.png
-  │
-  └── Scene first-frame generation (ALL of the above as reference_images)
-        ├── scene-1 first_frame: reference_images = [king-ref, advisor-ref, env-ref, mood-1, mood-2]
-        ├── scene-2 first_frame: reference_images = [king-ref, env-ref, mood-1, mood-2]
-        └── scene-3 first_frame: reference_images = [king-ref, advisor-ref, env-ref, mood-1, mood-2]
-```
-
-**The rule**: Every `reference_images` array should include:
-1. The relevant character ref(s) for that scene
-2. The environment ref
-3. 1-2 moodboard images (for global style consistency)
-
-## Timeline templates
-
-### moodboard-timeline.json
+**Timeline:**
 ```json
 {
   "version": 1,
   "project": { "name": "<ProjectName>_Moodboard" },
   "defaults": {
-    "image": { "model": "nano-banana-pro", "aspect_ratio": "9:16", "output_format": "png" }
+    "image": { "model": "nano-banana-pro", "aspect_ratio": "16:9", "output_format": "png" }
   },
   "tracks": [{
     "id": "moodboard",
     "type": "video",
-    "clips": [
-      {
-        "id": "mood-1",
-        "label": "Style reference — establishing shot",
-        "source": {
-          "type": "image",
-          "prompt": "<style prefix>, wide establishing shot of <environment>, <lighting>, <color palette>, portrait orientation"
-        }
-      },
-      {
-        "id": "mood-2",
-        "label": "Style reference — character close-up",
-        "source": {
-          "type": "image",
-          "prompt": "<style prefix>, medium close-up character portrait, <key visual traits>, <lighting>, portrait orientation"
-        }
+    "clips": [{
+      "id": "moodboard",
+      "label": "Style moodboard collage",
+      "source": {
+        "type": "image",
+        "prompt": "A [NxM] grid collage moodboard. [STYLE DESCRIPTION]. Top-left: [PANEL 1]. Top-right: [PANEL 2]. Bottom-left: [PANEL 3]. Bottom-right: [PANEL 4]. Each panel separated by thin white borders. Landscape orientation, 16:9 aspect ratio."
       }
-    ]
+    }]
   }]
 }
 ```
 
-### refs-timeline.json
+### Phase 2: Character Sheets + Environment
+Generate **1 character sheet per character** and **1 environment storyboard**. All use the moodboard collage as `reference_images`.
+
+**Timeline:**
 ```json
 {
   "version": 1,
   "project": { "name": "<ProjectName>_Refs" },
   "defaults": {
-    "image": { "model": "nano-banana-pro", "aspect_ratio": "9:16", "output_format": "png" }
+    "image": { "model": "nano-banana-pro", "aspect_ratio": "16:9", "output_format": "png" }
   },
   "tracks": [{
     "id": "refs",
     "type": "video",
     "clips": [
       {
-        "id": "<character-name>-ref",
-        "label": "<Character> character portrait",
+        "id": "<character-name>-sheet",
+        "label": "<Character> character sheet",
         "source": {
           "type": "image",
-          "prompt": "<style prefix>, character portrait of <detailed description>, medium close-up, portrait orientation, clean background for character reference",
-          "reference_images": [
-            "runs/<moodboard-run>/images/mood-1.png",
-            "runs/<moodboard-run>/images/mood-2.png"
-          ]
+          "prompt": "Character reference sheet for <NAME>. <STYLE PREFIX>. 3/4 front view (left), front facing view (center), profile view facing right (right). <APPEARANCE>. Clean neutral background, full body, consistent proportions. Three views in a horizontal row, separated by thin borders. Landscape orientation, 16:9 aspect ratio.",
+          "reference_images": ["runs/<moodboard-run>/images/moodboard.png"]
         }
       },
       {
-        "id": "env-ref",
-        "label": "Environment establishing shot",
+        "id": "env-storyboard",
+        "label": "Environment storyboard",
         "source": {
           "type": "image",
-          "prompt": "<style prefix>, wide establishing shot of <environment description>, no characters, atmospheric, portrait orientation",
-          "reference_images": [
-            "runs/<moodboard-run>/images/mood-1.png"
-          ]
+          "prompt": "Environment reference storyboard for <SETTING>. <STYLE PREFIX>. Top-left: wide establishing shot. Top-right: interior detail. Bottom-left: different angle. Bottom-right: atmospheric mood. <ENV DESCRIPTION>. No characters. 2x2 grid with thin borders. Landscape orientation, 16:9 aspect ratio.",
+          "reference_images": ["runs/<moodboard-run>/images/moodboard.png"]
         }
       }
     ]
@@ -163,76 +124,81 @@ Moodboard images (style anchor)
 }
 ```
 
-### timeline.json (the main scene timeline)
+### Phase 3: Story Arc (planning only)
+Break the story into scenes. Each scene = **one 15-second Seedance clip**. For each scene, create:
+- `label` — Scene title
+- `prompt` — Video prompt (15 seconds of action)
+- `firstFramePrompt` — A **storyboard collage** showing 4 key moments with timestamps
+
+No pipeline runs in this phase.
+
+### Phase 4: Scene Storyboard Images
+Generate the **storyboard collage** for each scene. Each collage shows the 4 key moments of that 15-second clip with timestamps. **reference_images includes ALL refs**: moodboard + character sheets + environment storyboard.
+
+**Timeline:**
 ```json
 {
   "version": 1,
   "project": { "name": "<ProjectName>" },
   "defaults": {
-    "video": { "model": "kling-v3", "generate_audio": false, "aspect_ratio": "9:16" },
-    "image": { "model": "nano-banana-pro", "aspect_ratio": "9:16" }
+    "video": { "model": "seedance-2.0", "generate_audio": false, "aspect_ratio": "16:9", "duration": 15 },
+    "image": { "model": "nano-banana-pro", "aspect_ratio": "16:9" }
   },
   "tracks": [{
     "id": "visuals",
     "type": "video",
-    "clips": [
-      {
-        "id": "scene-1",
-        "label": "<Scene title>",
-        "source": {
-          "type": "video",
-          "prompt": "<video prompt with action/motion>",
-          "first_frame": {
-            "generate": {
-              "type": "image",
-              "prompt": "<still image prompt for first frame>",
-              "reference_images": [
-                "refs/characters/<char1>.png",
-                "refs/characters/<char2>.png",
-                "refs/scenes/env.png",
-                "refs/moodboard/mood-1.png",
-                "refs/moodboard/mood-2.png"
-              ]
-            }
+    "clips": [{
+      "id": "scene-1",
+      "label": "<Scene title>",
+      "source": {
+        "type": "video",
+        "duration": 15,
+        "prompt": "<15-second video prompt with continuous action>",
+        "first_frame": {
+          "generate": {
+            "type": "image",
+            "prompt": "Storyboard for a 15-second scene: <LABEL>. <STYLE PREFIX>. Panel 1 (0:00-0:03): <ACTION>. Panel 2 (0:04-0:07): <ACTION>. Panel 3 (0:08-0:11): <ACTION>. Panel 4 (0:12-0:15): <ACTION>. <CHARACTERS>. 2x2 grid with timestamps below each panel. Thin white borders. Landscape orientation, 16:9 aspect ratio.",
+            "reference_images": [
+              "runs/<refs-run>/images/<char1>-sheet.png",
+              "runs/<refs-run>/images/<char2>-sheet.png",
+              "runs/<refs-run>/images/env-storyboard.png",
+              "runs/<moodboard-run>/images/moodboard.png"
+            ]
           }
         }
       }
-    ]
+    }]
   }],
   "output": { "format": "mp4" }
 }
 ```
 
-## Key differences from Strategy D
+### Phase 5: Videos
+Generate 15-second Seedance clips from the storyboard images.
 
-| Aspect | Strategy D | Strategy E (Studio) |
-|--------|-----------|---------------------|
-| **Style source** | Extracted video frames | Moodboard images (generated or curated) |
-| **Workflow** | Manual 2-phase CLI | 6-step UI with review at each stage |
-| **Reference threading** | Refs → scene images | Moodboard → refs → scene images (deeper chain) |
-| **Project specificity** | Hardcoded to throne room | Generic — any project, any characters |
-| **Candidates** | 3 style variants per character | Optional (can regenerate from UI) |
-| **Iteration** | Re-run CLI manually | Edit prompt + regenerate button per scene |
-
-## Folder structure
-```
-strategies/e-studio-workflow/
-  strategy.md                # This file
-  refs/
-    moodboard/               # Moodboard images (from Phase 1)
-    characters/              # Character reference sheets (from Phase 2)
-    scenes/                  # Environment refs (from Phase 2)
+```bash
+python pipeline.py --resume-dir runs/<run-dir> --stage videos
 ```
 
-## How the Studio UI uses this
+### Phase 6: Final Assembly
+```bash
+python pipeline.py --resume-dir runs/<run-dir> --stage final
+```
 
-The MoGraph Studio (`/studio.html`) sends explicit task instructions to Claude via the bridge. Claude reads this strategy document for the workflow pattern, then:
+## Reference Chain
 
-1. **Moodboard step** → Writes `moodboard-timeline.json` per the template, runs `pipeline.py --stage images`
-2. **Characters step** → Writes `refs-timeline.json` with moodboard images as `reference_images`, runs `pipeline.py --stage images`  
-3. **Arc step** → Claude generates scenes JSON (no pipeline run)
-4. **Images step** → Writes `timeline.json` with ALL refs (characters + env + moodboard) in every scene's `first_frame.generate.reference_images`, runs `pipeline.py --stage images`
-5. **Videos step** → `pipeline.py --resume-dir <run> --stage videos`
-6. **Finish step** → `pipeline.py --resume-dir <run> --stage final`
+```
+Moodboard collage (1 image — style anchor)
+  ├── Character sheet per character (1 image each, moodboard as ref)
+  ├── Environment storyboard (1 image, moodboard as ref)
+  │
+  └── Scene storyboard per clip (1 image each, ALL above as refs)
+        └── 15-second Seedance video (storyboard as first_frame)
+```
 
-**Critical**: Claude MUST read `strategies/e-studio-workflow/strategy.md` before executing any step to understand the reference chain pattern.
+## Constants
+- **Video model**: always `seedance-2.0`
+- **Video duration**: always `15` seconds per clip
+- **Image model**: always `nano-banana-pro`
+- **Aspect ratio**: always `16:9` (landscape)
+- **Every reference is a single collage/sheet image** — never multiple separate files
