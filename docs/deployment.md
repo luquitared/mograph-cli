@@ -7,48 +7,56 @@ The pipeline runs on **Google Cloud Run** as a FastAPI server, deployed via **Cl
 ```
 Webapp (Next.js on Vercel) --> Cloud Run (FastAPI) --> GCS (inputs/outputs)
                                     |
-                         Replicate, Gemini TTS, OpenAI
+                              Replicate, Gemini TTS
 ```
 
 - **Service**: `explainer-mograph` in `us-central1`
-- **URL**: `https://explainer-mograph-oga4i5mv6a-uc.a.run.app`
+- **Project**: `eternal-skyline-475200-q6`
 - **Resources**: 8GB RAM, 2 CPU, 0-10 instances, 60min timeout, 1 request/container
-- **Secrets**: Via Google Secret Manager (openai, replicate, elevenlabs, google API keys)
+- **Secrets**: Via Google Secret Manager
 
-## Deploying
+## Deploy
 
 ```bash
 # Production
 ./scripts/deploy.sh
 
-# Staging
-./scripts/deploy.sh --staging
+# Staging (limited to 3 instances)
+./scripts/deploy.sh --env staging
 ```
 
-This writes a `VERSION` file with the git commit SHA and timestamp, then runs `gcloud builds submit --config cloudbuild.yaml .`
+The script writes a `VERSION` file with git commit + timestamp, then runs `gcloud builds submit --config cloudrun/cloudbuild.yaml`.
 
-### Version Tracking
-
-After deploying, `/health` returns the deployed commit:
+After deploying, verify with:
 
 ```bash
 curl -s https://explainer-mograph-oga4i5mv6a-uc.a.run.app/health | jq
-# {"status":"healthy","version":"2.0.0","commit":"fe2f5eb...","branch":"main","deployed_at":"2026-03-14T03:25:04Z"}
 ```
 
-### Manual Deploy
+### Manual deploy
 
 ```bash
-gcloud builds submit --config cloudbuild.yaml .
+# Build
+gcloud builds submit \
+  --tag us-central1-docker.pkg.dev/eternal-skyline-475200-q6/cloud-run-source-deploy/explainer-mograph:latest \
+  --project eternal-skyline-475200-q6 \
+  --timeout 1800
+
+# Deploy
+gcloud run deploy explainer-mograph \
+  --image us-central1-docker.pkg.dev/eternal-skyline-475200-q6/cloud-run-source-deploy/explainer-mograph:latest \
+  --region us-central1 \
+  --project eternal-skyline-475200-q6 \
+  --memory 8Gi --cpu 2 --timeout 3600 --no-cpu-throttling \
+  --service-account video-pipeline-invoker@eternal-skyline-475200-q6.iam.gserviceaccount.com \
+  --set-env-vars "GCS_OUTPUT_BUCKET=gs://eternal-skyline-475200-q6-explainer-outputs" \
+  --allow-unauthenticated
 ```
 
 ## Authentication
 
-The API uses two auth layers:
-
-1. **API Key** (always required): Set `PIPELINE_API_KEY` env var or defaults to `explainer-mograph-secret-key-2024`
-   - Pass via `Authorization: Bearer <key>` or `X-API-Key: <key>` header
-2. **Cloud Run IAM** (currently disabled): `--allow-unauthenticated` is set in `cloudbuild.yaml`
+- **API Key** (required): `Authorization: Bearer <key>` or `X-API-Key: <key>` header
+- **Cloud Run IAM**: Currently disabled (`--allow-unauthenticated`)
 
 ## API Endpoints
 
@@ -61,56 +69,44 @@ The API uses two auth layers:
 | `/download/{job_id}/{file_path}` | GET | Single file signed URL redirect |
 | `/download/{job_id}` | GET | List all files with signed URLs |
 
-See [cloudrun/CLOUDRUN.md](../cloudrun/CLOUDRUN.md) for full API reference with request/response schemas.
+See [cloudrun/CLOUDRUN.md](../cloudrun/CLOUDRUN.md) for full API reference.
 
 ## API Keys Required
 
-| Mode           | Required Keys                                                 |
-| -------------- | ------------------------------------------------------------- |
-| Script mode    | `REPLICATE_API_TOKEN`, `GOOGLE_API_KEY`                       |
-| TTS-only mode  | `GOOGLE_API_KEY`                                              |
-| Voice mode     | `DEEPGRAM_API_KEY`, `REPLICATE_API_TOKEN`, `GOOGLE_API_KEY`   |
+| Mode | Required Keys |
+|------|---------------|
+| Script mode | `REPLICATE_API_TOKEN`, `GOOGLE_API_KEY` |
+| TTS-only | `GOOGLE_API_KEY` |
+
+## Service Accounts
+
+| Environment | Service Account |
+|-------------|-----------------|
+| Cloud Run | `video-pipeline-invoker@eternal-skyline-475200-q6.iam.gserviceaccount.com` |
+| Local | `snappy@eternal-skyline-475200-q6.iam.gserviceaccount.com` |
+
+## GCS Output
+
+- **Bucket**: `gs://eternal-skyline-475200-q6-explainer-outputs`
+- **Public URL**: `https://storage.googleapis.com/eternal-skyline-475200-q6-explainer-outputs/...`
+
+```bash
+gsutil ls gs://eternal-skyline-475200-q6-explainer-outputs/
+```
+
+## Logs
+
+```bash
+gcloud run services logs read explainer-mograph --region us-central1 --project eternal-skyline-475200-q6 --limit 100
+```
 
 ## Local Development
 
 ```bash
-# Start server locally
 GOOGLE_APPLICATION_CREDENTIALS="./your-sa-key.json" python cloudrun/server.py
 
-# Test with curl
 curl -X POST "http://localhost:8080/generate" \
   -H "X-API-Key: explainer-mograph-secret-key-2024" \
   -H "Content-Type: application/json" \
   -d '{"script_json": {...}, "mock": true}'
-```
-
-## GCS Output
-
-Outputs go to `gs://eternal-skyline-475200-q6-explainer-outputs/`. Each run gets a directory with images, videos, audio, and final assembled videos.
-
-```bash
-# List runs
-gsutil ls gs://eternal-skyline-475200-q6-explainer-outputs/
-
-# Download a final video
-gsutil cp gs://.../<run-id>/final/final.mp4 ./
-```
-
-## Batch Processing
-
-For running multiple scripts in parallel via Cloud Run, see [batch/README.md](../batch/README.md).
-
-## Customizing the Deploy
-
-Edit `cloudbuild.yaml` substitutions:
-
-```yaml
-substitutions:
-  _SERVICE_NAME: explainer-mograph
-  _REGION: us-central1
-  _TIMEOUT: 3600s    # 60 min max request
-  _MEMORY: 8Gi
-  _CPU: "2"
-  _MAX_INSTANCES: "10"
-  _MIN_INSTANCES: "0"  # Scale to zero
 ```

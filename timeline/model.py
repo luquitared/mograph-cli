@@ -16,10 +16,10 @@ from typing import Any, Dict, List, Literal, Optional, Union
 
 @dataclass
 class ImageSource:
-    """Image generation source (Replicate Nano Banana Pro)."""
+    """Image generation source (nano-banana-pro via Replicate, or nano-banana-2 via Gemini API)."""
     type: Literal["image"] = "image"
     prompt: str = ""
-    reference_images: List[str] = field(default_factory=list)
+    reference_images: List[Union[str, "Ref"]] = field(default_factory=list)
     model: str = "nano-banana-pro"
     aspect_ratio: str = "16:9"
     resolution: str = "2K"
@@ -32,20 +32,22 @@ class ImageSource:
 
 @dataclass
 class VideoSource:
-    """Video generation source (Veo 3.1 / Kling v3 / Seedance 2.0)."""
+    """Video generation source (Seedance 2.0 / Seedance 2.0 Fast / Veo 3.1 Lite)."""
     type: Literal["video"] = "video"
     prompt: str = ""
     first_frame: Optional[Union[str, "Ref", "Generate"]] = None
     last_frame: Optional[Union[str, "Ref", "Generate"]] = None
-    model: str = "veo-3.1-fast"
-    duration: Union[int, Literal["auto"], None] = 6
+    model: str = "seedance-2.0-fast"
+    duration: Union[int, Literal["auto"], None] = 5
     aspect_ratio: str = "16:9"
-    resolution: str = "720p"
+    resolution: str = "480p"
     generate_audio: bool = True
     negative_prompt: Optional[str] = None
     seed: Optional[int] = None
     quality: Optional[str] = None  # Seedance 2.0: "basic" or "high"
-    reference_images: List[str] = field(default_factory=list)  # Kling v3: up to 7 reference images
+    reference_images: List[Union[str, "Ref"]] = field(default_factory=list)  # Seedance: up to 9 images, referenced as [Image1] etc.
+    reference_videos: List[Union[str, "Ref"]] = field(default_factory=list)  # Seedance: up to 3 videos (max 15s total), referenced as [Video1] etc.
+    reference_audios: List[str] = field(default_factory=list)  # Seedance: up to 3 audio files (max 15s total), referenced as [Audio1] etc.
     candidates: Optional[List[Dict[str, Any]]] = None
     select: Optional[int] = None
     verify: Union[bool, str, None] = None  # True, custom prompt string, or None/False
@@ -153,11 +155,11 @@ class Project:
 
 @dataclass
 class VideoDefaults:
-    model: str = "veo-3.1-fast"
-    duration: int = 6
+    model: str = "seedance-2.0-fast"
+    duration: int = 5
     generate_audio: bool = True
     aspect_ratio: str = "16:9"
-    resolution: str = "720p"
+    resolution: str = "480p"
     verify: Union[bool, str, None] = None  # Default verify setting for all video sources
 
 

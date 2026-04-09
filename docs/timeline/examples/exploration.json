@@ -1,0 +1,78 @@
+{
+  "_comment": "Exploration workflow: use candidates arrays to generate multiple prompt variants for an image asset, then set select to pick the best one after review. Workflow: 1) Run without select to generate all candidates, 2) Review outputs, 3) Set select to the winning index.",
+  "version": 1,
+  "project": {
+    "name": "Brand Identity Exploration",
+    "description": "Exploring visual styles for a tech brand hero image"
+  },
+  "defaults": {
+    "image": {
+      "model": "nano-banana-pro",
+      "aspect_ratio": "16:9",
+      "resolution": "2K"
+    },
+    "video": {
+      "model": "seedance-2.0",
+      "duration": 5,
+      "generate_audio": false
+    }
+  },
+  "assets": {
+    "hero-image": {
+      "_comment": "Three candidate prompts exploring different visual directions. Set select: 1, 2, or 3 after reviewing the generated images.",
+      "type": "image",
+      "prompt": "Futuristic tech landscape, glowing circuits and data streams, dark blue and cyan color palette, 8K cinematic",
+      "candidates": [
+        {
+          "prompt": "Futuristic tech landscape, glowing circuits and data streams flowing through a dark void, dark blue and cyan color palette, 8K cinematic"
+        },
+        {
+          "prompt": "Abstract network visualization, interconnected glowing nodes on dark background, electric blue and purple gradients, minimal and clean"
+        },
+        {
+          "prompt": "Macro circuit board with glowing pathways, shallow depth of field, teal and gold accent lighting, premium tech photography"
+        }
+      ],
+      "select": 1
+    }
+  },
+  "tracks": [
+    {
+      "id": "narration",
+      "type": "narration",
+      "clips": [
+        {
+          "id": "narr-1",
+          "source": {
+            "type": "tts",
+            "text": "Welcome to the future of connected technology. Our platform brings together intelligence, speed, and reliability."
+          }
+        }
+      ]
+    },
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "vid-1",
+          "_comment": "Uses the selected hero-image asset as the first frame",
+          "fit_to": "narr-1",
+          "source": {
+            "type": "video",
+            "prompt": "Slow cinematic camera push through a futuristic tech landscape, particles and light trails, ambient sci-fi atmosphere",
+            "first_frame": {
+              "ref": "hero-image"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4",
+    "variants": {
+      "narration_only": true
+    }
+  }
+}

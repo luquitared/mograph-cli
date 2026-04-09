@@ -25,43 +25,35 @@ from timeline.video_gen import (
 # ---------------------------------------------------------------------------
 
 class TestModelKindMapping:
-    def test_veo_quality(self):
-        assert MODEL_KIND_MAP["veo-3.1"] == "quality"
-
-    def test_veo_fast(self):
-        assert MODEL_KIND_MAP["veo-3.1-fast"] == "fast"
-
     def test_veo_lite(self):
         assert MODEL_KIND_MAP["veo-3.1-lite"] == "lite"
 
-    def test_kling(self):
-        assert MODEL_KIND_MAP["kling-v3"] == "kling"
+    def test_seedance(self):
+        assert MODEL_KIND_MAP["seedance-2.0"] == "seedance"
 
-    def test_get_model_owner_name_quality(self):
-        owner, name = _get_model_owner_name("veo-3.1")
-        assert owner == "google"
-        assert name == "veo-3.1"
-
-    def test_get_model_owner_name_fast(self):
-        owner, name = _get_model_owner_name("veo-3.1-fast")
-        assert owner == "google"
-        assert name == "veo-3.1-fast"
+    def test_seedance_fast(self):
+        assert MODEL_KIND_MAP["seedance-2.0-fast"] == "seedance-fast"
 
     def test_get_model_owner_name_lite(self):
         owner, name = _get_model_owner_name("veo-3.1-lite")
         assert owner == "google"
         assert name == "veo-3.1-lite"
 
-    def test_get_model_owner_name_kling(self):
-        owner, name = _get_model_owner_name("kling-v3")
-        assert owner == "kwaivgi"
-        assert name == "kling-v3-omni-video"
+    def test_get_model_owner_name_seedance(self):
+        owner, name = _get_model_owner_name("seedance-2.0")
+        assert owner == "bytedance"
+        assert name == "seedance-2.0"
+
+    def test_get_model_owner_name_seedance_fast(self):
+        owner, name = _get_model_owner_name("seedance-2.0-fast")
+        assert owner == "bytedance"
+        assert name == "seedance-2.0-fast"
 
     def test_get_model_owner_name_unknown_falls_back(self):
         owner, name = _get_model_owner_name("unknown-model")
-        # Falls back to fast
-        assert owner == "google"
-        assert name == "veo-3.1-fast"
+        # Falls back to seedance-2.0-fast (default)
+        assert owner == "bytedance"
+        assert name == "seedance-2.0-fast"
 
 
 # ---------------------------------------------------------------------------
@@ -131,9 +123,9 @@ class TestBuildJobDict:
 
         result = _build_job_dict(job, defaults)
 
-        # Source has defaults (duration=6, aspect_ratio="16:9" etc),
+        # Source has defaults (duration=5, aspect_ratio="16:9" etc),
         # so they won't fall through to VideoDefaults
-        assert result["config"]["duration"] == 6  # source default
+        assert result["config"]["duration"] == 5  # source default
         assert result["config"]["aspect_ratio"] == "16:9"  # source default
 
 
@@ -148,7 +140,7 @@ class TestGenerateVideosMock:
         original_mock = batch_vid.MOCK_REPLICATE
         batch_vid.MOCK_REPLICATE = True
         try:
-            source = VideoSource(prompt="test video", model="veo-3.1-fast")
+            source = VideoSource(prompt="test video", model="seedance-2.0")
             jobs = [VideoJob(clip_id="clip_001", source=source)]
             defaults = VideoDefaults()
 
@@ -185,8 +177,8 @@ class TestGenerateVideosMock:
         original_mock = batch_vid.MOCK_REPLICATE
         batch_vid.MOCK_REPLICATE = True
         try:
-            good_source = VideoSource(prompt="good video", model="veo-3.1-fast")
-            bad_source = VideoSource(prompt="", model="veo-3.1-fast")  # Empty prompt → error
+            good_source = VideoSource(prompt="good video", model="seedance-2.0")
+            bad_source = VideoSource(prompt="", model="seedance-2.0")  # Empty prompt → error
 
             jobs = [
                 VideoJob(clip_id="good", source=good_source),

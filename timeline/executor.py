@@ -219,15 +219,42 @@ def _group_by_source_type(
 async def _dispatch_images(
     node_ids: List[str],
     source_map: Dict[str, Source],
+    results: Dict[str, NodeResult],
     run_dir: Path,
     timeline: Timeline,
     concurrency: int,
 ) -> Dict[str, NodeResult]:
     """Dispatch a batch of image generation nodes."""
     from timeline.image_gen import generate_images
+    from timeline.resolver import resolve_ref
 
-    sources = [(nid, source_map[nid]) for nid in node_ids]
-    return await generate_images(sources, run_dir, timeline.defaults.image, concurrency)
+    # Resolve any Ref items in reference_images to concrete paths
+    resolved_sources: List[tuple] = []
+    for nid in node_ids:
+        source: ImageSource = source_map[nid]
+        resolved_refs = []
+        for item in source.reference_images:
+            if isinstance(item, Ref):
+                path = resolve_ref(item, results, run_dir)
+                resolved_refs.append(str(path))
+            else:
+                resolved_refs.append(item)
+        # Shallow-copy the source with resolved paths
+        resolved = ImageSource(
+            prompt=source.prompt,
+            reference_images=resolved_refs,
+            model=source.model,
+            aspect_ratio=source.aspect_ratio,
+            resolution=source.resolution,
+            output_format=source.output_format,
+            safety_filter_level=source.safety_filter_level,
+            candidates=source.candidates,
+            select=source.select,
+            verify=source.verify,
+        )
+        resolved_sources.append((nid, resolved))
+
+    return await generate_images(resolved_sources, run_dir, timeline.defaults.image, concurrency)
 
 
 async def _dispatch_videos(
@@ -251,21 +278,51 @@ async def _dispatch_videos(
         first_path = _resolve_video_frame(source.first_frame, results, run_dir, anon_identity_map)
         last_path = _resolve_video_frame(source.last_frame, results, run_dir, anon_identity_map)
 
-        # Resolve reference image paths (relative to CWD, same as timeline file)
-        ref_paths = []
+        # Resolve reference image paths — strings or Ref objects
+        ref_img_paths = []
         for ref_img in getattr(source, "reference_images", []):
-            p = Path(ref_img).expanduser().resolve()
-            if p.exists():
-                ref_paths.append(p)
+            if isinstance(ref_img, Ref):
+                from timeline.resolver import resolve_ref
+                p = resolve_ref(ref_img, results, run_dir)
+                ref_img_paths.append(p)
             else:
-                logger.warning("Reference image not found: %s", p)
+                p = Path(ref_img).expanduser().resolve()
+                if p.exists():
+                    ref_img_paths.append(p)
+                else:
+                    logger.warning("Reference image not found: %s", p)
+
+        # Resolve reference video paths — strings or Ref objects (video-to-video chaining)
+        ref_vid_paths = []
+        for ref_vid in getattr(source, "reference_videos", []):
+            if isinstance(ref_vid, Ref):
+                from timeline.resolver import resolve_ref
+                p = resolve_ref(ref_vid, results, run_dir)
+                ref_vid_paths.append(p)
+            else:
+                p = Path(ref_vid).expanduser().resolve()
+                if p.exists():
+                    ref_vid_paths.append(p)
+                else:
+                    logger.warning("Reference video not found: %s", p)
+
+        # Resolve reference audio paths
+        ref_aud_paths = []
+        for ref_aud in getattr(source, "reference_audios", []):
+            p = Path(ref_aud).expanduser().resolve()
+            if p.exists():
+                ref_aud_paths.append(p)
+            else:
+                logger.warning("Reference audio not found: %s", p)
 
         jobs.append(VideoJob(
             clip_id=nid,
             source=source,
             first_frame_path=first_path,
             last_frame_path=last_path,
-            reference_image_paths=ref_paths,
+            reference_image_paths=ref_img_paths,
+            reference_video_paths=ref_vid_paths,
+            reference_audio_paths=ref_aud_paths,
         ))
 
     return await generate_videos(jobs, run_dir, timeline.defaults.video, concurrency)
@@ -550,7 +607,7 @@ async def _generate_single_candidate(
         if isinstance(source, ImageSource):
             batch_results = await _dispatch_images(
                 [candidate_id], {candidate_id: variant_source},
-                run_dir, timeline, 1,
+                results, run_dir, timeline, 1,
             )
         elif isinstance(source, VideoSource):
             batch_results = await _dispatch_videos(
@@ -828,7 +885,7 @@ async def _execute_async(
         for stype, node_ids in groups.items():
             task = None
             if stype == "image":
-                task = _dispatch_images(node_ids, source_map, run_dir, timeline, img_conc)
+                task = _dispatch_images(node_ids, source_map, results, run_dir, timeline, img_conc)
             elif stype == "video":
                 task = _dispatch_videos(node_ids, source_map, results, run_dir, timeline, vid_conc, anon_identity_map)
             elif stype == "tts":
@@ -903,7 +960,7 @@ async def _execute_async(
                             retry_result = None
                             try:
                                 if stype == "image":
-                                    retry_batch = await _dispatch_images([nid], source_map, run_dir, timeline, 1)
+                                    retry_batch = await _dispatch_images([nid], source_map, results, run_dir, timeline, 1)
                                     retry_result = retry_batch.get(nid)
                                 elif stype == "video":
                                     retry_batch = await _dispatch_videos(
@@ -1081,21 +1138,23 @@ async def _execute_async(
 def _activate_mock_mode() -> None:
     """Enable mock mode for all generation backends."""
     from shared.replicate_client import set_mock_mode
-    from generation import batch_img, batch_vid
+    from generation import batch_img, batch_vid, nano_banana2
 
     set_mock_mode(True)
     batch_img.MOCK_REPLICATE = True
     batch_vid.MOCK_REPLICATE = True
+    nano_banana2.MOCK_GENERATE = True
 
 
 def _deactivate_mock_mode() -> None:
     """Disable mock mode for all generation backends."""
     from shared.replicate_client import set_mock_mode
-    from generation import batch_img, batch_vid
+    from generation import batch_img, batch_vid, nano_banana2
 
     set_mock_mode(False)
     batch_img.MOCK_REPLICATE = False
     batch_vid.MOCK_REPLICATE = False
+    nano_banana2.MOCK_GENERATE = False
 
 
 # ---------------------------------------------------------------------------

@@ -38,11 +38,11 @@ Fields prefixed with `_` (e.g. `_comment`) are silently ignored by the parser an
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `model` | `string` | `"veo-3.1-fast"` | Video model. One of: `veo-3.1`, `veo-3.1-fast`, `veo-3.1-lite`, `kling-v3`. |
-| `duration` | `int` | `6` | Clip duration in seconds. Veo models: `4`, `6`, or `8`. |
+| `model` | `string` | `"seedance-2.0-fast"` | Video model. One of: `seedance-2.0-fast`, `seedance-2.0`, `veo-3.1-lite`. |
+| `duration` | `int` | `5` | Clip duration in seconds. |
 | `generate_audio` | `bool` | `true` | Whether to generate audio with the video. |
 | `aspect_ratio` | `string` | `"16:9"` | Aspect ratio. |
-| `resolution` | `string` | `"720p"` | Resolution. Model-specific constraints apply. |
+| `resolution` | `string` | `"480p"` | Resolution. `480p` or `720p` for Seedance; `720p`/`1080p` for Veo Lite. |
 | `verify` | `bool\|string` | `null` | Enable verification for all video clips. See [Verification](#verification). |
 
 ### ImageDefaults
@@ -53,7 +53,7 @@ Fields prefixed with `_` (e.g. `_comment`) are silently ignored by the parser an
 | `aspect_ratio` | `string` | `"16:9"` | Aspect ratio. |
 | `resolution` | `string` | `"2K"` | Image resolution. |
 | `output_format` | `string` | `"png"` | `"png"` or `"jpg"`. |
-| `reference_images` | `string[]` | `[]` | Paths or URLs to reference images. |
+| `reference_images` | `(string\|Ref)[]` | `[]` | Paths, URLs, or `{"ref": "clip_id"}` references to other clip outputs. |
 | `safety_filter_level` | `string` | `"block_only_high"` | Safety filter level. |
 | `verify` | `bool\|string` | `null` | Enable verification for all image clips. See [Verification](#verification). |
 
@@ -101,7 +101,7 @@ Generates an image via Replicate Nano Banana Pro.
 |-------|------|----------|---------|-------------|
 | `type` | `"image"` | Yes | — | Source type discriminator. |
 | `prompt` | `string` | Yes | — | Image generation prompt. |
-| `reference_images` | `string[]` | No | from defaults | Paths or URLs to reference images. |
+| `reference_images` | `(string\|Ref)[]` | No | from defaults | Paths, URLs, or `{"ref": "clip_id"}` references to other clip outputs. |
 | `model` | `string` | No | from defaults | Image model name. |
 | `aspect_ratio` | `string` | No | from defaults | Aspect ratio. |
 | `resolution` | `string` | No | from defaults | Resolution. |
@@ -113,7 +113,7 @@ Generates an image via Replicate Nano Banana Pro.
 
 ### VideoSource (`type: "video"`)
 
-Generates a video clip via Veo 3.1 or Kling v3.
+Generates a video clip via Seedance 2.0 or Veo 3.1 Lite.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
@@ -121,13 +121,17 @@ Generates a video clip via Veo 3.1 or Kling v3.
 | `prompt` | `string` | Yes | — | Video generation prompt. |
 | `first_frame` | `string \| Ref \| Generate \| null` | No | `null` | First frame input: file path/URL, ref, or inline generation. |
 | `last_frame` | `string \| Ref \| Generate \| null` | No | `null` | Last frame input (same types as first_frame). |
-| `model` | `string` | No | from defaults | One of: `veo-3.1`, `veo-3.1-fast`, `veo-3.1-lite`, `kling-v3`. |
-| `duration` | `int \| "auto"` | No | from defaults | Duration in seconds. Veo: `4`, `6`, or `8`. |
-| `aspect_ratio` | `string` | No | from defaults | Aspect ratio. |
-| `resolution` | `string` | No | from defaults | Resolution. See model constraints. |
+| `model` | `string` | No | from defaults | One of: `seedance-2.0-fast`, `seedance-2.0`, `veo-3.1-lite`. |
+| `duration` | `int \| "auto"` | No | from defaults | Duration in seconds. Veo Lite: `4`, `6`, or `8`. Seedance: any int or `-1` for auto. |
+| `aspect_ratio` | `string` | No | from defaults | Aspect ratio. Seedance: `16:9`, `4:3`, `1:1`, `3:4`, `9:16`, `21:9`, `adaptive`. |
+| `resolution` | `string` | No | from defaults | Resolution. Seedance: `480p`, `720p`. Veo Lite: `720p`, `1080p`. |
 | `generate_audio` | `bool` | No | from defaults | Generate audio with video. |
-| `negative_prompt` | `string` | No | `null` | Negative prompt (what to avoid). |
+| `negative_prompt` | `string` | No | `null` | Negative prompt (Veo Lite only). |
 | `seed` | `int` | No | `null` | Random seed for reproducibility. |
+| `quality` | `string` | No | `null` | Seedance 2.0: `"basic"` or `"high"`. |
+| `reference_images` | `(string\|Ref)[]` | No | `[]` | Seedance: up to 9 images. Referenced as `[Image1]`, `[Image2]` in prompt. |
+| `reference_videos` | `(string\|Ref)[]` | No | `[]` | Seedance: up to 3 videos (15s total). Referenced as `[Video1]` in prompt. Enables video-to-video chaining via `{"ref": "clip_id"}`. |
+| `reference_audios` | `string[]` | No | `[]` | Seedance: up to 3 audio files (15s total). Referenced as `[Audio1]` in prompt. |
 | `candidates` | `object[]` | No | `null` | Prompt variant overrides for exploration. |
 | `select` | `int` | No | `null` | 1-based index into candidates. |
 | `verify` | `bool\|string` | No | from defaults | Post-generation verification. See [Verification](#verification). |
@@ -249,12 +253,11 @@ Inline generation instruction. Embeds a source definition directly in a `first_f
 
 ### Model-Specific Constraints
 
-| Model | Durations | Resolutions |
-|-------|-----------|-------------|
-| `veo-3.1` | 4, 6, 8 | 720p, 1080p |
-| `veo-3.1-fast` | 4, 6, 8 | 720p only |
-| `veo-3.1-lite` | 4, 6, 8 | 720p, 1080p |
-| `kling-v3` | — | 720p, 1080p |
+| Model | Durations | Resolutions | Notes |
+|-------|-----------|-------------|-------|
+| `seedance-2.0-fast` | any int, or `-1` (auto) | 480p, 720p | **Default model.** Cheapest at 480p ($0.06/s). |
+| `seedance-2.0` | any int, or `-1` (auto) | 480p, 720p | Higher quality. Use for final renders. |
+| `veo-3.1-lite` | 4, 6, 8 | 720p, 1080p | Audio always generated. |
 
 ---
 

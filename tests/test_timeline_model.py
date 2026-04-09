@@ -102,8 +102,8 @@ class TestSourceTypes:
         assert s.prompt == ""
         assert s.first_frame is None
         assert s.last_frame is None
-        assert s.model == "veo-3.1-fast"
-        assert s.duration == 6
+        assert s.model == "seedance-2.0-fast"
+        assert s.duration == 5
         assert s.generate_audio is True
         assert s.negative_prompt is None
         assert s.seed is None
@@ -171,7 +171,7 @@ class TestFullConstruction:
             prompt="A swaying leaf",
             first_frame=ref,
             last_frame="path/to/frame.png",
-            model="veo-3.1",
+            model="veo-3.1-lite",
             duration=8,
             aspect_ratio="9:16",
             resolution="1080p",
@@ -267,8 +267,8 @@ class TestRefAndGenerate:
 class TestDefaultsTypes:
     def test_video_defaults(self):
         d = VideoDefaults()
-        assert d.model == "veo-3.1-fast"
-        assert d.duration == 6
+        assert d.model == "seedance-2.0-fast"
+        assert d.duration == 5
         assert d.generate_audio is True
 
     def test_image_defaults(self):

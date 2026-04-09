@@ -1,0 +1,100 @@
+{
+  "_comment": "Sequential chaining: each video clip uses the previous clip's last frame as its first frame via ref + extract. This creates visual continuity across clips — the ending of one scene becomes the start of the next.",
+  "version": 1,
+  "project": {
+    "name": "Day in the Life - Time Lapse",
+    "description": "A continuous visual sequence showing sunrise to sunset"
+  },
+  "defaults": {
+    "video": {
+      "model": "seedance-2.0",
+      "duration": 5,
+      "generate_audio": false
+    },
+    "tts": {
+      "voice": "Kore"
+    }
+  },
+  "tracks": [
+    {
+      "id": "narration",
+      "type": "narration",
+      "clips": [
+        {
+          "id": "narr-dawn",
+          "source": {
+            "type": "tts",
+            "text": "As the first light breaks over the horizon, the world begins to stir."
+          }
+        },
+        {
+          "id": "narr-midday",
+          "source": {
+            "type": "tts",
+            "text": "By noon, the city is alive with energy. Streets bustle, markets hum, and shadows shrink to nothing."
+          }
+        },
+        {
+          "id": "narr-sunset",
+          "source": {
+            "type": "tts",
+            "text": "As the sun dips below the skyline, golden light paints every surface. The day draws to a quiet close."
+          }
+        }
+      ]
+    },
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "vid-dawn",
+          "_comment": "First clip uses a generated image as its first frame (no previous clip to chain from)",
+          "fit_to": "narr-dawn",
+          "source": {
+            "type": "video",
+            "prompt": "Timelapse of sunrise over a city skyline, warm orange and pink hues spreading across the sky, cinematic drone shot",
+            "first_frame": {
+              "generate": {
+                "type": "image",
+                "prompt": "Dark pre-dawn city skyline with faint orange glow on the horizon, cinematic wide shot, deep blue sky"
+              }
+            }
+          }
+        },
+        {
+          "id": "vid-midday",
+          "_comment": "Chains from vid-dawn: extracts last frame to use as this clip's first frame",
+          "fit_to": "narr-midday",
+          "source": {
+            "type": "video",
+            "prompt": "Timelapse of busy city streets at midday, harsh overhead sunlight, people and cars flowing through intersections, aerial view",
+            "first_frame": {
+              "ref": "vid-dawn",
+              "extract": "last_frame"
+            }
+          }
+        },
+        {
+          "id": "vid-sunset",
+          "_comment": "Chains from vid-midday: continuous visual flow from midday into sunset",
+          "fit_to": "narr-sunset",
+          "source": {
+            "type": "video",
+            "prompt": "Timelapse of sunset over city, golden hour light washing over buildings, long shadows stretching, cinematic drone pullback",
+            "first_frame": {
+              "ref": "vid-midday",
+              "extract": "last_frame"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4",
+    "variants": {
+      "narration_only": true
+    }
+  }
+}

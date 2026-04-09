@@ -1,11 +1,11 @@
 # generation/
 
-Image and video generation via Replicate API. Images use Google Nano Banana Pro; videos use Google Veo 3.1 (quality/fast).
+Image and video generation via Replicate API. Images use Google Nano Banana Pro; videos use Seedance 2.0 Fast (default), Seedance 2.0, or Veo 3.1 Lite.
 
 ## Files
 
 - `batch_img.py` — Batch image generation with async concurrency, Replicate upload/poll/download, and optional OpenAI vision quality verification with auto-regeneration
-- `batch_vid.py` — Batch video generation supporting Veo 3.1 (quality/fast) models, with content moderation retry and rate limit handling
+- `batch_vid.py` — Batch video generation supporting Seedance 2.0 and Veo 3.1 Lite via Replicate, with content moderation retry and rate limit handling
 
 ## Key Interfaces
 
@@ -16,13 +16,13 @@ Image and video generation via Replicate API. Images use Google Nano Banana Pro;
 - `MOCK_REPLICATE` — Module-level bool set by pipeline.py when `--mock` is active
 
 **batch_vid.py:**
-- `run_batch_async(jobs_path, outdir, model_kind="quality", ...)` — Async batch video generation. `model_kind` selects "quality" (Veo 3.1) or "fast" (Veo 3.1 Fast)
-- `process_job(...)` — Single job processor for Veo
+- `run_batch_async(jobs_path, outdir, model_kind="seedance-fast", ...)` — Async batch video generation. `model_kind` selects "seedance-fast" (default), "seedance", or "lite"
+- `process_job(...)` — Single job processor for Seedance/Veo Lite
 - `MOCK_REPLICATE` / `MOCK_VIDEO_FIXTURE` — Mock mode controls set by pipeline.py
 
 **Input formats:**
 - Images: JSON with `requests[]` array (each has `prompt`, `image_paths`, `filename`, `output_dir`)
-- Videos: JSON array of jobs (each has `prompt`, optional `first_frame_image`/`last_frame_image`, `config`)
+- Videos: JSON array of jobs (each has `prompt`, optional `first_frame_image`/`last_frame_image`, `reference_images`, `reference_videos`, `reference_audios`, `config`)
 
 ## Dependencies
 

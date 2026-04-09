@@ -114,68 +114,28 @@ class TestStaticValidation:
     # Since we use dataclasses with literal types, an invalid source type
     # would be caught at parse time. We test that the validator also checks.
 
-    # REQ-SVAL-007: Veo duration
-    def test_veo_invalid_duration(self):
+    # REQ-SVAL-007: Veo Lite duration
+    def test_veo_lite_invalid_duration(self):
         tl = _make_timeline(tracks=[Track(id="t1", type="video", clips=[
-            Clip(id="c1", source=VideoSource(prompt="test", model="veo-3.1", duration=5)),
+            Clip(id="c1", source=VideoSource(prompt="test", model="veo-3.1-lite", duration=5, resolution="720p")),
         ])])
         result = validate(tl)
         assert not result.is_valid
         assert any("duration" in e.message.lower() for e in result.errors)
 
-    def test_veo_valid_duration(self):
+    def test_veo_lite_valid_duration(self):
         tl = _make_timeline(tracks=[Track(id="t1", type="video", clips=[
-            Clip(id="c1", source=VideoSource(prompt="test", model="veo-3.1", duration=6)),
+            Clip(id="c1", source=VideoSource(prompt="test", model="veo-3.1-lite", duration=6, resolution="720p")),
         ])])
         result = validate(tl)
         assert result.is_valid
-
-    # REQ-SVAL-008: Veo Fast resolution
-    def test_veo_fast_1080p_error(self):
-        tl = _make_timeline(tracks=[Track(id="t1", type="video", clips=[
-            Clip(id="c1", source=VideoSource(
-                prompt="test", model="veo-3.1-fast", resolution="1080p",
-            )),
-        ])])
-        result = validate(tl)
-        assert not result.is_valid
-        assert any("720p" in e.message for e in result.errors)
-
-    def test_veo_fast_720p_pass(self):
-        tl = _make_timeline(tracks=[Track(id="t1", type="video", clips=[
-            Clip(id="c1", source=VideoSource(
-                prompt="test", model="veo-3.1-fast", resolution="720p",
-            )),
-        ])])
-        result = validate(tl)
-        assert result.is_valid
-
-    # REQ-SVAL-009: Veo Quality resolution
-    def test_veo_quality_invalid_resolution(self):
-        tl = _make_timeline(tracks=[Track(id="t1", type="video", clips=[
-            Clip(id="c1", source=VideoSource(
-                prompt="test", model="veo-3.1", resolution="4k",
-            )),
-        ])])
-        result = validate(tl)
-        assert not result.is_valid
-
-    # REQ-SVAL-010: Kling resolution
-    def test_kling_invalid_resolution(self):
-        tl = _make_timeline(tracks=[Track(id="t1", type="video", clips=[
-            Clip(id="c1", source=VideoSource(
-                prompt="test", model="kling-v3", resolution="4k",
-            )),
-        ])])
-        result = validate(tl)
-        assert not result.is_valid
 
     # REQ-SVAL-011: Veo Lite generate_audio warning
     def test_veo_lite_generate_audio_false_warning(self):
         tl = _make_timeline(tracks=[Track(id="t1", type="video", clips=[
             Clip(id="c1", source=VideoSource(
                 prompt="test", model="veo-3.1-lite",
-                generate_audio=False, duration=6,
+                generate_audio=False, duration=6, resolution="720p",
             )),
         ])])
         result = validate(tl)

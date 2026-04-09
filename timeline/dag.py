@@ -97,9 +97,21 @@ def _extract_source_deps(
     anon_identity_map: Dict[int, str],
 ) -> None:
     """Extract dependency edges from a source's fields."""
-    if isinstance(source, VideoSource):
+    if isinstance(source, ImageSource):
+        for item in source.reference_images:
+            if isinstance(item, Ref):
+                _add_edge(dag, owner_id, item.ref)
+    elif isinstance(source, VideoSource):
         _process_frame_input(dag, owner_id, source.first_frame, anon_counter, anon_identity_map)
         _process_frame_input(dag, owner_id, source.last_frame, anon_counter, anon_identity_map)
+        # reference_images with Ref entries
+        for item in source.reference_images:
+            if isinstance(item, Ref):
+                _add_edge(dag, owner_id, item.ref)
+        # reference_videos with Ref entries (video-to-video chaining)
+        for item in source.reference_videos:
+            if isinstance(item, Ref):
+                _add_edge(dag, owner_id, item.ref)
     elif isinstance(source, StillSource):
         if isinstance(source.image, Ref):
             _add_edge(dag, owner_id, source.image.ref)

@@ -6,39 +6,83 @@ Reference for all generation models available in the timeline format.
 
 ## Video Models
 
-### Veo 3.1 (`veo-3.1`)
+### Seedance 2.0 Fast (`seedance-2.0-fast`)
 
-Google's highest-quality video generation model.
-
-| Parameter | Values | Default |
-|-----------|--------|---------|
-| `duration` | 4, 6, 8 seconds | 6 |
-| `resolution` | `"720p"`, `"1080p"` | `"720p"` |
-| `generate_audio` | `true`/`false` | `true` |
-| `negative_prompt` | any string | `null` |
-| `seed` | any int | `null` |
-
-- **When to use:** Final renders where quality matters most.
-- **Limitations:** Slowest of the Veo family. Higher cost per clip.
-
-### Veo 3.1 Fast (`veo-3.1-fast`)
-
-Faster variant of Veo 3.1 with slightly lower quality. Default video model.
+Default video model. Faster, cheaper variant of Seedance 2.0 — trades some quality for speed. Same inputs and capabilities. Best for drafts, iteration, and high-volume pipelines.
 
 | Parameter | Values | Default |
 |-----------|--------|---------|
-| `duration` | 4, 6, 8 seconds | 6 |
-| `resolution` | `"720p"` only | `"720p"` |
+| `duration` | any integer seconds, or `-1` for auto | 5 |
+| `resolution` | `"480p"`, `"720p"` | `"480p"` |
+| `aspect_ratio` | `"16:9"`, `"4:3"`, `"1:1"`, `"3:4"`, `"9:16"`, `"21:9"`, `"adaptive"` | `"16:9"` |
 | `generate_audio` | `true`/`false` | `true` |
-| `negative_prompt` | any string | `null` |
 | `seed` | any int | `null` |
+| `quality` | `"basic"`, `"high"` | `"basic"` |
+| `first_frame` | ref, generate, or path | `null` |
+| `last_frame` | ref, generate, or path (requires first_frame) | `null` |
+| `reference_images` | up to 9 images; strings, URLs, or `{"ref": "clip_id"}` | `[]` |
+| `reference_videos` | up to 3 videos (max 15s total); strings, URLs, or `{"ref": "clip_id"}` | `[]` |
+| `reference_audios` | up to 3 audio files (max 15s total) | `[]` |
 
-- **When to use:** Iteration and drafts, or when 720p is sufficient.
-- **Limitations:** 720p only. Quality slightly below `veo-3.1`.
+- **When to use:** Default for all video generation. Cheapest at 480p ($0.06/s). Use for drafts and iteration.
+- **Limitations:** Same as Seedance 2.0 — `reference_images` and `first_frame` are mutually exclusive. No `negative_prompt`.
+
+### Seedance 2.0 (`seedance-2.0`)
+
+ByteDance's higher-quality multimodal video generation model. Same inputs as Fast variant. Use for final renders when quality matters.
+
+| Parameter | Values | Default |
+|-----------|--------|---------|
+| `duration` | any integer seconds, or `-1` for auto | 5 |
+| `resolution` | `"480p"`, `"720p"` | `"480p"` |
+| `aspect_ratio` | `"16:9"`, `"4:3"`, `"1:1"`, `"3:4"`, `"9:16"`, `"21:9"`, `"adaptive"` | `"16:9"` |
+| `generate_audio` | `true`/`false` | `true` |
+| `seed` | any int | `null` |
+| `quality` | `"basic"`, `"high"` | `"basic"` |
+| `first_frame` | ref, generate, or path | `null` |
+| `last_frame` | ref, generate, or path (requires first_frame) | `null` |
+| `reference_images` | up to 9 images; strings, URLs, or `{"ref": "clip_id"}` | `[]` |
+| `reference_videos` | up to 3 videos (max 15s total); strings, URLs, or `{"ref": "clip_id"}` | `[]` |
+| `reference_audios` | up to 3 audio files (max 15s total) | `[]` |
+
+- **When to use:** Final renders where quality matters. Switch from `seedance-2.0-fast` by updating `defaults.video.model`.
+- **Limitations:** `reference_images` and `first_frame` (image) are mutually exclusive. No `negative_prompt`.
+
+**Seedance examples:**
+
+```json
+// Text-to-video (cheapest: fast + 480p + no video refs = $0.06/s)
+{
+  "type": "video",
+  "prompt": "A cinematic shot of a futuristic city with neon lights",
+  "duration": 5,
+  "resolution": "480p"
+}
+```
+
+```json
+// Video-to-video chaining (pipe previous clip output as reference)
+{
+  "type": "video",
+  "prompt": "Continue the scene. [Video1] The camera slowly pulls back to reveal the full cityscape.",
+  "reference_videos": [{"ref": "previous-clip"}],
+  "duration": 5
+}
+```
+
+```json
+// Image-to-video with character references
+{
+  "type": "video",
+  "prompt": "[Image1] is the main character. They walk through a neon-lit market.",
+  "reference_images": [{"ref": "character-ref"}],
+  "duration": 5
+}
+```
 
 ### Veo 3.1 Lite (`veo-3.1-lite`)
 
-Lightweight Veo variant. Audio is always generated regardless of the `generate_audio` setting.
+Google's lightweight Veo variant. Audio is always generated regardless of the `generate_audio` setting.
 
 | Parameter | Values | Default |
 |-----------|--------|---------|
@@ -48,59 +92,8 @@ Lightweight Veo variant. Audio is always generated regardless of the `generate_a
 | `negative_prompt` | any string | `null` |
 | `seed` | any int | `null` |
 
-- **When to use:** Quick previews, bulk generation, cost-sensitive workflows.
-- **Limitations:** `generate_audio: false` is ignored (validator emits a warning).
-
-### Kling v3 Omni (`kling-v3`)
-
-Alternative video model from Kuaishou via Replicate.
-
-| Parameter | Values | Default |
-|-----------|--------|---------|
-| `duration` | model-determined | — |
-| `resolution` | `"720p"`, `"1080p"` | `"720p"` |
-| `generate_audio` | `true`/`false` | `true` |
-| `negative_prompt` | any string | `null` |
-| `seed` | any int | `null` |
-
-- **When to use:** When Veo produces undesirable results, or for stylistic variety.
-- **Limitations:** Duration is not constrained to 4/6/8 like Veo models.
-
-### Seedance 2.0 (`seedance-2.0`)
-
-ByteDance's video generation model via MuAPI. Supports text-to-video and image-to-video (via `first_frame`).
-
-| Parameter | Values | Default |
-|-----------|--------|---------|
-| `duration` | any integer (seconds) | 5 |
-| `aspect_ratio` | `"16:9"`, `"9:16"`, `"4:3"`, `"3:4"` | `"16:9"` |
-| `quality` | `"basic"`, `"high"` | `"basic"` |
-| `first_frame` | ref, generate, or path | `null` |
-
-- **When to use:** Image-to-video workflows, stylistic variety, or when Veo/Kling results are unsatisfactory.
-- **Limitations:** No `last_frame` support (only `first_frame` for I2V). No native audio generation. No `negative_prompt` or `seed`. Requires `MUAPI_API_KEY` env var (not Replicate). `"high"` quality produces 2K resolution output.
-
-**Example (text-to-video):**
-```json
-{
-  "type": "video",
-  "prompt": "A cinematic shot of a futuristic city with neon lights",
-  "model": "seedance-2.0",
-  "duration": 5,
-  "quality": "high"
-}
-```
-
-**Example (image-to-video with DAG reference):**
-```json
-{
-  "type": "video",
-  "prompt": "Camera slowly pans across the scene",
-  "model": "seedance-2.0",
-  "first_frame": { "ref": "my-image-asset" },
-  "duration": 5
-}
-```
+- **When to use:** When you need Veo quality with built-in audio, or 1080p output.
+- **Limitations:** `generate_audio: false` is ignored. ~$0.15/s at 720p.
 
 ---
 
@@ -115,11 +108,11 @@ Image generation via Replicate (Google Gemini 3.1 Flash Image Preview).
 | `aspect_ratio` | e.g. `"16:9"`, `"1:1"`, `"9:16"` | `"16:9"` |
 | `resolution` | e.g. `"2K"` | `"2K"` |
 | `output_format` | `"png"`, `"jpg"` | `"png"` |
-| `reference_images` | array of paths/URLs | `[]` |
+| `reference_images` | array of paths/URLs or `{"ref": "clip_id"}` | `[]` |
 | `safety_filter_level` | e.g. `"block_only_high"` | `"block_only_high"` |
 
 - **When to use:** Generating first-frame images for video clips, standalone stills, exploration candidates.
-- **Limitations:** Subject to Replicate API rate limits. Reference images must be accessible URLs or local paths.
+- **Reference image chaining:** Use `{"ref": "clip_id"}` to feed one image generation's output as a reference into the next.
 
 ---
 
@@ -127,7 +120,7 @@ Image generation via Replicate (Google Gemini 3.1 Flash Image Preview).
 
 ### Gemini TTS (`gemini-2.5-flash-tts`)
 
-Text-to-speech via Google Gemini Flash TTS (actual API model: `gemini-2.5-flash-preview-tts`).
+Text-to-speech via Google Gemini Flash TTS.
 
 | Parameter | Values | Default |
 |-----------|--------|---------|
@@ -138,33 +131,26 @@ Text-to-speech via Google Gemini Flash TTS (actual API model: `gemini-2.5-flash-
 
 Achernar, Achird, Algenib, Algieba, Alnilam, Aoede, Autonoe, Callirrhoe, Charon, Despina, Enceladus, Erinome, Fenrir, Gacrux, Iapetus, Kore, Laomedeia, Leda, Orus, Puck, Pulcherrima, Rasalgethi, Sadachbia, Sadaltager, Schedar, Sulafat, Umbriel, Vindemiatrix, Zephyr
 
-**Voice Prompt:**
-
-The `voice_prompt` field accepts natural language instructions for tone and delivery style:
-```json
-{
-  "voice": "Kore",
-  "voice_prompt": "Speak in a calm, educational tone. Enunciate clearly."
-}
-```
-
-- **When to use:** All narration generation. Supports per-clip voice and style overrides.
-- **Limitations:** The validator enforces the voice list above. Misspelled voice names produce an error with a "did you mean?" suggestion.
-
 ---
 
-## Cost Considerations
+## Cost Comparison
 
-Generation costs vary by model and parameters:
+| Model | Resolution | Input | Cost/sec | ~Seconds/$10 |
+|-------|-----------|-------|----------|--------------|
+| `seedance-2.0-fast` | 480p | text/image | **$0.06** | **~166s** |
+| `seedance-2.0-fast` | 480p | video refs | $0.11 | ~90s |
+| `seedance-2.0-fast` | 720p | text/image | $0.13 | ~76s |
+| `seedance-2.0-fast` | 720p | video refs | $0.22 | ~45s |
+| `seedance-2.0` | 480p | text/image | $0.07 | ~142s |
+| `seedance-2.0` | 480p | video refs | $0.13 | ~76s |
+| `seedance-2.0` | 720p | text/image | $0.17 | ~58s |
+| `seedance-2.0` | 720p | video refs | $0.29 | ~34s |
+| `veo-3.1-lite` | 720p | — | ~$0.15 | ~66s |
 
-| Model | Relative Cost | Notes |
-|-------|--------------|-------|
-| `veo-3.1` | High | Use for final renders |
-| `veo-3.1-fast` | Medium | Good default for iteration |
-| `veo-3.1-lite` | Low | Cheapest video option |
-| `kling-v3` | Medium | Alternative provider |
-| `seedance-2.0` | Medium | MuAPI, basic/high quality |
-| `nano-banana-pro` | Low | Fast image generation |
-| `gemini-2.5-flash-tts` | Low | Per-character pricing |
+**Fast vs Standard savings:** 14-24% cheaper across the board.
 
-Use `veo-3.1-fast` (the default) during development, then switch to `veo-3.1` for final renders by updating the `defaults.video.model` field.
+**Strategy guide:**
+- **Drafts/iteration:** `seedance-2.0-fast` at `480p` ($0.06/s) — the default
+- **Final renders:** Switch `defaults.video.model` to `seedance-2.0` at `720p` ($0.17/s)
+- **Video chaining drafts:** `seedance-2.0-fast` at `480p` with `reference_videos` ($0.11/s)
+- **Video chaining finals:** `seedance-2.0` at `720p` with `reference_videos` ($0.29/s)

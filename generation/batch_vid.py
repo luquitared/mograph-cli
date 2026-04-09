@@ -1,37 +1,34 @@
 #!/usr/bin/env python3
 """
-Batch video generator via Replicate and MuAPI.
+Batch video generator via Replicate.
 
 Supported Models:
-  - google/veo-3.1      (quality): Full Veo 3.1, higher quality, supports 1080p
-  - google/veo-3.1-fast (fast):    Veo 3.1 Fast, faster generation
-  - google/veo-3.1-lite (lite):    Veo 3.1 Lite, cost-efficient, native audio always on
-  - kwaivgi/kling-v3-omni-video (kling): Kling Video 3.0, 720p/1080p, native audio
-  - bytedance/seedance-2.0 (seedance): Seedance 2.0 via MuAPI, T2V + I2V, basic/high quality
+  - google/veo-3.1-lite (lite):           Veo 3.1 Lite, cost-efficient, native audio always on
+  - bytedance/seedance-2.0 (seedance):    Seedance 2.0 via Replicate, T2V + I2V + V2V, higher quality
+  - bytedance/seedance-2.0-fast (seedance-fast): Seedance 2.0 Fast, cheaper + faster, default
 
-Veo models use the image/last_frame API for frame-to-frame interpolation.
-Kling uses start_image/end_image with mode (standard/pro) selection.
+Veo Lite uses the image/last_frame API for frame-to-frame interpolation.
+Seedance 2.0 supports image, last_frame_image, reference_images, reference_videos, reference_audios.
 
 Jobs JSON shape (array of jobs):
   [
     {
       "prompt": "a cat steals a fish from a supermarket and escapes",
-      "first_frame_image": "/abs/or/rel/path/to/start.png",   // alias: "start_image", "image"
-      "last_frame_image": "/abs/or/rel/path/to/end.png",      // alias: "end_image", "last_frame"
+      "first_frame_image": "/abs/or/rel/path/to/start.png",
+      "last_frame_image": "/abs/or/rel/path/to/end.png",
       "config": {
-        "duration": 8,                     // default: 6 seconds (4, 6, or 8 supported)
-        "aspect_ratio": "16:9",            // default: 16:9 (also supports 9:16)
-        "resolution": "720p",              // default: 720p (1080p for quality model)
+        "duration": 5,                     // default: 5 seconds
+        "aspect_ratio": "16:9",            // default: 16:9
+        "resolution": "480p",              // default: 480p (also 720p)
         "generate_audio": true,            // default: true
-        "negative_prompt": "...",          // optional
         "seed": 12345                      // optional
       }
     }
   ]
 
 CLI:
-  python batch_vid.py --jobs ./jobs.json --outdir ./downloads --max-concurrent 3 --model quality
-  python batch_vid.py --jobs ./jobs.json --outdir ./downloads --model fast
+  python batch_vid.py --jobs ./jobs.json --outdir ./downloads --max-concurrent 3 --model seedance-fast
+  python batch_vid.py --jobs ./jobs.json --outdir ./downloads --model seedance
   python batch_vid.py --jobs ./jobs.json --outdir ./downloads --model lite
 
 Env:
@@ -56,34 +53,26 @@ from shared.replicate_client import (
     poll_prediction,
     download_to,
 )
-from shared.r2_storage import upload_to_r2, r2_configured
-
 # Mock mode - set by pipeline when --mock flag is passed
 MOCK_REPLICATE = False
 MOCK_VIDEO_FIXTURE = Path(__file__).parent.parent / "tests" / "fixtures" / "mock_video.mp4"
 
 # Model definitions
 VEO_31_OWNER = "google"
-VEO_31_NAME = "veo-3.1"
-VEO_31_FAST_NAME = "veo-3.1-fast"
 VEO_31_LITE_NAME = "veo-3.1-lite"
-
-KLING_OWNER = "kwaivgi"
-KLING_NAME = "kling-v3-omni-video"
 
 SEEDANCE_OWNER = "bytedance"
 SEEDANCE_NAME = "seedance-2.0"
+SEEDANCE_FAST_NAME = "seedance-2.0-fast"
 
 # Model tuples for selection
-QUALITY_MODEL = (VEO_31_OWNER, VEO_31_NAME)        # Full Veo 3.1 - higher quality, reference_images API
-FAST_MODEL = (VEO_31_OWNER, VEO_31_FAST_NAME)     # Veo 3.1 Fast - quicker, image/last_frame API
 LITE_MODEL = (VEO_31_OWNER, VEO_31_LITE_NAME)     # Veo 3.1 Lite - cost-efficient, native audio always on
-KLING_MODEL = (KLING_OWNER, KLING_NAME)            # Kling v3 Omni - 720p/1080p, native audio
-SEEDANCE_MODEL = (SEEDANCE_OWNER, SEEDANCE_NAME)  # Seedance 2.0 - T2V/I2V via MuAPI
+SEEDANCE_MODEL = (SEEDANCE_OWNER, SEEDANCE_NAME)  # Seedance 2.0 via Replicate
+SEEDANCE_FAST_MODEL = (SEEDANCE_OWNER, SEEDANCE_FAST_NAME)  # Seedance 2.0 Fast - cheaper, faster
 
-# Default model (Fast variant for backwards compatibility)
-MODEL_OWNER = VEO_31_OWNER
-MODEL_NAME = VEO_31_FAST_NAME
+# Default model
+MODEL_OWNER = SEEDANCE_OWNER
+MODEL_NAME = SEEDANCE_FAST_NAME
 
 
 # -------------------- Config helpers --------------------
@@ -136,8 +125,7 @@ async def process_job(
 ) -> Path:
     """Process a single video generation job with retry logic for content moderation and rate limits.
 
-    Supports Veo 3.1, Veo 3.1 Fast, Veo 3.1 Lite (image/last_frame API), and
-    Kling v3 Omni (start_image/end_image API with mode selection).
+    Supports Veo 3.1 Lite (image/last_frame API) and Seedance 2.0 (Replicate).
 
     Rate limit retries use exponential backoff with jitter (up to max_rate_limit_retries).
     Content moderation retries use max_retries with a brief fixed delay.
@@ -153,59 +141,6 @@ async def process_job(
         # Get config
         config = coerce_config(job)
 
-        # --- Seedance 2.0: route to MuAPI client ---
-        if is_seedance_model(model_owner, model_name):
-            from generation.seedance_client import process_seedance_job
-
-            if first_path_str:
-                raise ValueError(
-                    f"Job {idx}: Seedance 2.0 Omni Reference does not support first_frame "
-                    "(the API has no starting frame input). "
-                    "Use reference_images instead — images are referenced in the prompt as @image1, @image2, etc."
-                )
-
-            # Choose upload function: R2 for public URLs (Seedance needs them), fallback to Replicate
-            use_r2 = r2_configured()
-            _upload = (lambda s, p: upload_to_r2(s, p)) if use_r2 else upload_file_to_replicate
-            if use_r2:
-                print(f"📤 [{idx}] Using R2 for Seedance image uploads (public URLs)")
-
-            # Upload reference images concurrently
-            upload_tasks = []
-            seedance_ref_paths = job.get("reference_images", [])
-            for ref_path_str in seedance_ref_paths:
-                ref_path = Path(ref_path_str).expanduser().resolve()
-                if not ref_path.exists():
-                    raise FileNotFoundError(f"Job {idx}: reference image not found: {ref_path}")
-                upload_tasks.append(_upload(session, ref_path))
-
-            seedance_ref_urls = list(await asyncio.gather(*upload_tasks)) if upload_tasks else []
-
-            return await process_seedance_job(
-                session=session,
-                sem=asyncio.Semaphore(1),  # already inside sem
-                outdir=outdir,
-                prompt=prompt,
-                idx=idx,
-                duration=config["duration"],
-                aspect_ratio=config["aspect_ratio"],
-                quality=config.get("quality", "basic"),
-                reference_image_urls=seedance_ref_urls or None,
-                poll_sec=poll_sec,
-            )
-
-        # --- Replicate-based models (Veo / Kling) ---
-        # Upload reference images if provided (Kling only)
-        ref_image_urls = []
-        ref_image_paths = job.get("reference_images", [])
-        if ref_image_paths and is_kling_model(model_owner, model_name):
-            for ref_path_str in ref_image_paths:
-                ref_path = Path(ref_path_str).expanduser().resolve()
-                if not ref_path.exists():
-                    raise FileNotFoundError(f"Job {idx}: reference image not found: {ref_path}")
-                ref_url = await upload_file_to_replicate(session, ref_path)
-                ref_image_urls.append(ref_url)
-
         # Upload frame images if provided
         first_url = last_url = None
         if first_path_str:
@@ -220,6 +155,30 @@ async def process_job(
                 raise FileNotFoundError(f"Job {idx}: last frame image not found: {last_path}")
             last_url = await upload_file_to_replicate(session, last_path)
 
+        # Upload reference images (Seedance)
+        ref_image_urls = []
+        for ref_path_str in job.get("reference_images", []):
+            ref_path = Path(ref_path_str).expanduser().resolve()
+            if not ref_path.exists():
+                raise FileNotFoundError(f"Job {idx}: reference image not found: {ref_path}")
+            ref_image_urls.append(await upload_file_to_replicate(session, ref_path))
+
+        # Upload reference videos (Seedance — enables video-to-video chaining)
+        ref_video_urls = []
+        for ref_path_str in job.get("reference_videos", []):
+            ref_path = Path(ref_path_str).expanduser().resolve()
+            if not ref_path.exists():
+                raise FileNotFoundError(f"Job {idx}: reference video not found: {ref_path}")
+            ref_video_urls.append(await upload_file_to_replicate(session, ref_path))
+
+        # Upload reference audios (Seedance)
+        ref_audio_urls = []
+        for ref_path_str in job.get("reference_audios", []):
+            ref_path = Path(ref_path_str).expanduser().resolve()
+            if not ref_path.exists():
+                raise FileNotFoundError(f"Job {idx}: reference audio not found: {ref_path}")
+            ref_audio_urls.append(await upload_file_to_replicate(session, ref_path))
+
         # Retry loop with separate counters for rate limits vs content moderation
         last_error = None
         moderation_attempts = 0
@@ -228,23 +187,29 @@ async def process_job(
         while True:
             total_attempts += 1
             try:
-                # Build Replicate inputs — Kling vs Veo have different param names
-                if is_kling_model(model_owner, model_name):
+                if is_seedance_model(model_owner, model_name):
+                    # Seedance 2.0 via Replicate
                     inputs = {
                         "prompt": prompt,
                         "duration": config["duration"],
                         "aspect_ratio": config["aspect_ratio"],
-                        "mode": "pro" if config["resolution"] == "1080p" else "standard",
+                        "resolution": config["resolution"],
                         "generate_audio": config["generate_audio"],
                     }
                     if first_url:
-                        inputs["start_image"] = first_url
+                        inputs["image"] = first_url
                     if last_url:
-                        inputs["end_image"] = last_url
+                        inputs["last_frame_image"] = last_url
                     if ref_image_urls:
                         inputs["reference_images"] = ref_image_urls
+                    if ref_video_urls:
+                        inputs["reference_videos"] = ref_video_urls
+                    if ref_audio_urls:
+                        inputs["reference_audios"] = ref_audio_urls
+                    if config["seed"] is not None:
+                        inputs["seed"] = config["seed"]
                 elif is_lite_model(model_owner, model_name):
-                    # Veo 3.1 Lite: audio always on, no generate_audio param, max 1080p (no 4k)
+                    # Veo 3.1 Lite: audio always on, no generate_audio param
                     inputs = {
                         "prompt": prompt,
                         "duration": config["duration"],
@@ -255,23 +220,12 @@ async def process_job(
                         inputs["image"] = first_url
                     if last_url:
                         inputs["last_frame"] = last_url
+                    if config["negative_prompt"]:
+                        inputs["negative_prompt"] = config["negative_prompt"]
+                    if config["seed"] is not None:
+                        inputs["seed"] = config["seed"]
                 else:
-                    inputs = {
-                        "prompt": prompt,
-                        "duration": config["duration"],
-                        "aspect_ratio": config["aspect_ratio"],
-                        "resolution": config["resolution"],
-                        "generate_audio": config["generate_audio"],
-                    }
-                    if first_url:
-                        inputs["image"] = first_url
-                    if last_url:
-                        inputs["last_frame"] = last_url
-
-                if config["negative_prompt"]:
-                    inputs["negative_prompt"] = config["negative_prompt"]
-                if config["seed"] is not None:
-                    inputs["seed"] = config["seed"]
+                    raise ValueError(f"Unsupported model: {model_owner}/{model_name}")
 
                 attempt_label = f" (attempt {total_attempts})" if total_attempts > 1 else ""
                 print(f"🚀 [{idx}] Creating prediction ({model_owner}/{model_name})…{attempt_label}")
@@ -327,24 +281,14 @@ async def process_job(
 
 def get_model_for_kind(model_kind: str) -> Tuple[str, str]:
     """Get model (owner, name) tuple based on model_kind selection."""
-    if model_kind == "quality":
-        return QUALITY_MODEL  # Full Veo 3.1
-    elif model_kind == "fast":
-        return FAST_MODEL     # Veo 3.1 Fast
-    elif model_kind == "lite":
-        return LITE_MODEL     # Veo 3.1 Lite
-    elif model_kind == "kling":
-        return KLING_MODEL    # Kling v3 Omni
+    if model_kind == "lite":
+        return LITE_MODEL
     elif model_kind == "seedance":
-        return SEEDANCE_MODEL  # Seedance 2.0 via MuAPI
+        return SEEDANCE_MODEL
+    elif model_kind == "seedance-fast":
+        return SEEDANCE_FAST_MODEL
     else:
-        # Default to fast for backwards compatibility
-        return FAST_MODEL
-
-
-def is_kling_model(model_owner: str, model_name: str) -> bool:
-    """Check if the given model is a Kling model."""
-    return model_owner == KLING_OWNER
+        return SEEDANCE_FAST_MODEL
 
 
 def is_lite_model(model_owner: str, model_name: str) -> bool:
@@ -362,24 +306,20 @@ async def run_batch_async(
     outdir: Path,
     max_concurrent: int = 3,
     poll_sec: float = 2.5,
-    model_kind: str = "quality",
+    model_kind: str = "seedance-fast",
     max_retries: int = 3,
     max_rate_limit_retries: int = 10,
 ) -> List[Path]:
     """Run batch video generation with retry logic for content moderation and rate limits.
 
     Args:
-        model_kind: "quality" for full Veo 3.1, "fast" for Veo 3.1 Fast, "lite" for Veo 3.1 Lite, "kling" for Kling v3 Omni
+        model_kind: "seedance-fast" (default), "seedance", or "lite"
         max_retries: Max retries for content moderation errors (default 3)
         max_rate_limit_retries: Max retries for rate limit errors with exponential backoff (default 10)
     """
     model_owner, model_name = get_model_for_kind(model_kind)
-    if is_seedance_model(model_owner, model_name):
-        if not os.getenv("MUAPI_API_KEY"):
-            raise EnvironmentError("MUAPI_API_KEY not set (required for Seedance 2.0).")
-    else:
-        if not os.getenv("REPLICATE_API_TOKEN"):
-            raise EnvironmentError("REPLICATE_API_TOKEN not set.")
+    if not os.getenv("REPLICATE_API_TOKEN"):
+        raise EnvironmentError("REPLICATE_API_TOKEN not set.")
 
     ensure_dir(outdir)
     jobs = json.loads(Path(jobs_path).read_text())
@@ -389,13 +329,8 @@ async def run_batch_async(
 
     print(f"ℹ️  Using model: {model_owner}/{model_name} (kind: {model_kind})")
 
-    # Build session headers — Seedance uses x-api-key, Replicate uses Bearer token
-    if is_seedance_model(model_owner, model_name):
-        api_key = os.getenv("MUAPI_API_KEY", "")
-        headers = {"x-api-key": api_key, "Content-Type": "application/json"}
-    else:
-        token = os.getenv("REPLICATE_API_TOKEN", "")
-        headers = {"Authorization": f"Bearer {token}"}
+    token = os.getenv("REPLICATE_API_TOKEN", "")
+    headers = {"Authorization": f"Bearer {token}"}
     sem = asyncio.Semaphore(max_concurrent)
 
     async with aiohttp.ClientSession(headers=headers, timeout=aiohttp.ClientTimeout(total=None)) as session:
@@ -430,7 +365,7 @@ async def run_batch_async(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Concurrent Veo 3.1 batch video generator (Replicate).")
+    parser = argparse.ArgumentParser(description="Batch video generator (Replicate).")
     parser.add_argument("--jobs", required=True, help="Path to JSON array of jobs.")
     parser.add_argument("--outdir", required=True, help="Folder where generated videos should be saved.")
     parser.add_argument("--max-concurrent", type=int, default=3, help="Max concurrent predictions (default: 3).")
@@ -439,9 +374,9 @@ def main():
     parser.add_argument("--max-rate-limit-retries", type=int, default=10, help="Max retries for rate limit errors with exponential backoff (default: 10).")
     parser.add_argument(
         "--model",
-        choices=["quality", "fast", "lite", "kling", "seedance"],
-        default="quality",
-        help="Model to use: 'quality' for Veo 3.1, 'fast' for Veo 3.1 Fast, 'lite' for Veo 3.1 Lite, 'kling' for Kling v3 Omni, 'seedance' for Seedance 2.0. Default: quality",
+        choices=["seedance-fast", "seedance", "lite"],
+        default="seedance-fast",
+        help="Model: 'seedance-fast' (default, cheapest), 'seedance' (higher quality), 'lite' (Veo 3.1 Lite)",
     )
     args = parser.parse_args()
 
@@ -449,10 +384,8 @@ def main():
     outdir = Path(args.outdir).expanduser().resolve()
 
     model_owner, model_name = get_model_for_kind(args.model)
-    print(f"ℹ️  Using Google {model_name} ({model_owner}/{model_name})")
-    print(f"ℹ️  Defaults: duration=6s, aspect_ratio=16:9, resolution=720p, generate_audio=true")
-    if args.model == "quality":
-        print(f"ℹ️  Quality mode: supports 1080p resolution, uses reference_images API")
+    print(f"ℹ️  Using {model_owner}/{model_name}")
+    print(f"ℹ️  Defaults: duration=5s, aspect_ratio=16:9, resolution=480p, generate_audio=true")
     print(f"ℹ️  Content moderation retry: enabled (max {args.max_retries} attempts)")
     print(f"ℹ️  Rate limit retry: enabled (max {args.max_rate_limit_retries} attempts, exponential backoff)")
 

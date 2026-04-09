@@ -78,7 +78,8 @@ _SOURCE_FIELDS_BY_TYPE: Dict[str, set] = {
               "output_format", "safety_filter_level", "candidates", "select", "verify"},
     "video": {"type", "prompt", "first_frame", "last_frame", "model", "duration",
               "aspect_ratio", "resolution", "generate_audio", "negative_prompt", "seed",
-              "quality", "reference_images", "candidates", "select", "verify"},
+              "quality", "reference_images", "reference_videos", "reference_audios",
+              "candidates", "select", "verify"},
     "tts": {"type", "text", "voice", "voice_prompt", "model", "candidates", "select"},
     "file": {"type", "path", "start", "end"},
     "silence": {"type", "duration"},
@@ -244,11 +245,11 @@ def _parse_defaults(raw: Any, warnings: List[str]) -> Defaults:
         _check_unknown_fields(tts_raw, _TTS_DEFAULTS_FIELDS, "defaults.tts", warnings)
 
     video_defaults = VideoDefaults(
-        model=video_raw.get("model", "veo-3.1-fast"),
-        duration=video_raw.get("duration", 6),
+        model=video_raw.get("model", "seedance-2.0-fast"),
+        duration=video_raw.get("duration", 5),
         generate_audio=video_raw.get("generate_audio", True),
         aspect_ratio=video_raw.get("aspect_ratio", "16:9"),
-        resolution=video_raw.get("resolution", "720p"),
+        resolution=video_raw.get("resolution", "480p"),
         verify=video_raw.get("verify"),
     )
 
@@ -418,7 +419,7 @@ def _parse_source(raw: dict, json_path: str, defaults: Defaults, warnings: List[
     if source_type == "image":
         return _parse_image_source(raw, json_path, defaults.image)
     elif source_type == "video":
-        return _parse_video_source(raw, json_path, defaults.video)
+        return _parse_video_source(raw, json_path, defaults.video, defaults)
     elif source_type == "tts":
         return _parse_tts_source(raw, json_path, defaults.tts)
     elif source_type == "file":
@@ -431,11 +432,53 @@ def _parse_source(raw: dict, json_path: str, defaults: Defaults, warnings: List[
         raise TimelineParseError(f"Unknown source type: '{source_type}'", path=f"{json_path}.type")
 
 
+def _parse_ref_image_item(value: Any, json_path: str) -> Union[str, Ref]:
+    """Parse a single reference_images entry — string path or {"ref": "..."}."""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict) and "ref" in value:
+        return Ref(ref=value["ref"], extract=value.get("extract"))
+    raise TimelineParseError(
+        "reference_images entries must be a file path string or {\"ref\": \"clip_id\"}",
+        path=json_path,
+    )
+
+
+def _parse_reference_images(raw_list: Any, json_path: str) -> list:
+    """Parse a reference_images list, supporting both strings and Ref objects."""
+    if not raw_list:
+        return []
+    return [_parse_ref_image_item(item, f"{json_path}[{i}]") for i, item in enumerate(raw_list)]
+
+
+def _parse_ref_video_item(value: Any, json_path: str) -> Union[str, Ref]:
+    """Parse a single reference_videos entry — string path or {"ref": "..."}."""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict) and "ref" in value:
+        return Ref(ref=value["ref"], extract=value.get("extract"))
+    raise TimelineParseError(
+        "reference_videos entries must be a file path string or {\"ref\": \"clip_id\"}",
+        path=json_path,
+    )
+
+
+def _parse_reference_videos(raw_list: Any, json_path: str) -> list:
+    """Parse a reference_videos list, supporting both strings and Ref objects."""
+    if not raw_list:
+        return []
+    return [_parse_ref_video_item(item, f"{json_path}[{i}]") for i, item in enumerate(raw_list)]
+
+
 def _parse_image_source(raw: dict, json_path: str, img_defaults: ImageDefaults) -> ImageSource:
     """Parse an image source, applying defaults for unset fields."""
+    if "reference_images" in raw:
+        ref_images = _parse_reference_images(raw["reference_images"], f"{json_path}.reference_images")
+    else:
+        ref_images = img_defaults.reference_images
     return ImageSource(
         prompt=raw.get("prompt", ""),
-        reference_images=raw.get("reference_images", img_defaults.reference_images) if "reference_images" in raw else img_defaults.reference_images,
+        reference_images=ref_images,
         model=raw.get("model", img_defaults.model),
         aspect_ratio=raw.get("aspect_ratio", img_defaults.aspect_ratio),
         resolution=raw.get("resolution", img_defaults.resolution),
@@ -447,12 +490,26 @@ def _parse_image_source(raw: dict, json_path: str, img_defaults: ImageDefaults) 
     )
 
 
-def _parse_video_source(raw: dict, json_path: str, vid_defaults: VideoDefaults) -> VideoSource:
+def _parse_video_source(raw: dict, json_path: str, vid_defaults: VideoDefaults, defaults: Defaults = None) -> VideoSource:
     """Parse a video source, applying defaults for unset fields."""
+    frame_defaults = defaults or Defaults()
+
+    # Parse reference_images — supports strings and Ref objects
+    if "reference_images" in raw:
+        ref_images = _parse_reference_images(raw["reference_images"], f"{json_path}.reference_images")
+    else:
+        ref_images = []
+
+    # Parse reference_videos — supports strings and Ref objects (for video-to-video chaining)
+    if "reference_videos" in raw:
+        ref_videos = _parse_reference_videos(raw["reference_videos"], f"{json_path}.reference_videos")
+    else:
+        ref_videos = []
+
     return VideoSource(
         prompt=raw.get("prompt", ""),
-        first_frame=_parse_frame_input(raw.get("first_frame"), f"{json_path}.first_frame"),
-        last_frame=_parse_frame_input(raw.get("last_frame"), f"{json_path}.last_frame"),
+        first_frame=_parse_frame_input(raw.get("first_frame"), f"{json_path}.first_frame", frame_defaults),
+        last_frame=_parse_frame_input(raw.get("last_frame"), f"{json_path}.last_frame", frame_defaults),
         model=raw.get("model", vid_defaults.model),
         duration=raw.get("duration", vid_defaults.duration),
         aspect_ratio=raw.get("aspect_ratio", vid_defaults.aspect_ratio),
@@ -461,7 +518,9 @@ def _parse_video_source(raw: dict, json_path: str, vid_defaults: VideoDefaults) 
         negative_prompt=raw.get("negative_prompt"),
         seed=raw.get("seed"),
         quality=raw.get("quality"),
-        reference_images=raw.get("reference_images", []),
+        reference_images=ref_images,
+        reference_videos=ref_videos,
+        reference_audios=raw.get("reference_audios", []),
         candidates=raw.get("candidates"),
         select=raw.get("select"),
         verify=raw.get("verify") if "verify" in raw else vid_defaults.verify,
@@ -514,7 +573,7 @@ def _parse_still_source(raw: dict, json_path: str) -> StillSource:
 # Frame input parsing (Ref / Generate / string / None)
 # ---------------------------------------------------------------------------
 
-def _parse_frame_input(value: Any, json_path: str):
+def _parse_frame_input(value: Any, json_path: str, defaults: Defaults = None):
     """Parse a first_frame or last_frame value.
 
     Returns str, Ref, Generate, or None.
@@ -533,8 +592,7 @@ def _parse_frame_input(value: Any, json_path: str):
                     "'generate' value must be a source object",
                     path=f"{json_path}.generate",
                 )
-            # Parse the inner source without defaults context (inline generation)
-            inner_source = _parse_source(gen_raw, f"{json_path}.generate", Defaults(), [])
+            inner_source = _parse_source(gen_raw, f"{json_path}.generate", defaults or Defaults(), [])
             return Generate(generate=inner_source)
         raise TimelineParseError(
             f"Invalid frame input: dict must have 'ref' or 'generate' key",

@@ -38,10 +38,14 @@ from timeline.security import SecurityError, validate_path, validate_url
 
 VALID_TRACK_TYPES = {"video", "narration", "audio"}
 VALID_SOURCE_TYPES = {"image", "video", "tts", "file", "silence", "still"}
-VALID_VIDEO_MODELS = {"veo-3.1", "veo-3.1-fast", "veo-3.1-lite", "kling-v3", "seedance-2.0"}
-VEO_MODELS = {"veo-3.1", "veo-3.1-fast", "veo-3.1-lite"}
+VALID_IMAGE_MODELS = {"nano-banana-pro", "nano-banana-2"}
+VALID_VIDEO_MODELS = {"veo-3.1-lite", "seedance-2.0", "seedance-2.0-fast"}
+SEEDANCE_MODELS = {"seedance-2.0", "seedance-2.0-fast"}
+VEO_MODELS = {"veo-3.1-lite"}
 VEO_DURATIONS = {4, 6, 8}
 SEEDANCE_QUALITY_VALUES = {"basic", "high"}
+SEEDANCE_RESOLUTIONS = {"480p", "720p"}
+SEEDANCE_ASPECT_RATIOS = {"16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "adaptive"}
 VALID_IMAGE_FORMATS = {"png", "jpg"}
 VALID_EXTRACT_VALUES = {"first_frame", "last_frame", "audio"}
 ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
@@ -278,6 +282,14 @@ def _validate_image_source(
             "error",
         ))
 
+    # Image model name
+    if source.model not in VALID_IMAGE_MODELS:
+        errors.append(ValidationError(
+            f"{path}.model",
+            f"Invalid image model: '{source.model}'. Must be one of: {', '.join(sorted(VALID_IMAGE_MODELS))}",
+            "error",
+        ))
+
     # REQ-SVAL-019: output_format
     if source.output_format not in VALID_IMAGE_FORMATS:
         errors.append(ValidationError(
@@ -289,9 +301,10 @@ def _validate_image_source(
     # REQ-SVAL-016: candidates non-empty
     _validate_candidates(source, path, errors)
 
-    # REQ-SVAL-014: reference image existence
+    # REQ-SVAL-014: reference image existence (skip Ref objects — resolved at runtime)
     for ri, ref_img in enumerate(source.reference_images):
-        _validate_file_or_url(ref_img, f"{path}.reference_images[{ri}]", timeline_dir, errors)
+        if isinstance(ref_img, str):
+            _validate_file_or_url(ref_img, f"{path}.reference_images[{ri}]", timeline_dir, errors)
 
     # Verify field type check
     _validate_verify_field(source, path, errors)
@@ -335,30 +348,6 @@ def _validate_video_source(
                     "error",
                 ))
 
-    # REQ-SVAL-008: Veo Fast resolution
-    if source.model == "veo-3.1-fast" and source.resolution != "720p":
-        errors.append(ValidationError(
-            f"{path}.resolution",
-            f"veo-3.1-fast only supports 720p resolution, got '{source.resolution}'",
-            "error",
-        ))
-
-    # REQ-SVAL-009: Veo Quality resolution
-    if source.model == "veo-3.1" and source.resolution not in ("720p", "1080p"):
-        errors.append(ValidationError(
-            f"{path}.resolution",
-            f"veo-3.1 supports 720p or 1080p, got '{source.resolution}'",
-            "error",
-        ))
-
-    # REQ-SVAL-010: Kling resolution
-    if source.model == "kling-v3" and source.resolution not in ("720p", "1080p"):
-        errors.append(ValidationError(
-            f"{path}.resolution",
-            f"kling-v3 supports 720p or 1080p, got '{source.resolution}'",
-            "error",
-        ))
-
     # REQ-SVAL-011: Veo Lite generate_audio warning
     if source.model == "veo-3.1-lite" and source.generate_audio is False:
         warnings.append(ValidationError(
@@ -367,51 +356,97 @@ def _validate_video_source(
             "warning",
         ))
 
-    # REQ-SVAL-013: Kling reference_images validation
+    # REQ-SVAL-008: Veo Lite resolution
+    if source.model == "veo-3.1-lite" and source.resolution not in ("720p", "1080p"):
+        errors.append(ValidationError(
+            f"{path}.resolution",
+            f"veo-3.1-lite supports 720p or 1080p, got '{source.resolution}'",
+            "error",
+        ))
+
+    # REQ-SVAL-013: reference_images validation
     ref_imgs = getattr(source, "reference_images", [])
     if ref_imgs:
-        if source.model not in ("kling-v3", "seedance-2.0"):
+        if source.model in SEEDANCE_MODELS:
+            # Seedance: up to 9 images (first_frame is separate, not counted)
+            if len(ref_imgs) > 9:
+                errors.append(ValidationError(
+                    f"{path}.reference_images",
+                    f"Seedance supports max 9 reference images, got {len(ref_imgs)}",
+                    "error",
+                ))
+            # reference_images and first_frame are mutually exclusive in Seedance
+            if source.first_frame is not None:
+                errors.append(ValidationError(
+                    f"{path}.reference_images",
+                    "Seedance: reference_images and first_frame (image) are mutually exclusive",
+                    "error",
+                ))
+        else:
             warnings.append(ValidationError(
                 f"{path}.reference_images",
-                f"reference_images is only supported for kling-v3 and seedance-2.0, ignored for {source.model}",
+                f"reference_images is only supported for Seedance models, ignored for {source.model}",
                 "warning",
             ))
-        elif source.model == "kling-v3":
-            max_refs = 4 if source.first_frame is not None else 7
-            if len(ref_imgs) > max_refs:
+
+    # reference_videos validation
+    ref_vids = getattr(source, "reference_videos", [])
+    if ref_vids:
+        if source.model in SEEDANCE_MODELS:
+            if len(ref_vids) > 3:
                 errors.append(ValidationError(
-                    f"{path}.reference_images",
-                    f"kling-v3 supports max {max_refs} reference images ({'4 with' if max_refs == 4 else '7 without'} start_image), got {len(ref_imgs)}",
+                    f"{path}.reference_videos",
+                    f"Seedance supports max 3 reference videos (15s total), got {len(ref_vids)}",
                     "error",
                 ))
-        elif source.model == "seedance-2.0":
-            # Omni Reference: up to 9 images total (first_frame counts as one)
-            total = len(ref_imgs) + (1 if source.first_frame is not None else 0)
-            if total > 9:
+        else:
+            warnings.append(ValidationError(
+                f"{path}.reference_videos",
+                f"reference_videos is only supported for Seedance models, ignored for {source.model}",
+                "warning",
+            ))
+
+    # reference_audios validation
+    ref_auds = getattr(source, "reference_audios", [])
+    if ref_auds:
+        if source.model in SEEDANCE_MODELS:
+            if len(ref_auds) > 3:
                 errors.append(ValidationError(
-                    f"{path}.reference_images",
-                    f"seedance-2.0 supports max 9 images total (first_frame + reference_images), got {total}",
+                    f"{path}.reference_audios",
+                    f"Seedance supports max 3 reference audios (15s total), got {len(ref_auds)}",
                     "error",
                 ))
+        else:
+            warnings.append(ValidationError(
+                f"{path}.reference_audios",
+                f"reference_audios is only supported for Seedance models, ignored for {source.model}",
+                "warning",
+            ))
 
     # REQ-SVAL-012: Seedance 2.0 validation
-    if source.model == "seedance-2.0":
+    if source.model in SEEDANCE_MODELS:
         if source.quality and source.quality not in SEEDANCE_QUALITY_VALUES:
             errors.append(ValidationError(
                 f"{path}.quality",
-                f"Invalid quality '{source.quality}' for seedance-2.0. Must be 'basic' or 'high'",
+                f"Invalid quality '{source.quality}' for Seedance. Must be 'basic' or 'high'",
                 "error",
             ))
-        if source.last_frame is not None:
-            warnings.append(ValidationError(
-                f"{path}.last_frame",
-                "last_frame is ignored for seedance-2.0 (only first_frame is supported for I2V)",
-                "warning",
+        if source.resolution and source.resolution not in SEEDANCE_RESOLUTIONS:
+            errors.append(ValidationError(
+                f"{path}.resolution",
+                f"Invalid resolution '{source.resolution}' for Seedance. Must be '480p' or '720p'",
+                "error",
             ))
-        if source.generate_audio is True:
+        if source.aspect_ratio and source.aspect_ratio not in SEEDANCE_ASPECT_RATIOS:
+            errors.append(ValidationError(
+                f"{path}.aspect_ratio",
+                f"Invalid aspect_ratio '{source.aspect_ratio}' for Seedance. Must be one of: {', '.join(sorted(SEEDANCE_ASPECT_RATIOS))}",
+                "error",
+            ))
+        if source.negative_prompt:
             warnings.append(ValidationError(
-                f"{path}.generate_audio",
-                "generate_audio is ignored for seedance-2.0 (no native audio support)",
+                f"{path}.negative_prompt",
+                "negative_prompt is not supported for Seedance, ignored",
                 "warning",
             ))
 

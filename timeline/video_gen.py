@@ -25,11 +25,9 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 MODEL_KIND_MAP = {
-    "veo-3.1": "quality",
-    "veo-3.1-fast": "fast",
     "veo-3.1-lite": "lite",
-    "kling-v3": "kling",
     "seedance-2.0": "seedance",
+    "seedance-2.0-fast": "seedance-fast",
 }
 
 
@@ -45,6 +43,8 @@ class VideoJob:
     first_frame_path: Optional[Path] = None
     last_frame_path: Optional[Path] = None
     reference_image_paths: List[Path] = field(default_factory=list)
+    reference_video_paths: List[Path] = field(default_factory=list)
+    reference_audio_paths: List[Path] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -83,6 +83,10 @@ def _build_job_dict(job: VideoJob, defaults: VideoDefaults) -> Dict:
     }
     if job.reference_image_paths:
         result["reference_images"] = [str(p) for p in job.reference_image_paths]
+    if job.reference_video_paths:
+        result["reference_videos"] = [str(p) for p in job.reference_video_paths]
+    if job.reference_audio_paths:
+        result["reference_audios"] = [str(p) for p in job.reference_audio_paths]
     return result
 
 
@@ -186,19 +190,9 @@ async def generate_videos(
     outdir = run_dir / "videos"
     outdir.mkdir(parents=True, exist_ok=True)
 
-    # Check for required API tokens based on which models are in the batch
-    has_seedance = any(
-        MODEL_KIND_MAP.get(_resolve_model(j.source, defaults)) == "seedance"
-        for j in jobs
-    )
-    has_replicate = any(
-        MODEL_KIND_MAP.get(_resolve_model(j.source, defaults)) != "seedance"
-        for j in jobs
-    )
-    if has_replicate and not os.getenv("REPLICATE_API_TOKEN") and not batch_vid.MOCK_REPLICATE:
+    # Check for required API token — all models now use Replicate
+    if not os.getenv("REPLICATE_API_TOKEN") and not batch_vid.MOCK_REPLICATE:
         raise EnvironmentError("REPLICATE_API_TOKEN not set.")
-    if has_seedance and not os.getenv("MUAPI_API_KEY") and not batch_vid.MOCK_REPLICATE:
-        raise EnvironmentError("MUAPI_API_KEY not set (required for Seedance 2.0).")
 
     token = os.getenv("REPLICATE_API_TOKEN", "")
     headers = {"Authorization": f"Bearer {token}"} if token else {}
