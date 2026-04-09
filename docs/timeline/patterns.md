@@ -66,6 +66,55 @@ Use named assets when the same image is referenced by multiple clips. Use `gener
 
 ---
 
+## Image-to-Image Chaining with Reference Images
+
+Use `{"ref": "clip_id"}` in `reference_images` to feed one image generation's output as a reference into the next. This is useful for maintaining visual consistency across a sequence of images (e.g., character sheets, style references).
+
+```json
+{
+  "tracks": [{
+    "id": "visuals",
+    "type": "video",
+    "clips": [
+      {
+        "id": "character_sheet",
+        "source": {
+          "type": "image",
+          "model": "nano-banana-2",
+          "prompt": "Character reference sheet: warrior in silver armor, multiple angles"
+        }
+      },
+      {
+        "id": "scene_1",
+        "source": {
+          "type": "image",
+          "model": "nano-banana-2",
+          "prompt": "Warrior standing on a cliff at sunset, dramatic lighting",
+          "reference_images": [{ "ref": "character_sheet" }]
+        }
+      },
+      {
+        "id": "scene_2",
+        "source": {
+          "type": "image",
+          "model": "nano-banana-2",
+          "prompt": "Warrior entering a dark cave, torch in hand",
+          "reference_images": [{ "ref": "character_sheet" }, { "ref": "scene_1" }]
+        }
+      }
+    ]
+  }]
+}
+```
+
+**Key points:**
+- Refs and static file paths can be mixed: `"reference_images": ["assets/style.png", {"ref": "character_sheet"}]`
+- The DAG ensures referenced clips generate before dependents
+- Works with both `nano-banana-pro` and `nano-banana-2` models
+- `extract` is supported: `{"ref": "vid-1", "extract": "first_frame"}` to use a frame from a video
+
+---
+
 ## Exploration Workflow
 
 Use `candidates` arrays to explore prompt variations, then `select` the winner.
