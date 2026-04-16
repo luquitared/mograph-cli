@@ -808,10 +808,15 @@ async def _execute_async(
     run_dir.mkdir(parents=True, exist_ok=True)
 
     # Resume: skip if stage already complete
+    # For 'final' stage, also check that assembly output actually exists
     if resume and is_stage_complete(run_dir, stage):
-        logger.info("Stage %r already complete — skipping", stage)
-        run_result.results = _load_existing_results(run_dir)
-        return run_result
+        final_output = run_dir / "final" / "final.mp4"
+        if stage != "final" or final_output.exists():
+            logger.info("Stage %r already complete — skipping", stage)
+            run_result.results = _load_existing_results(run_dir)
+            return run_result
+        else:
+            logger.info("Stage %r marked complete but final output missing — re-running assembly", stage)
 
     # Build DAG and source map
     dag, anon_identity_map = build_dag_with_identity_map(timeline)

@@ -142,7 +142,11 @@ async def _concat_video_track(
     paths = []
     for _track, clip in video_clips:
         if clip.id in results and results[clip.id].path.exists():
-            paths.append(results[clip.id].path)
+            result = results[clip.id]
+            # Skip image results — only concat actual video files
+            if result.media_type == "image":
+                continue
+            paths.append(result.path)
 
     dest = final_dir / "video_concat.mp4"
     return await _concat_or_copy(paths, dest, media.concat_videos_async)

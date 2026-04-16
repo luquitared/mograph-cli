@@ -1,5 +1,5 @@
 {
-  "_comment": "Simple explainer video: TTS narration + video clips with generated first frames. Uses defaults for model params so individual sources stay minimal.",
+  "_comment": "Simple explainer video using narration shorthand. Each video clip has inline narration that auto-generates a TTS clip and fit_to reference.",
   "version": 1,
   "project": {
     "name": "How Photosynthesis Works",
@@ -23,40 +23,14 @@
   },
   "tracks": [
     {
-      "id": "narration",
-      "type": "narration",
-      "clips": [
-        {
-          "id": "narr-1",
-          "source": {
-            "type": "tts",
-            "text": "Photosynthesis is the process by which plants convert sunlight into energy. It happens in the chloroplasts, tiny organelles inside plant cells."
-          }
-        },
-        {
-          "id": "narr-2",
-          "source": {
-            "type": "tts",
-            "text": "The plant absorbs carbon dioxide from the air and water from the soil. Using sunlight as fuel, it transforms these into glucose and oxygen."
-          }
-        },
-        {
-          "id": "narr-3",
-          "source": {
-            "type": "tts",
-            "text": "This process is essential for life on Earth. It produces the oxygen we breathe and forms the base of nearly every food chain."
-          }
-        }
-      ]
-    },
-    {
       "id": "visuals",
       "type": "video",
       "clips": [
         {
           "id": "vid-1",
-          "_comment": "fit_to narr-1 so the video duration matches the narration",
-          "fit_to": "narr-1",
+          "narration": {
+            "text": "Photosynthesis is the process by which plants convert sunlight into energy. It happens in the chloroplasts, tiny organelles inside plant cells."
+          },
           "source": {
             "type": "video",
             "prompt": "Cinematic macro shot of green leaves in sunlight, light rays filtering through, photosynthesis visualization, nature documentary style",
@@ -70,7 +44,9 @@
         },
         {
           "id": "vid-2",
-          "fit_to": "narr-2",
+          "narration": {
+            "text": "The plant absorbs carbon dioxide from the air and water from the soil. Using sunlight as fuel, it transforms these into glucose and oxygen."
+          },
           "source": {
             "type": "video",
             "prompt": "Animated diagram of a plant cell chloroplast, CO2 and water molecules entering, glucose forming, educational motion graphics style",
@@ -84,7 +60,9 @@
         },
         {
           "id": "vid-3",
-          "fit_to": "narr-3",
+          "narration": {
+            "text": "This process is essential for life on Earth. It produces the oxygen we breathe and forms the base of nearly every food chain."
+          },
           "source": {
             "type": "video",
             "prompt": "Wide aerial shot of a lush green forest canopy, oxygen molecules rising into blue sky, cinematic nature documentary",

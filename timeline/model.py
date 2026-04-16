@@ -161,6 +161,8 @@ class VideoDefaults:
     aspect_ratio: str = "16:9"
     resolution: str = "480p"
     verify: Union[bool, str, None] = None  # Default verify setting for all video sources
+    prompt_prefix: Optional[str] = None  # Text prepended to every video prompt
+    prompt_suffix: Optional[str] = None  # Text appended to every video prompt
 
 
 @dataclass
@@ -172,6 +174,8 @@ class ImageDefaults:
     reference_images: List[str] = field(default_factory=list)
     safety_filter_level: str = "block_only_high"
     verify: Union[bool, str, None] = None  # Default verify setting for all image sources
+    prompt_prefix: Optional[str] = None  # Text prepended to every image prompt
+    prompt_suffix: Optional[str] = None  # Text appended to every image prompt
 
 
 @dataclass

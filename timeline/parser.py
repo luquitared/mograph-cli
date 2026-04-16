@@ -71,7 +71,9 @@ _PROJECT_FIELDS = {"name", "description", "aspect_ratio", "resolution"}
 
 _TRACK_FIELDS = {"id", "type", "clips", "volume"}
 
-_CLIP_FIELDS = {"id", "source", "start_time", "duration", "fit_to", "fit_method", "buffer_ms", "label"}
+_CLIP_FIELDS = {"id", "source", "start_time", "duration", "fit_to", "fit_method", "buffer_ms", "label", "narration"}
+
+_NARRATION_FIELDS = {"text", "voice", "voice_prompt", "model", "fit_method"}
 
 _SOURCE_FIELDS_BY_TYPE: Dict[str, set] = {
     "image": {"type", "prompt", "reference_images", "model", "aspect_ratio", "resolution",
@@ -172,6 +174,9 @@ def parse_timeline(source: Union[str, Path, dict]) -> Timeline:
     tracks = _parse_tracks(raw["tracks"], defaults, warnings)
     output = _parse_output(raw.get("output", {}), warnings)
 
+    # Desugar narration shorthand before constructing the timeline
+    tracks = _desugar_narration(tracks, defaults, warnings)
+
     timeline = Timeline(
         version=version,
         project=project,
@@ -251,6 +256,8 @@ def _parse_defaults(raw: Any, warnings: List[str]) -> Defaults:
         aspect_ratio=video_raw.get("aspect_ratio", "16:9"),
         resolution=video_raw.get("resolution", "480p"),
         verify=video_raw.get("verify"),
+        prompt_prefix=video_raw.get("prompt_prefix"),
+        prompt_suffix=video_raw.get("prompt_suffix"),
     )
 
     image_defaults = ImageDefaults(
@@ -261,6 +268,8 @@ def _parse_defaults(raw: Any, warnings: List[str]) -> Defaults:
         reference_images=image_raw.get("reference_images", []),
         safety_filter_level=image_raw.get("safety_filter_level", "block_only_high"),
         verify=image_raw.get("verify"),
+        prompt_prefix=image_raw.get("prompt_prefix"),
+        prompt_suffix=image_raw.get("prompt_suffix"),
     )
 
     tts_defaults = TTSDefaults(
@@ -350,16 +359,31 @@ def _parse_clip(raw: Any, json_path: str, defaults: Defaults, warnings: List[str
 
     duration = raw.get("duration", "auto")
 
-    return Clip(
+    # Validate narration + fit_to conflict
+    narration_raw = raw.get("narration")
+    fit_to = raw.get("fit_to")
+    if narration_raw is not None and fit_to is not None:
+        raise TimelineParseError(
+            "Clip cannot have both 'narration' and 'fit_to'",
+            path=json_path,
+        )
+
+    clip = Clip(
         id=raw.get("id", ""),
         source=source,
         start_time=raw.get("start_time"),
         duration=duration,
-        fit_to=raw.get("fit_to"),
+        fit_to=fit_to,
         fit_method=raw.get("fit_method", "speed"),
         buffer_ms=raw.get("buffer_ms", 0.0),
         label=raw.get("label"),
     )
+
+    # Stash narration data for desugaring pass
+    if narration_raw is not None:
+        clip._narration_raw = _parse_narration_field(narration_raw, json_path)  # type: ignore[attr-defined]
+
+    return clip
 
 
 def _parse_output(raw: Any, warnings: List[str]) -> Output:
@@ -476,8 +500,14 @@ def _parse_image_source(raw: dict, json_path: str, img_defaults: ImageDefaults) 
         ref_images = _parse_reference_images(raw["reference_images"], f"{json_path}.reference_images")
     else:
         ref_images = img_defaults.reference_images
+    prompt = raw.get("prompt", "")
+    if prompt:
+        if img_defaults.prompt_prefix:
+            prompt = img_defaults.prompt_prefix + " " + prompt
+        if img_defaults.prompt_suffix:
+            prompt = prompt + " " + img_defaults.prompt_suffix
     return ImageSource(
-        prompt=raw.get("prompt", ""),
+        prompt=prompt,
         reference_images=ref_images,
         model=raw.get("model", img_defaults.model),
         aspect_ratio=raw.get("aspect_ratio", img_defaults.aspect_ratio),
@@ -506,8 +536,14 @@ def _parse_video_source(raw: dict, json_path: str, vid_defaults: VideoDefaults, 
     else:
         ref_videos = []
 
+    prompt = raw.get("prompt", "")
+    if prompt:
+        if vid_defaults.prompt_prefix:
+            prompt = vid_defaults.prompt_prefix + " " + prompt
+        if vid_defaults.prompt_suffix:
+            prompt = prompt + " " + vid_defaults.prompt_suffix
     return VideoSource(
-        prompt=raw.get("prompt", ""),
+        prompt=prompt,
         first_frame=_parse_frame_input(raw.get("first_frame"), f"{json_path}.first_frame", frame_defaults),
         last_frame=_parse_frame_input(raw.get("last_frame"), f"{json_path}.last_frame", frame_defaults),
         model=raw.get("model", vid_defaults.model),
@@ -602,6 +638,116 @@ def _parse_frame_input(value: Any, json_path: str, defaults: Defaults = None):
         f"Invalid frame input: expected string, ref object, generate object, or null",
         path=json_path,
     )
+
+
+# ---------------------------------------------------------------------------
+# Narration sugar — desugaring pass
+# ---------------------------------------------------------------------------
+
+def _parse_narration_field(raw: Any, json_path: str) -> dict:
+    """Parse and validate a narration field value.
+
+    Returns a normalized dict with 'text' and optional TTS/fit params.
+    """
+    narr_path = f"{json_path}.narration"
+
+    if isinstance(raw, str):
+        return {"text": raw}
+
+    if not isinstance(raw, dict):
+        raise TimelineParseError(
+            "'narration' must be a string or object with 'text'",
+            path=narr_path,
+        )
+
+    # Check for unknown fields
+    for key in raw:
+        if key.startswith("_"):
+            continue
+        if key not in _NARRATION_FIELDS:
+            raise TimelineParseError(
+                f"Unknown narration field '{key}'. "
+                f"Valid fields: {', '.join(sorted(_NARRATION_FIELDS))}",
+                path=f"{narr_path}.{key}",
+            )
+
+    if "text" not in raw or not raw["text"]:
+        raise TimelineParseError(
+            "'narration.text' is required",
+            path=f"{narr_path}.text",
+        )
+
+    return raw
+
+
+def _desugar_narration(tracks: List[Track], defaults: Defaults, warnings: List[str]) -> List[Track]:
+    """Expand narration shorthand on video clips into a separate narration track.
+
+    For each clip with a _narration_raw attribute:
+    1. Create a TTS clip (id: {clip_id}-narration) with text and optional overrides
+    2. Set fit_to on the video clip to point to the TTS clip
+    3. Pull fit_method from the narration block if specified
+    4. Collect all generated TTS clips into a single narration track
+    """
+    narration_clips: List[Clip] = []
+
+    for track in tracks:
+        # narration sugar only makes sense on video tracks
+        for clip in track.clips:
+            narr_raw = getattr(clip, "_narration_raw", None)
+            if narr_raw is None:
+                continue
+
+            if track.type == "narration":
+                raise TimelineParseError(
+                    f"Clip '{clip.id}' on narration track cannot use 'narration' shorthand",
+                    path=f"tracks.{track.id}.clips.{clip.id}",
+                )
+
+            # Create TTS clip
+            tts_clip_id = f"{clip.id}-narration"
+            tts_source = TTSSource(
+                text=narr_raw["text"],
+                voice=narr_raw.get("voice", defaults.tts.voice),
+                voice_prompt=narr_raw.get("voice_prompt", defaults.tts.voice_prompt),
+                model=narr_raw.get("model", defaults.tts.model),
+            )
+            tts_clip = Clip(
+                id=tts_clip_id,
+                source=tts_source,
+            )
+            narration_clips.append(tts_clip)
+
+            # Wire up fit_to on the video clip
+            clip.fit_to = tts_clip_id
+            if "fit_method" in narr_raw:
+                clip.fit_method = narr_raw["fit_method"]
+
+            # Clean up temporary attribute
+            del clip._narration_raw  # type: ignore[attr-defined]
+
+    if not narration_clips:
+        return tracks
+
+    # Check if there's already a narration track — if so, append to it
+    existing_narr_track = None
+    for track in tracks:
+        if track.type == "narration":
+            existing_narr_track = track
+            break
+
+    if existing_narr_track:
+        existing_narr_track.clips.extend(narration_clips)
+    else:
+        narr_track = Track(
+            id="_narration",
+            type="narration",
+            clips=narration_clips,
+        )
+        # Insert narration track at the beginning
+        tracks.insert(0, narr_track)
+
+    return tracks
 
 
 # ---------------------------------------------------------------------------

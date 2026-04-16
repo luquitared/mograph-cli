@@ -267,13 +267,14 @@ async def verify_batch_images(
 
 # -------------------- Message parsing --------------------
 
-def extract_prompt_and_images(messages: List[Dict[str, Any]], request: Optional[Dict[str, Any]] = None) -> tuple[str, List[Path]]:
+def extract_prompt_and_images(messages: List[Dict[str, Any]], request: Optional[Dict[str, Any]] = None) -> tuple[str, List[Path], List[str]]:
     """
     Extract text prompt and image paths from messages or direct request fields.
     Supports both legacy message-based format and simplified prompt/image_paths.
     """
     prompt_parts: List[str] = []
     image_paths: List[Path] = []
+    image_urls: List[str] = []
 
     for msg in messages:
         parts = msg.get("parts", [])
@@ -292,12 +293,16 @@ def extract_prompt_and_images(messages: List[Dict[str, Any]], request: Optional[
             prompt_parts.append(str(direct_prompt))
         for key in ("image_paths", "reference_images"):
             for img in request.get(key, []) or []:
-                p = Path(img).expanduser().resolve()
-                if p.exists():
-                    image_paths.append(p)
+                img_str = str(img)
+                if img_str.startswith(("http://", "https://")):
+                    image_urls.append(img_str)
+                else:
+                    p = Path(img_str).expanduser().resolve()
+                    if p.exists():
+                        image_paths.append(p)
 
     prompt = " ".join(prompt_parts).strip()
-    return prompt, image_paths
+    return prompt, image_paths, image_urls
 
 
 # -------------------- Core job processing --------------------
@@ -321,12 +326,11 @@ async def generate_single_image(
     all_messages = list(default_messages) + request.get("append_messages", [])
 
     # Extract prompt and images
-    prompt, image_paths = extract_prompt_and_images(all_messages, request)
+    prompt, image_paths, image_urls = extract_prompt_and_images(all_messages, request)
     if not prompt:
         raise ValueError(f"Request {idx}: No prompt found in messages")
 
-    # Upload reference images if provided
-    image_urls = []
+    # Upload local reference images and combine with URL references
     for img_path in image_paths:
         url = await upload_file_to_replicate(session, img_path)
         image_urls.append(url)
@@ -426,7 +430,7 @@ async def process_request(
 
         # Extract prompt for verification
         all_messages = list(default_messages) + request.get("append_messages", [])
-        prompt, _ = extract_prompt_and_images(all_messages, request)
+        prompt, _, _ = extract_prompt_and_images(all_messages, request)
 
         filename = request.get("filename", f"output_{idx}.png")
 

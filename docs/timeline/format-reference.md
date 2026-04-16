@@ -86,6 +86,51 @@ Fields prefixed with `_` (e.g. `_comment`) are silently ignored by the parser an
 | `fit_method` | `string` | No | `"speed"` | How to adjust when fitting: `"speed"`. |
 | `buffer_ms` | `float` | No | `0.0` | Buffer time in milliseconds between clips. |
 | `label` | `string` | No | `null` | Optional human-readable label. |
+| `narration` | `string \| Narration` | No | `null` | Narration shorthand (see below). Cannot be combined with `fit_to`. |
+
+### Narration Shorthand
+
+Sugar for the common pattern of pairing a video clip with a TTS narration clip. Instead of maintaining separate narration and video tracks with `fit_to` references, you can put narration directly on a video clip.
+
+A string value uses TTS defaults:
+
+```json
+{
+  "id": "vid-1",
+  "narration": "Photosynthesis is the process by which plants convert sunlight into energy.",
+  "source": { "type": "video", "prompt": "Cinematic macro shot of green leaves..." }
+}
+```
+
+An object allows TTS and fit overrides:
+
+```json
+{
+  "id": "vid-1",
+  "narration": {
+    "text": "Photosynthesis is the process...",
+    "voice": "Aoede",
+    "voice_prompt": "Warm, educational tone",
+    "fit_method": "speed"
+  },
+  "source": { "type": "video", "prompt": "..." }
+}
+```
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `text` | `string` | Yes | — | Text to synthesize. |
+| `voice` | `string` | No | from defaults | Voice name. |
+| `voice_prompt` | `string` | No | from defaults | Style/tone instructions. |
+| `model` | `string` | No | from defaults | TTS model. |
+| `fit_method` | `string` | No | `"speed"` | How to adjust video duration to match narration. |
+
+**How it works:** The parser expands each `narration` field into a TTS clip (ID: `{clip_id}-narration`) on a narration track and sets `fit_to` on the video clip automatically. The expanded form is identical to writing separate tracks manually.
+
+**Constraints:**
+- Cannot be combined with `fit_to` (they conflict).
+- Cannot be used on clips in a narration track.
+- If a narration track already exists, generated TTS clips are appended to it.
 
 ---
 

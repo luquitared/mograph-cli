@@ -560,3 +560,194 @@ class TestErrorPaths:
         d["tracks"][0]["clips"][0]["source"]["first_frame"] = {"bad_key": "val"}
         with pytest.raises(TimelineParseError, match="must have 'ref' or 'generate'"):
             parse_timeline(d)
+
+
+# ---------------------------------------------------------------------------
+# Narration sugar
+# ---------------------------------------------------------------------------
+
+class TestNarrationSugar:
+    def _video_track_with_narration(self, narration, **clip_overrides):
+        """Build a timeline with a single video clip that has narration sugar."""
+        clip = {
+            "id": "vid-1",
+            "narration": narration,
+            "source": {"type": "video", "prompt": "A test video"},
+        }
+        clip.update(clip_overrides)
+        return {
+            "version": 1,
+            "project": {"name": "Test"},
+            "tracks": [
+                {"id": "visuals", "type": "video", "clips": [clip]},
+            ],
+        }
+
+    def test_string_shorthand(self):
+        tl = parse_timeline(self._video_track_with_narration("Hello world"))
+        # Should create a narration track
+        assert len(tl.tracks) == 2
+        narr_track = [t for t in tl.tracks if t.type == "narration"][0]
+        assert len(narr_track.clips) == 1
+        assert narr_track.clips[0].id == "vid-1-narration"
+        tts = narr_track.clips[0].source
+        assert isinstance(tts, TTSSource)
+        assert tts.text == "Hello world"
+        # Video clip should have fit_to set
+        vid_clip = [t for t in tl.tracks if t.type == "video"][0].clips[0]
+        assert vid_clip.fit_to == "vid-1-narration"
+
+    def test_object_form_with_text(self):
+        tl = parse_timeline(self._video_track_with_narration({"text": "Hello world"}))
+        narr_track = [t for t in tl.tracks if t.type == "narration"][0]
+        tts = narr_track.clips[0].source
+        assert isinstance(tts, TTSSource)
+        assert tts.text == "Hello world"
+
+    def test_voice_override(self):
+        tl = parse_timeline(self._video_track_with_narration({
+            "text": "Hello",
+            "voice": "Aoede",
+        }))
+        narr_track = [t for t in tl.tracks if t.type == "narration"][0]
+        tts = narr_track.clips[0].source
+        assert tts.voice == "Aoede"
+
+    def test_voice_prompt_override(self):
+        tl = parse_timeline(self._video_track_with_narration({
+            "text": "Hello",
+            "voice_prompt": "Speak slowly and clearly",
+        }))
+        narr_track = [t for t in tl.tracks if t.type == "narration"][0]
+        tts = narr_track.clips[0].source
+        assert tts.voice_prompt == "Speak slowly and clearly"
+
+    def test_fit_method_from_narration(self):
+        tl = parse_timeline(self._video_track_with_narration({
+            "text": "Hello",
+            "fit_method": "speed",
+        }))
+        vid_clip = [t for t in tl.tracks if t.type == "video"][0].clips[0]
+        assert vid_clip.fit_method == "speed"
+        assert vid_clip.fit_to == "vid-1-narration"
+
+    def test_tts_defaults_applied(self):
+        d = self._video_track_with_narration({"text": "Hello"})
+        d["defaults"] = {"tts": {"voice": "Zephyr", "voice_prompt": "Calm tone"}}
+        tl = parse_timeline(d)
+        narr_track = [t for t in tl.tracks if t.type == "narration"][0]
+        tts = narr_track.clips[0].source
+        assert tts.voice == "Zephyr"
+        assert tts.voice_prompt == "Calm tone"
+
+    def test_multiple_clips_with_narration(self):
+        d = {
+            "version": 1,
+            "project": {"name": "Test"},
+            "tracks": [
+                {
+                    "id": "visuals",
+                    "type": "video",
+                    "clips": [
+                        {
+                            "id": "vid-1",
+                            "narration": {"text": "First part"},
+                            "source": {"type": "video", "prompt": "Scene 1"},
+                        },
+                        {
+                            "id": "vid-2",
+                            "narration": {"text": "Second part"},
+                            "source": {"type": "video", "prompt": "Scene 2"},
+                        },
+                    ],
+                }
+            ],
+        }
+        tl = parse_timeline(d)
+        narr_track = [t for t in tl.tracks if t.type == "narration"][0]
+        assert len(narr_track.clips) == 2
+        assert narr_track.clips[0].id == "vid-1-narration"
+        assert narr_track.clips[1].id == "vid-2-narration"
+        # Both video clips should have fit_to
+        vid_track = [t for t in tl.tracks if t.type == "video"][0]
+        assert vid_track.clips[0].fit_to == "vid-1-narration"
+        assert vid_track.clips[1].fit_to == "vid-2-narration"
+
+    def test_appends_to_existing_narration_track(self):
+        d = {
+            "version": 1,
+            "project": {"name": "Test"},
+            "tracks": [
+                {
+                    "id": "narration",
+                    "type": "narration",
+                    "clips": [
+                        {"id": "narr-intro", "source": {"type": "tts", "text": "Intro"}},
+                    ],
+                },
+                {
+                    "id": "visuals",
+                    "type": "video",
+                    "clips": [
+                        {
+                            "id": "vid-1",
+                            "narration": {"text": "Main content"},
+                            "source": {"type": "video", "prompt": "Scene 1"},
+                        },
+                    ],
+                },
+            ],
+        }
+        tl = parse_timeline(d)
+        narr_tracks = [t for t in tl.tracks if t.type == "narration"]
+        assert len(narr_tracks) == 1
+        assert len(narr_tracks[0].clips) == 2
+        assert narr_tracks[0].clips[0].id == "narr-intro"
+        assert narr_tracks[0].clips[1].id == "vid-1-narration"
+
+    def test_conflict_narration_and_fit_to(self):
+        with pytest.raises(TimelineParseError, match="cannot have both 'narration' and 'fit_to'"):
+            parse_timeline(self._video_track_with_narration(
+                {"text": "Hello"},
+                fit_to="some-clip",
+            ))
+
+    def test_narration_on_narration_track_rejected(self):
+        d = {
+            "version": 1,
+            "project": {"name": "Test"},
+            "tracks": [
+                {
+                    "id": "narr",
+                    "type": "narration",
+                    "clips": [
+                        {
+                            "id": "n1",
+                            "narration": {"text": "Bad"},
+                            "source": {"type": "tts", "text": "Hello"},
+                        },
+                    ],
+                }
+            ],
+        }
+        with pytest.raises(TimelineParseError, match="narration track cannot use 'narration' shorthand"):
+            parse_timeline(d)
+
+    def test_missing_text_rejected(self):
+        with pytest.raises(TimelineParseError, match="narration.text.*required"):
+            parse_timeline(self._video_track_with_narration({"voice": "Kore"}))
+
+    def test_unknown_narration_field_rejected(self):
+        with pytest.raises(TimelineParseError, match="Unknown narration field"):
+            parse_timeline(self._video_track_with_narration({
+                "text": "Hello",
+                "bad_field": "value",
+            }))
+
+    def test_narration_underscore_fields_ignored(self):
+        tl = parse_timeline(self._video_track_with_narration({
+            "text": "Hello",
+            "_comment": "this is fine",
+        }))
+        narr_track = [t for t in tl.tracks if t.type == "narration"][0]
+        assert narr_track.clips[0].source.text == "Hello"
