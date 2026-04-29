@@ -38,11 +38,11 @@ Fields prefixed with `_` (e.g. `_comment`) are silently ignored by the parser an
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `model` | `string` | `"seedance-2.0-fast"` | Video model. One of: `seedance-2.0-fast`, `seedance-2.0`, `veo-3.1-lite`. |
+| `model` | `string` | `"seedance-2.0-fast"` | Video model. One of: `seedance-2.0-fast`, `seedance-2.0`. |
 | `duration` | `int` | `5` | Clip duration in seconds. |
 | `generate_audio` | `bool` | `true` | Whether to generate audio with the video. |
 | `aspect_ratio` | `string` | `"16:9"` | Aspect ratio. |
-| `resolution` | `string` | `"480p"` | Resolution. `480p` or `720p` for Seedance; `720p`/`1080p` for Veo Lite. |
+| `resolution` | `string` | `"480p"` | Resolution. `480p` or `720p` for Seedance. |
 | `verify` | `bool\|string` | `null` | Enable verification for all video clips. See [Verification](#verification). |
 
 ### ImageDefaults
@@ -158,7 +158,7 @@ Generates an image via Replicate Nano Banana Pro.
 
 ### VideoSource (`type: "video"`)
 
-Generates a video clip via Seedance 2.0 or Veo 3.1 Lite.
+Generates a video clip via Seedance 2.0.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
@@ -166,12 +166,12 @@ Generates a video clip via Seedance 2.0 or Veo 3.1 Lite.
 | `prompt` | `string` | Yes | — | Video generation prompt. |
 | `first_frame` | `string \| Ref \| Generate \| null` | No | `null` | First frame input: file path/URL, ref, or inline generation. |
 | `last_frame` | `string \| Ref \| Generate \| null` | No | `null` | Last frame input (same types as first_frame). |
-| `model` | `string` | No | from defaults | One of: `seedance-2.0-fast`, `seedance-2.0`, `veo-3.1-lite`. |
-| `duration` | `int \| "auto"` | No | from defaults | Duration in seconds. Veo Lite: `4`, `6`, or `8`. Seedance: any int or `-1` for auto. |
+| `model` | `string` | No | from defaults | One of: `seedance-2.0-fast`, `seedance-2.0`. |
+| `duration` | `int \| "auto"` | No | from defaults | Duration in seconds. Seedance: any int `4`–`15` or `-1` for auto. |
 | `aspect_ratio` | `string` | No | from defaults | Aspect ratio. Seedance: `16:9`, `4:3`, `1:1`, `3:4`, `9:16`, `21:9`, `adaptive`. |
-| `resolution` | `string` | No | from defaults | Resolution. Seedance: `480p`, `720p`. Veo Lite: `720p`, `1080p`. |
+| `resolution` | `string` | No | from defaults | Resolution. Seedance: `480p`, `720p`. |
 | `generate_audio` | `bool` | No | from defaults | Generate audio with video. |
-| `negative_prompt` | `string` | No | `null` | Negative prompt (Veo Lite only). |
+| `negative_prompt` | `string` | No | `null` | Negative prompt (ignored by Seedance). |
 | `seed` | `int` | No | `null` | Random seed for reproducibility. |
 | `quality` | `string` | No | `null` | Seedance 2.0: `"basic"` or `"high"`. |
 | `reference_images` | `(string\|Ref)[]` | No | `[]` | Seedance: up to 9 images. Referenced as `[Image1]`, `[Image2]` in prompt. |
@@ -300,9 +300,16 @@ Inline generation instruction. Embeds a source definition directly in a `first_f
 
 | Model | Durations | Resolutions | Notes |
 |-------|-----------|-------------|-------|
-| `seedance-2.0-fast` | any int, or `-1` (auto) | 480p, 720p | **Default model.** Cheapest at 480p ($0.06/s). |
-| `seedance-2.0` | any int, or `-1` (auto) | 480p, 720p | Higher quality. Use for final renders. |
-| `veo-3.1-lite` | 4, 6, 8 | 720p, 1080p | Audio always generated. |
+| `seedance-2.0-fast` | `4`–`15`, or `-1` (auto) | 480p, 720p | **Default model.** Cheapest at 480p ($0.06/s). |
+| `seedance-2.0` | `4`–`15`, or `-1` (auto) | 480p, 720p | Higher quality. Use for final renders. |
+
+### Image Models
+
+| Model | Aspect ratios | Output formats | Notes |
+|-------|---------------|----------------|-------|
+| `nano-banana-pro` | flexible | png, jpg | **Default image model.** Via Replicate. |
+| `nano-banana-2` | flexible | png, jpg | Burst mode via Gemini API direct. Requires `GOOGLE_API_KEY`. |
+| `gpt-image-2` | `1:1`, `3:2`, `2:3` | webp, png, jpeg | OpenAI `openai/gpt-image-2` via Replicate. No transparent backgrounds. |
 
 ---
 
@@ -328,7 +335,7 @@ Enable verification for all video clips:
 ```json
 "defaults": {
   "video": {
-    "model": "veo-3.1-fast",
+    "model": "seedance-2.0-fast",
     "verify": true
   }
 }

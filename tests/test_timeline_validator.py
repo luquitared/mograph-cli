@@ -114,35 +114,14 @@ class TestStaticValidation:
     # Since we use dataclasses with literal types, an invalid source type
     # would be caught at parse time. We test that the validator also checks.
 
-    # REQ-SVAL-007: Veo Lite duration
-    def test_veo_lite_invalid_duration(self):
+    # REQ-SVAL-018: Video model name validation
+    def test_invalid_video_model(self):
         tl = _make_timeline(tracks=[Track(id="t1", type="video", clips=[
-            Clip(id="c1", source=VideoSource(prompt="test", model="veo-3.1-lite", duration=5, resolution="720p")),
+            Clip(id="c1", source=VideoSource(prompt="test", model="veo-3.1-lite")),
         ])])
         result = validate(tl)
         assert not result.is_valid
-        assert any("duration" in e.message.lower() for e in result.errors)
-
-    def test_veo_lite_valid_duration(self):
-        tl = _make_timeline(tracks=[Track(id="t1", type="video", clips=[
-            Clip(id="c1", source=VideoSource(prompt="test", model="veo-3.1-lite", duration=6, resolution="720p")),
-        ])])
-        result = validate(tl)
-        assert result.is_valid
-
-    # REQ-SVAL-011: Veo Lite generate_audio warning
-    def test_veo_lite_generate_audio_false_warning(self):
-        tl = _make_timeline(tracks=[Track(id="t1", type="video", clips=[
-            Clip(id="c1", source=VideoSource(
-                prompt="test", model="veo-3.1-lite",
-                generate_audio=False, duration=6, resolution="720p",
-            )),
-        ])])
-        result = validate(tl)
-        # Should be valid (warning, not error)
-        assert result.is_valid
-        assert len(result.warnings) >= 1
-        assert any("generate_audio" in w.message for w in result.warnings)
+        assert any("Invalid video model" in e.message for e in result.errors)
 
     # REQ-SVAL-012: Voice name validation
     def test_unknown_voice_with_suggestion(self):

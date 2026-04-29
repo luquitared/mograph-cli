@@ -77,7 +77,9 @@ _NARRATION_FIELDS = {"text", "voice", "voice_prompt", "model", "fit_method"}
 
 _SOURCE_FIELDS_BY_TYPE: Dict[str, set] = {
     "image": {"type", "prompt", "reference_images", "model", "aspect_ratio", "resolution",
-              "output_format", "safety_filter_level", "candidates", "select", "verify"},
+              "output_format", "safety_filter_level", "quality", "background",
+              "output_compression", "moderation", "number_of_images",
+              "candidates", "select", "verify"},
     "video": {"type", "prompt", "first_frame", "last_frame", "model", "duration",
               "aspect_ratio", "resolution", "generate_audio", "negative_prompt", "seed",
               "quality", "reference_images", "reference_videos", "reference_audios",
@@ -514,6 +516,11 @@ def _parse_image_source(raw: dict, json_path: str, img_defaults: ImageDefaults) 
         resolution=raw.get("resolution", img_defaults.resolution),
         output_format=raw.get("output_format", img_defaults.output_format),
         safety_filter_level=raw.get("safety_filter_level", img_defaults.safety_filter_level),
+        quality=raw.get("quality"),
+        background=raw.get("background"),
+        output_compression=raw.get("output_compression"),
+        moderation=raw.get("moderation"),
+        number_of_images=raw.get("number_of_images"),
         candidates=raw.get("candidates"),
         select=raw.get("select"),
         verify=raw.get("verify") if "verify" in raw else img_defaults.verify,

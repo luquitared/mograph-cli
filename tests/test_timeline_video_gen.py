@@ -25,19 +25,11 @@ from timeline.video_gen import (
 # ---------------------------------------------------------------------------
 
 class TestModelKindMapping:
-    def test_veo_lite(self):
-        assert MODEL_KIND_MAP["veo-3.1-lite"] == "lite"
-
     def test_seedance(self):
         assert MODEL_KIND_MAP["seedance-2.0"] == "seedance"
 
     def test_seedance_fast(self):
         assert MODEL_KIND_MAP["seedance-2.0-fast"] == "seedance-fast"
-
-    def test_get_model_owner_name_lite(self):
-        owner, name = _get_model_owner_name("veo-3.1-lite")
-        assert owner == "google"
-        assert name == "veo-3.1-lite"
 
     def test_get_model_owner_name_seedance(self):
         owner, name = _get_model_owner_name("seedance-2.0")

@@ -12,7 +12,7 @@ Default video model. Faster, cheaper variant of Seedance 2.0 — trades some qua
 
 | Parameter | Values | Default |
 |-----------|--------|---------|
-| `duration` | any integer seconds, or `-1` for auto | 5 |
+| `duration` | integer seconds `4`–`15`, or `-1` for auto | 5 |
 | `resolution` | `"480p"`, `"720p"` | `"480p"` |
 | `aspect_ratio` | `"16:9"`, `"4:3"`, `"1:1"`, `"3:4"`, `"9:16"`, `"21:9"`, `"adaptive"` | `"16:9"` |
 | `generate_audio` | `true`/`false` | `true` |
@@ -25,7 +25,7 @@ Default video model. Faster, cheaper variant of Seedance 2.0 — trades some qua
 | `reference_audios` | up to 3 audio files (max 15s total) | `[]` |
 
 - **When to use:** Default for all video generation. Cheapest at 480p ($0.06/s). Use for drafts and iteration.
-- **Limitations:** Same as Seedance 2.0 — `reference_images` and `first_frame` are mutually exclusive. No `negative_prompt`.
+- **Limitations:** Same as Seedance 2.0 — `reference_images` and `first_frame` are mutually exclusive. No `negative_prompt`. `duration < 4` is rejected server-side with E006 — for shorter playback, generate at `>=4` and trim via float `clip.duration` at assembly.
 
 ### Seedance 2.0 (`seedance-2.0`)
 
@@ -33,7 +33,7 @@ ByteDance's higher-quality multimodal video generation model. Same inputs as Fas
 
 | Parameter | Values | Default |
 |-----------|--------|---------|
-| `duration` | any integer seconds, or `-1` for auto | 5 |
+| `duration` | integer seconds `4`–`15`, or `-1` for auto | 5 |
 | `resolution` | `"480p"`, `"720p"` | `"480p"` |
 | `aspect_ratio` | `"16:9"`, `"4:3"`, `"1:1"`, `"3:4"`, `"9:16"`, `"21:9"`, `"adaptive"` | `"16:9"` |
 | `generate_audio` | `true`/`false` | `true` |
@@ -80,21 +80,6 @@ ByteDance's higher-quality multimodal video generation model. Same inputs as Fas
 }
 ```
 
-### Veo 3.1 Lite (`veo-3.1-lite`)
-
-Google's lightweight Veo variant. Audio is always generated regardless of the `generate_audio` setting.
-
-| Parameter | Values | Default |
-|-----------|--------|---------|
-| `duration` | 4, 6, 8 seconds | 6 |
-| `resolution` | `"720p"`, `"1080p"` | `"720p"` |
-| `generate_audio` | ignored (always on) | — |
-| `negative_prompt` | any string | `null` |
-| `seed` | any int | `null` |
-
-- **When to use:** When you need Veo quality with built-in audio, or 1080p output.
-- **Limitations:** `generate_audio: false` is ignored. ~$0.15/s at 720p.
-
 ---
 
 ## Image Models
@@ -113,6 +98,36 @@ Image generation via Replicate (Google Gemini 3.1 Flash Image Preview).
 
 - **When to use:** Generating first-frame images for video clips, standalone stills, exploration candidates.
 - **Reference image chaining:** Use `{"ref": "clip_id"}` to feed one image generation's output as a reference into the next.
+
+### Nano Banana 2 (`nano-banana-2`)
+
+Burst-mode image generation via the Gemini API directly (bypasses Replicate). Same underlying model (Gemini 3.1 Flash Image Preview) as `nano-banana-pro` but configured for maximum throughput: minimal thinking, IMAGE-only response.
+
+| Parameter | Values | Default |
+|-----------|--------|---------|
+| `aspect_ratio` | `1:1`, `4:3`, `3:4`, `16:9`, `9:16`, `3:2`, `2:3`, `4:5`, `5:4`, `21:9`, `1:4`, `4:1`, `1:8`, `8:1` | `"1:1"` |
+| `resolution` | `"512"`, `"1K"`, `"2K"`, `"4K"` | `"512"` |
+| `output_format` | `"png"`, `"jpg"` | `"png"` |
+| `reference_images` | array of local file paths | `[]` |
+
+- **When to use:** High-throughput exploration where speed matters more than resolution. Requires `GOOGLE_API_KEY`.
+
+### GPT Image 2 (`gpt-image-2`)
+
+OpenAI's `openai/gpt-image-2` model via Replicate. Strong at photoreal composition and text rendering; supports reference images for editing/composing.
+
+| Parameter | Values | Default |
+|-----------|--------|---------|
+| `aspect_ratio` | `"1:1"`, `"3:2"`, `"2:3"` | `"1:1"` |
+| `output_format` | `"webp"`, `"png"`, `"jpeg"` | `"webp"` |
+| `reference_images` | array of paths/URLs or `{"ref": "clip_id"}` | `[]` |
+| `quality` | `"low"`, `"medium"`, `"high"`, `"auto"` | `null` |
+| `background` | `"auto"`, `"opaque"` | `null` |
+| `output_compression` | integer `0`–`100` (applies to webp/jpeg) | `null` |
+| `moderation` | `"auto"`, `"low"` | `null` |
+
+- **When to use:** Photoreal scenes with precise composition or on-image text; editing/composing via `reference_images`.
+- **Limitations:** Does not support transparent backgrounds. Only three aspect ratios (1:1, 3:2, 2:3). `resolution` and `safety_filter_level` are ignored.
 
 ---
 
@@ -145,7 +160,6 @@ Achernar, Achird, Algenib, Algieba, Alnilam, Aoede, Autonoe, Callirrhoe, Charon,
 | `seedance-2.0` | 480p | video refs | $0.13 | ~76s |
 | `seedance-2.0` | 720p | text/image | $0.17 | ~58s |
 | `seedance-2.0` | 720p | video refs | $0.29 | ~34s |
-| `veo-3.1-lite` | 720p | — | ~$0.15 | ~66s |
 
 **Fast vs Standard savings:** 14-24% cheaper across the board.
 

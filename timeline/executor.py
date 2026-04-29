@@ -248,6 +248,11 @@ async def _dispatch_images(
             resolution=source.resolution,
             output_format=source.output_format,
             safety_filter_level=source.safety_filter_level,
+            quality=source.quality,
+            background=source.background,
+            output_compression=source.output_compression,
+            moderation=source.moderation,
+            number_of_images=source.number_of_images,
             candidates=source.candidates,
             select=source.select,
             verify=source.verify,
@@ -1143,22 +1148,24 @@ async def _execute_async(
 def _activate_mock_mode() -> None:
     """Enable mock mode for all generation backends."""
     from shared.replicate_client import set_mock_mode
-    from generation import batch_img, batch_vid, nano_banana2
+    from generation import batch_img, batch_vid, gpt_image2, nano_banana2
 
     set_mock_mode(True)
     batch_img.MOCK_REPLICATE = True
     batch_vid.MOCK_REPLICATE = True
+    gpt_image2.MOCK_REPLICATE = True
     nano_banana2.MOCK_GENERATE = True
 
 
 def _deactivate_mock_mode() -> None:
     """Disable mock mode for all generation backends."""
     from shared.replicate_client import set_mock_mode
-    from generation import batch_img, batch_vid, nano_banana2
+    from generation import batch_img, batch_vid, gpt_image2, nano_banana2
 
     set_mock_mode(False)
     batch_img.MOCK_REPLICATE = False
     batch_vid.MOCK_REPLICATE = False
+    gpt_image2.MOCK_REPLICATE = False
     nano_banana2.MOCK_GENERATE = False
 
 

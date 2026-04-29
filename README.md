@@ -39,7 +39,7 @@ The simplest possible timeline — one video clip, no narration, no frills.
           "source": {
             "type": "video",
             "prompt": "A cat sitting on a windowsill watching rain, cozy interior, soft lighting",
-            "model": "veo-3.1-lite",
+            "model": "seedance-2.0-fast",
             "duration": 6
           }
         }
@@ -71,7 +71,7 @@ Control the starting visual by generating an image first, then animating from it
           "source": {
             "type": "video",
             "prompt": "The cat stretches and yawns, rain streaks down the window behind it",
-            "model": "veo-3.1-lite",
+            "model": "seedance-2.0-fast",
             "duration": 6,
             "first_frame": {
               "generate": {
@@ -104,7 +104,7 @@ The core use case — narration synced to visuals. Each video clip's duration au
   },
   "defaults": {
     "video": {
-      "model": "veo-3.1-fast",
+      "model": "seedance-2.0-fast",
       "duration": 6,
       "generate_audio": false
     },
@@ -200,7 +200,7 @@ Visual continuity — each clip starts where the previous one ended.
   "project": { "name": "Sunrise to Storm" },
   "defaults": {
     "video": {
-      "model": "veo-3.1-lite",
+      "model": "seedance-2.0-fast",
       "duration": 6,
       "generate_audio": true
     }
@@ -318,7 +318,7 @@ Phase 1: generate character/scene reference sheets. Phase 2: use them to guide c
   "version": 1,
   "project": { "name": "Battle Scene" },
   "defaults": {
-    "video": { "model": "veo-3.1-lite", "duration": 8, "aspect_ratio": "9:16" },
+    "video": { "model": "seedance-2.0-fast", "duration": 8, "aspect_ratio": "9:16" },
     "image": { "aspect_ratio": "9:16" }
   },
   "tracks": [
@@ -382,7 +382,7 @@ Instead of many short clips, use timestamp annotations inside the prompt to chor
   "version": 1,
   "project": { "name": "Courtroom Drama" },
   "defaults": {
-    "video": { "model": "veo-3.1-lite", "duration": 8, "aspect_ratio": "9:16" }
+    "video": { "model": "seedance-2.0-fast", "duration": 8, "aspect_ratio": "9:16" }
   },
   "tracks": [
     {
@@ -444,7 +444,7 @@ Generate multiple visual directions, review them, then commit to the best one.
           "id": "vid-1",
           "source": {
             "type": "video",
-            "model": "veo-3.1-lite",
+            "model": "seedance-2.0-fast",
             "duration": 6,
             "prompt": "Camera slowly pushes through the futuristic cityscape at dusk, neon reflections",
             "first_frame": { "ref": "hero-image" }
@@ -490,7 +490,7 @@ Use an existing audio file instead of TTS. Extract segments with `start`/`end`.
   "version": 1,
   "project": { "name": "Product Walkthrough" },
   "defaults": {
-    "video": { "model": "veo-3.1-fast", "generate_audio": false }
+    "video": { "model": "seedance-2.0-fast", "generate_audio": false }
   },
   "tracks": [
     {
@@ -574,7 +574,7 @@ Layer narration, background music, and sound effects on separate tracks with ind
   "version": 1,
   "project": { "name": "Cooking Tutorial" },
   "defaults": {
-    "video": { "model": "veo-3.1-fast", "generate_audio": true },
+    "video": { "model": "seedance-2.0-fast", "generate_audio": true },
     "tts": {
       "voice": "Aoede",
       "voice_prompt": "Warm, friendly cooking show host"
@@ -720,7 +720,7 @@ Use `still` sources to hold a static image as a title card before the video star
           "id": "vid-opening",
           "source": {
             "type": "video",
-            "model": "veo-3.1-lite",
+            "model": "seedance-2.0-fast",
             "duration": 8,
             "prompt": "Camera slowly pushing through a dark forest, morning mist, cinematic"
           }
@@ -749,7 +749,7 @@ Set aspect ratio globally for short-form vertical content.
   },
   "defaults": {
     "video": {
-      "model": "veo-3.1-lite",
+      "model": "seedance-2.0-fast",
       "aspect_ratio": "9:16",
       "generate_audio": true
     },
@@ -800,20 +800,10 @@ Same scene across different video models to compare quality and style.
       "type": "video",
       "clips": [
         {
-          "id": "vid-lite",
-          "source": {
-            "type": "video",
-            "model": "veo-3.1-lite",
-            "duration": 6,
-            "prompt": "The knight draws his sword and raises it to the sky, wind blowing his cape, sunrise",
-            "first_frame": { "ref": "shared-frame" }
-          }
-        },
-        {
           "id": "vid-fast",
           "source": {
             "type": "video",
-            "model": "veo-3.1-fast",
+            "model": "seedance-2.0-fast",
             "duration": 6,
             "prompt": "The knight draws his sword and raises it to the sky, wind blowing his cape, sunrise",
             "first_frame": { "ref": "shared-frame" }
@@ -823,17 +813,9 @@ Same scene across different video models to compare quality and style.
           "id": "vid-quality",
           "source": {
             "type": "video",
-            "model": "veo-3.1",
+            "model": "seedance-2.0",
             "duration": 6,
-            "prompt": "The knight draws his sword and raises it to the sky, wind blowing his cape, sunrise",
-            "first_frame": { "ref": "shared-frame" }
-          }
-        },
-        {
-          "id": "vid-kling",
-          "source": {
-            "type": "video",
-            "model": "kling-v3",
+            "resolution": "720p",
             "prompt": "The knight draws his sword and raises it to the sky, wind blowing his cape, sunrise",
             "first_frame": { "ref": "shared-frame" }
           }
@@ -844,7 +826,7 @@ Same scene across different video models to compare quality and style.
 }
 ```
 
-**Key pattern:** A shared `asset` generates the first frame once. All 4 video clips reference the same image but use different models. All 4 videos generate concurrently since they share no dependencies beyond the asset.
+**Key pattern:** A shared `asset` generates the first frame once. Both video clips reference the same image but use different Seedance variants. They generate concurrently since they share no dependencies beyond the asset.
 
 ---
 
@@ -854,11 +836,11 @@ Same scene across different video models to compare quality and style.
 
 | Model | Type | Durations | Resolutions | Notes |
 |-------|------|-----------|-------------|-------|
-| `veo-3.1` | Video | 4, 6, 8s | 720p, 1080p | Highest quality |
-| `veo-3.1-fast` | Video | 4, 6, 8s | 720p | Default, good for iteration |
-| `veo-3.1-lite` | Video | 4, 6, 8s | 720p, 1080p | Cheapest, audio always on |
-| `kling-v3` | Video | model-determined | 720p, 1080p | Alternative aesthetic |
-| `nano-banana-pro` | Image | — | up to 2K | Default image model |
+| `seedance-2.0-fast` | Video | 4–15s, or -1 (auto) | 480p, 720p | Default, cheapest |
+| `seedance-2.0` | Video | 4–15s, or -1 (auto) | 480p, 720p | Higher quality |
+| `nano-banana-pro` | Image | — | up to 2K | Default image model (Replicate) |
+| `nano-banana-2` | Image | — | 512–4K | Burst-mode Gemini API direct |
+| `gpt-image-2` | Image | — | model-determined | OpenAI GPT Image 2 via Replicate |
 | `gemini-2.5-flash-tts` | TTS | — | — | 29 voices, style prompts |
 
 ### Source Types

@@ -64,7 +64,7 @@ async def assemble_timeline(
                 video_concat,
                 narration_concat,
                 dest,
-                veo_audio_source=sfx_concat,
+                sfx_audio_source=sfx_concat,
                 narration_volume=output_cfg.narration_volume,
                 video_audio_volume=output_cfg.sfx_volume,
             )

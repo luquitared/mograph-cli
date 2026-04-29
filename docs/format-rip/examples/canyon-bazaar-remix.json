@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "project": {
+    "name": "Format Rip ig-DLQ2Y77Mqbx Canyon Bazaar Remix",
+    "description": "Atmospheric vibe-pan format from ig-DLQ2Y77Mqbx (cyberpunk bridge) re-filled with a sun-bleached alien canyon bazaar. Silent generation; original IG audio mixed in post via ffmpeg."
+  },
+  "defaults": {
+    "video": {
+      "model": "seedance-2.0-fast",
+      "duration": 14,
+      "resolution": "720p",
+      "aspect_ratio": "9:16",
+      "generate_audio": false
+    }
+  },
+  "tracks": [
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "canyon-bazaar-pan",
+          "duration": 14,
+          "source": {
+            "type": "video",
+            "prompt": "STYLE: Cinematic stylized 3D render with a painterly, slightly desaturated golden-hour palette. Rich atmospheric haze, godrays cutting through dust, deep ambient occlusion in the canyon shadows. Detailed but soft, dreamlike, illustrative.\n\nSHOT: vertical 9:16. Single locked camera move: slow, perfectly smooth, continuous horizontal pan from right to left across the entire 14 seconds. No cuts. No zoom. No tilt. No shake. The pan is the only motion the camera makes.\n\nSUBJECT: in the foreground left, a solitary hooded wanderer in dust-colored robes stands at the railing of a stone balcony, back three-quarters to camera, looking out across the canyon. The figure is small relative to the environment, providing scale. They do not turn or move; only the wind shifts their robes and hood slightly.\n\nENVIRONMENT: a vast alien canyon bazaar carved into sheer red-rock cliffs that stretch up out of frame and plunge down into mist below. Tiered terraces stack vertically across the opposite cliff face — hundreds of arched windows, hanging silk awnings in faded ochre and rust, strings of paper lanterns, narrow rope bridges between levels, distant tiny figures moving along the walkways. Wisps of smoke from cooking fires rise in vertical columns. Two enormous moons hang low in a hazy amber sky. Birds wheel in the middle distance. The far end of the canyon dissolves into golden haze.\n\nMOTION DETAILS: gentle ambient life only — lanterns sway, awnings ripple, smoke drifts upward, distant figures walk slowly. No camera cuts, no fast movement, no zoom. The horizontal pan reveals new architectural depth as it moves.\n\nMOOD: contemplative, melancholic, awe-struck — the same atmospheric establishing vibe as the source reference: a lone observer dwarfed by a vast, lived-in world at a quiet hour.",
+            "reference_images": []
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4"
+  }
+}

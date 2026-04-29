@@ -27,11 +27,10 @@ Each stage can be run independently with `--resume-dir <run_dir>`.
 
 - `pipeline.py` — Main pipeline orchestrator (CLI entry point, stays at root)
 - `timeline/` — Timeline format: parser, validator, DAG builder, executor, and stage generators
-- `generation/` — Image and video generation (Replicate Nano Banana, Veo)
+- `generation/` — Image and video generation (Replicate Nano Banana Pro, GPT Image 2, Seedance; Gemini Nano Banana 2 direct)
 - `tts/` — Text-to-speech, transcription, audio processing (Gemini TTS, ElevenLabs, Deepgram)
 - `shared/` — Common utilities (media processing, Replicate client, helpers)
 - `cloudrun/` — Cloud Run HTTP API deployment (FastAPI server, GCS storage)
-- `batch/` — Batch processing client for Cloud Run
 - `scripts/` — Operational scripts (deploy, asset sync)
 - `docs/` — Documentation (CLI reference, pipeline modes, deployment, timeline format, etc.)
 - `docs/timeline/` — Timeline format docs (examples, schema, model reference, patterns)

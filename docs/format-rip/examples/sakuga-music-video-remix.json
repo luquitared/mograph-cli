@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "project": {
+    "name": "Format Rip ig-Czq5Miosz9u Sakuga Music Video Remix",
+    "description": "Cinematic mood-montage music-video format from ig-Czq5Miosz9u, re-rendered as high-quality sakuga anime: hand-drawn cel animation with strong, expressive character motion. 6 location-distinct shots = 30s. Silent generation; original 30s IG audio (instrumental track) muxed in post via ffmpeg with -shortest."
+  },
+  "defaults": {
+    "video": {
+      "model": "seedance-2.0-fast",
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "9:16",
+      "generate_audio": false
+    }
+  },
+  "tracks": [
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "shot-01-sunset-driving",
+          "source": {
+            "type": "video",
+            "duration": 5,
+            "prompt": "STYLE: high-end sakuga anime, hand-drawn cel animation, expressive crisp inked linework, smooth fluid character motion at high frame counts, painted-watercolor backgrounds, deep saturated palette, dramatic rim lighting and lens flares, anime film grain.\n\nFRAMING: vertical 9:16 with the live anime image inside a centered 2.35:1 cinemascope window-box; pure black bars top and bottom of frame at all times.\n\nSCENE: medium close-up inside a moving car at golden-hour sunset. A young Black man with shoulder-length dreadlocks, gold ear-stud, beige zip-up jacket, sits in the driver's seat. His face is bathed in deep orange-red light from the sun setting through the passenger window; the desert landscape blurs past behind him.\n\nMOTION: his dreadlocks sway from the wind through the open window, his jacket creases catch the light as his shoulders shift, his eyes flick to the road and back, his hand rests on the wheel and adjusts grip, breath subtly visible. Fluid sakuga animation: lots of in-between frames, smooth secondary motion in hair and clothing. Camera is locked off, no pan, no zoom — only the character animates within the frame."
+          }
+        },
+        {
+          "id": "shot-02-deserted-road",
+          "source": {
+            "type": "video",
+            "duration": 5,
+            "prompt": "STYLE: high-end sakuga anime, hand-drawn cel animation, expressive inked linework, fluid character motion, painted-watercolor backgrounds, deep saturated palette, dramatic golden-hour rim lighting, anime film grain.\n\nFRAMING: vertical 9:16 with the live anime image inside a centered 2.35:1 cinemascope window-box; pure black bars top and bottom of frame at all times.\n\nSCENE: extreme wide shot of a deserted two-lane road stretching dead-straight to a vanishing point on the horizon. The young Black man with dreadlocks, beige jacket and dark cargo pants, walks slowly along the centerline of the road, small in the frame. Sun blazes orange-red on the horizon directly behind him, casting a long shadow toward the camera. Cracked asphalt, dry grass either side, distant telephone poles.\n\nMOTION: he walks at a slow, even pace. His dreadlocks swing with each step, the jacket sways at his hips, dust kicks up from his sneakers, heat-haze ripples on the asphalt, distant grass shifts in the breeze. Sakuga-quality walking cycle: full secondary motion, weight transfer feels real. Camera is locked off."
+          }
+        },
+        {
+          "id": "shot-03-neon-storefront",
+          "source": {
+            "type": "video",
+            "duration": 4,
+            "prompt": "STYLE: high-end sakuga anime, hand-drawn cel animation, expressive inked linework, fluid character motion, painted-anime nighttime background with neon glow, deep saturated palette, anime film grain.\n\nFRAMING: vertical 9:16 with the live anime image inside a centered 2.35:1 cinemascope window-box; pure black bars top and bottom at all times.\n\nSCENE: medium shot at night outside a small lit corner-store window. The young Black man with dreadlocks, beige jacket, holds an open broadsheet newspaper up in front of his face. Neon signs glow cyan and yellow inside the storefront behind him. Dark blue night palette punched by neon highlights.\n\nMOTION: at the start of the shot the newspaper hides his face, edges fluttering in a gentle breeze. Halfway through, he slowly lowers the newspaper, revealing his face — his eyes meet the camera with a calm, distant expression. His dreadlocks sway as he moves. The neon signs flicker subtly. Sakuga-fluid motion: every frame of the newspaper-lower is hand-animated with secondary creases. Camera is locked off."
+          }
+        },
+        {
+          "id": "shot-04-liquor-store",
+          "source": {
+            "type": "video",
+            "duration": 4,
+            "prompt": "STYLE: high-end sakuga anime, hand-drawn cel animation, expressive inked linework, painted-anime night cityscape, neon-saturated palette of magenta cyan and gold, dramatic neon rim-light on the character, anime film grain.\n\nFRAMING: vertical 9:16 with the live anime image inside a centered 2.35:1 cinemascope window-box; pure black bars top and bottom at all times.\n\nSCENE: wide shot at night, the young Black man with dreadlocks stands alone on the cracked sidewalk in front of a small neon-lit corner liquor store. Hand-painted Japanese-style anime neon signage in pink magenta and electric cyan glows above him; warm tungsten light spills from the store windows. Empty road in front; a single moth circles a streetlamp.\n\nMOTION: he stands still but breathing visibly, his dreadlocks shift faintly in a night breeze, jacket fabric ripples, neon signs pulse and flicker slightly, the moth flutters around the streetlamp, a wisp of his breath shows in the cold air. Sakuga-quality ambient motion. Camera locked off."
+          }
+        },
+        {
+          "id": "shot-05-mountain-field",
+          "source": {
+            "type": "video",
+            "duration": 4,
+            "prompt": "STYLE: high-end sakuga anime, hand-drawn cel animation, expressive inked linework, painted-watercolor mountain backgrounds in the tradition of fine anime films, vivid saturated daylight palette, anime film grain.\n\nFRAMING: vertical 9:16 with the live anime image inside a centered 2.35:1 cinemascope window-box; pure black bars top and bottom at all times.\n\nSCENE: wide shot, daytime. The young Black man with dreadlocks and beige jacket stands centered in a wide grassy alpine meadow, knee-deep in tall green grass. Behind him, towering snow-capped mountain peaks rise into a brilliant blue sky studded with white cumulus clouds. Yellow wildflowers dot the foreground.\n\nMOTION: the grass ripples around his legs in long wind-waves, his dreadlocks lift and fall in the breeze, jacket sleeves flutter, clouds drift slowly across the sky, distant snow flurries blow off the peaks. Sakuga-quality ambient wind animation: hundreds of grass blades individually animated. He breathes deep and turns his head slightly to take in the view. Camera locked off."
+          }
+        },
+        {
+          "id": "shot-06-rocky-sunset-silhouette",
+          "source": {
+            "type": "video",
+            "duration": 8,
+            "prompt": "STYLE: high-end sakuga anime, hand-drawn cel animation, expressive inked linework, painted-anime sunset sky in fiery orange-red-magenta gradient, dramatic silhouette work, sun lens-flare with hand-animated star spikes, anime film grain.\n\nFRAMING: vertical 9:16 with the live anime image inside a centered 2.35:1 cinemascope window-box; pure black bars top and bottom at all times.\n\nSCENE: wide shot at the moment of sunset. The young Black man with dreadlocks stands silhouetted on a high rocky outcrop, the entire vast landscape spread out behind him — distant mountain ridges, a low valley, and a massive sun blazing on the horizon directly behind his head. He is rendered as pure inked silhouette with subtle rim-light catching the edges of his hair and jacket.\n\nMOTION: 8 seconds of slow, contemplative animation — his dreadlocks lift and settle in the warm wind, his jacket flares behind him, his head tilts up slowly toward the sky, the sun visibly sinks fractionally over the duration of the shot, lens-flare star-spikes pulse and rotate around the sun, distant clouds drift sideways, a flock of birds wheels across the middle distance. Sakuga-quality slow-cinema atmosphere with constant fluid micro-motion. Camera is locked off, no zoom, no pan."
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4"
+  }
+}

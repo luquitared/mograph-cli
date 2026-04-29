@@ -16,7 +16,13 @@ from typing import Any, Dict, List, Literal, Optional, Union
 
 @dataclass
 class ImageSource:
-    """Image generation source (nano-banana-pro via Replicate, or nano-banana-2 via Gemini API)."""
+    """Image generation source.
+
+    Supported models:
+    - nano-banana-pro: Replicate (Google Gemini 3.1 Flash Image)
+    - nano-banana-2:   Gemini API direct (burst mode)
+    - gpt-image-2:     Replicate (openai/gpt-image-2)
+    """
     type: Literal["image"] = "image"
     prompt: str = ""
     reference_images: List[Union[str, "Ref"]] = field(default_factory=list)
@@ -25,6 +31,12 @@ class ImageSource:
     resolution: str = "2K"
     output_format: str = "png"
     safety_filter_level: str = "block_only_high"
+    # gpt-image-2 specific
+    quality: Optional[str] = None  # "low", "medium", "high", "auto"
+    background: Optional[str] = None  # "auto" or "opaque"
+    output_compression: Optional[int] = None  # 0-100
+    moderation: Optional[str] = None  # "auto" or "low"
+    number_of_images: Optional[int] = None  # 1-10
     candidates: Optional[List[Dict[str, Any]]] = None
     select: Optional[int] = None
     verify: Union[bool, str, None] = None  # True, custom prompt string, or None/False
@@ -32,7 +44,7 @@ class ImageSource:
 
 @dataclass
 class VideoSource:
-    """Video generation source (Seedance 2.0 / Seedance 2.0 Fast / Veo 3.1 Lite)."""
+    """Video generation source (Seedance 2.0 / Seedance 2.0 Fast)."""
     type: Literal["video"] = "video"
     prompt: str = ""
     first_frame: Optional[Union[str, "Ref", "Generate"]] = None

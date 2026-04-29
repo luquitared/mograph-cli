@@ -1,11 +1,13 @@
 # generation/
 
-Image and video generation via Replicate API. Images use Google Nano Banana Pro; videos use Seedance 2.0 Fast (default), Seedance 2.0, or Veo 3.1 Lite.
+Image and video generation backends. Images support Nano Banana Pro (Replicate), Nano Banana 2 (Gemini API direct), and GPT Image 2 (Replicate). Videos use Seedance 2.0 Fast (default) or Seedance 2.0 via Replicate.
 
 ## Files
 
-- `batch_img.py` — Batch image generation with async concurrency, Replicate upload/poll/download, and optional OpenAI vision quality verification with auto-regeneration
-- `batch_vid.py` — Batch video generation supporting Seedance 2.0 and Veo 3.1 Lite via Replicate, with content moderation retry and rate limit handling
+- `batch_img.py` — Batch image generation via Replicate's `google/nano-banana-pro`, with async concurrency, upload/poll/download, and optional OpenAI vision quality verification with auto-regeneration
+- `nano_banana2.py` — Burst-mode image generation via Gemini API direct (`gemini-3.1-flash-image-preview`)
+- `gpt_image2.py` — Single-image generation via Replicate's `openai/gpt-image-2`
+- `batch_vid.py` — Batch video generation via Replicate (Seedance 2.0 / Seedance 2.0 Fast), with content moderation retry and rate limit handling
 
 ## Key Interfaces
 
@@ -15,9 +17,17 @@ Image and video generation via Replicate API. Images use Google Nano Banana Pro;
 - `run_batch_async(json_path, ...)` — Core async implementation
 - `MOCK_REPLICATE` — Module-level bool set by pipeline.py when `--mock` is active
 
+**gpt_image2.py:**
+- `generate_image(session, prompt, output_path, ...)` — Single-image generation with reference images, aspect ratio, quality/background/compression controls
+- `MOCK_REPLICATE` — Mock mode control set by pipeline.py
+
+**nano_banana2.py:**
+- `generate_image(session, prompt, output_path, ...)` — Burst-mode Gemini generation
+- `MOCK_GENERATE` — Mock mode control set by pipeline.py
+
 **batch_vid.py:**
-- `run_batch_async(jobs_path, outdir, model_kind="seedance-fast", ...)` — Async batch video generation. `model_kind` selects "seedance-fast" (default), "seedance", or "lite"
-- `process_job(...)` — Single job processor for Seedance/Veo Lite
+- `run_batch_async(jobs_path, outdir, model_kind="seedance-fast", ...)` — Async batch video generation. `model_kind` selects "seedance-fast" (default) or "seedance"
+- `process_job(...)` — Single job processor for Seedance
 - `MOCK_REPLICATE` / `MOCK_VIDEO_FIXTURE` — Mock mode controls set by pipeline.py
 
 **Input formats:**

@@ -15,8 +15,6 @@ Seedance 2.0 Fast pricing (per second of output video):
   non_video_in:
     480p: $0.06/s
     720p: $0.13/s
-
-Veo 3.1 Lite: ~$0.15/s at 720p
 """
 
 IMAGE_COST_USD = 0.15  # nano-banana-pro per image
@@ -36,9 +34,6 @@ SEEDANCE_FAST_COST_PER_SEC = {
     ("video_in", "480p"): 0.11,
     ("video_in", "720p"): 0.22,
 }
-
-# Veo 3.1 Lite
-VEO_LITE_COST_PER_SEC = 0.15
 
 # Legacy alias
 VIDEO_SECOND_COST_USD = 0.06  # cheapest option: seedance-fast non_video_in 480p

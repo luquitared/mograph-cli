@@ -263,27 +263,27 @@ def combine_audio_tracks(
     video_audio_volume: float = 0.3,
     pad_narration: bool = True,
 ) -> None:
-    """Combine video's original audio (Veo sound effects) with narration overlay.
+    """Combine video's original audio (model-generated SFX) with narration overlay.
 
     Args:
-        video_path: Path to video file (with Veo-generated audio)
+        video_path: Path to video file (with generated audio)
         narration_path: Path to ElevenLabs narration audio
         dest: Output path for combined audio file
         narration_volume: Volume multiplier for narration (default: 1.0 = full volume)
-        video_audio_volume: Volume multiplier for Veo audio (default: 0.3 = 30%)
+        video_audio_volume: Volume multiplier for video audio (default: 0.3 = 30%)
         pad_narration: If True, pad narration with silence to match video duration
     """
     if pad_narration:
         filter_complex = (
-            f"[0:a]volume={video_audio_volume}[veo];"
+            f"[0:a]volume={video_audio_volume}[vaud];"
             f"[1:a]apad,volume={narration_volume}[narr];"
-            f"[veo][narr]amix=inputs=2:duration=first:dropout_transition=0[out]"
+            f"[vaud][narr]amix=inputs=2:duration=first:dropout_transition=0[out]"
         )
     else:
         filter_complex = (
-            f"[0:a]volume={video_audio_volume}[veo];"
+            f"[0:a]volume={video_audio_volume}[vaud];"
             f"[1:a]volume={narration_volume}[narr];"
-            f"[veo][narr]amix=inputs=2:duration=longest:dropout_transition=0[out]"
+            f"[vaud][narr]amix=inputs=2:duration=longest:dropout_transition=0[out]"
         )
 
     cmd = [
@@ -305,30 +305,30 @@ def overlay_combined_audio(
     video_path: Path,
     narration_path: Path,
     dest: Path,
-    veo_audio_source: Optional[Path] = None,
+    sfx_audio_source: Optional[Path] = None,
     narration_volume: float = 1.0,
     video_audio_volume: float = 0.3,
     pad_narration: bool = True,
 ) -> None:
-    """Overlay video with combined audio (Veo sound effects + narration).
+    """Overlay video with combined audio (model-generated SFX + narration).
 
     Args:
         video_path: Path to video file (used for video stream)
         narration_path: Path to ElevenLabs narration audio
         dest: Output video path
-        veo_audio_source: Path to video with Veo audio (if different from video_path)
+        sfx_audio_source: Path to audio source to use as SFX (if different from video_path)
         narration_volume: Volume multiplier for narration (default: 1.0 = full volume)
-        video_audio_volume: Volume multiplier for Veo audio (default: 0.3 = 30%)
+        video_audio_volume: Volume multiplier for SFX audio (default: 0.3 = 30%)
         pad_narration: If True, pad narration with silence to match video duration
     """
-    audio_source = veo_audio_source if veo_audio_source else video_path
+    audio_source = sfx_audio_source if sfx_audio_source else video_path
 
-    if veo_audio_source:
-        # Three inputs: video, veo audio source, narration
+    if sfx_audio_source:
+        # Three inputs: video, sfx audio source, narration
         filter_complex = (
-            f"[1:a]apad,volume={video_audio_volume}[veo];"
+            f"[1:a]apad,volume={video_audio_volume}[vaud];"
             f"[2:a]apad,volume={narration_volume}[narr];"
-            f"[veo][narr]amix=inputs=2:duration=longest:dropout_transition=0[out]"
+            f"[vaud][narr]amix=inputs=2:duration=longest:dropout_transition=0[out]"
         )
         cmd = [
             "ffmpeg", "-y",
@@ -347,9 +347,9 @@ def overlay_combined_audio(
     else:
         # Two inputs: video (with audio), narration
         filter_complex = (
-            f"[0:a]apad,volume={video_audio_volume}[veo];"
+            f"[0:a]apad,volume={video_audio_volume}[vaud];"
             f"[1:a]apad,volume={narration_volume}[narr];"
-            f"[veo][narr]amix=inputs=2:duration=longest:dropout_transition=0[out]"
+            f"[vaud][narr]amix=inputs=2:duration=longest:dropout_transition=0[out]"
         )
         cmd = [
             "ffmpeg", "-y",
@@ -705,19 +705,19 @@ async def overlay_combined_audio_async(
     video_path: Path,
     narration_path: Path,
     dest: Path,
-    veo_audio_source: Optional[Path] = None,
+    sfx_audio_source: Optional[Path] = None,
     narration_volume: float = 1.0,
     video_audio_volume: float = 0.3,
     pad_narration: bool = True,
 ) -> None:
-    """Overlay video with combined audio (Veo effects + narration) - async version."""
-    audio_source = veo_audio_source if veo_audio_source else video_path
+    """Overlay video with combined audio (model-generated SFX + narration) - async version."""
+    audio_source = sfx_audio_source if sfx_audio_source else video_path
 
-    if veo_audio_source:
+    if sfx_audio_source:
         filter_complex = (
-            f"[1:a]apad,volume={video_audio_volume}[veo];"
+            f"[1:a]apad,volume={video_audio_volume}[vaud];"
             f"[2:a]apad,volume={narration_volume}[narr];"
-            f"[veo][narr]amix=inputs=2:duration=longest:dropout_transition=0[out]"
+            f"[vaud][narr]amix=inputs=2:duration=longest:dropout_transition=0[out]"
         )
         cmd = [
             "ffmpeg", "-y",
@@ -735,9 +735,9 @@ async def overlay_combined_audio_async(
         ]
     else:
         filter_complex = (
-            f"[0:a]apad,volume={video_audio_volume}[veo];"
+            f"[0:a]apad,volume={video_audio_volume}[vaud];"
             f"[1:a]apad,volume={narration_volume}[narr];"
-            f"[veo][narr]amix=inputs=2:duration=longest:dropout_transition=0[out]"
+            f"[vaud][narr]amix=inputs=2:duration=longest:dropout_transition=0[out]"
         )
         cmd = [
             "ffmpeg", "-y",

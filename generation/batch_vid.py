@@ -3,11 +3,9 @@
 Batch video generator via Replicate.
 
 Supported Models:
-  - google/veo-3.1-lite (lite):           Veo 3.1 Lite, cost-efficient, native audio always on
   - bytedance/seedance-2.0 (seedance):    Seedance 2.0 via Replicate, T2V + I2V + V2V, higher quality
   - bytedance/seedance-2.0-fast (seedance-fast): Seedance 2.0 Fast, cheaper + faster, default
 
-Veo Lite uses the image/last_frame API for frame-to-frame interpolation.
 Seedance 2.0 supports image, last_frame_image, reference_images, reference_videos, reference_audios.
 
 Jobs JSON shape (array of jobs):
@@ -29,7 +27,6 @@ Jobs JSON shape (array of jobs):
 CLI:
   python batch_vid.py --jobs ./jobs.json --outdir ./downloads --max-concurrent 3 --model seedance-fast
   python batch_vid.py --jobs ./jobs.json --outdir ./downloads --model seedance
-  python batch_vid.py --jobs ./jobs.json --outdir ./downloads --model lite
 
 Env:
   export REPLICATE_API_TOKEN=...
@@ -58,15 +55,11 @@ MOCK_REPLICATE = False
 MOCK_VIDEO_FIXTURE = Path(__file__).parent.parent / "tests" / "fixtures" / "mock_video.mp4"
 
 # Model definitions
-VEO_31_OWNER = "google"
-VEO_31_LITE_NAME = "veo-3.1-lite"
-
 SEEDANCE_OWNER = "bytedance"
 SEEDANCE_NAME = "seedance-2.0"
 SEEDANCE_FAST_NAME = "seedance-2.0-fast"
 
 # Model tuples for selection
-LITE_MODEL = (VEO_31_OWNER, VEO_31_LITE_NAME)     # Veo 3.1 Lite - cost-efficient, native audio always on
 SEEDANCE_MODEL = (SEEDANCE_OWNER, SEEDANCE_NAME)  # Seedance 2.0 via Replicate
 SEEDANCE_FAST_MODEL = (SEEDANCE_OWNER, SEEDANCE_FAST_NAME)  # Seedance 2.0 Fast - cheaper, faster
 
@@ -125,7 +118,7 @@ async def process_job(
 ) -> Path:
     """Process a single video generation job with retry logic for content moderation and rate limits.
 
-    Supports Veo 3.1 Lite (image/last_frame API) and Seedance 2.0 (Replicate).
+    Supports Seedance 2.0 (Replicate).
 
     Rate limit retries use exponential backoff with jitter (up to max_rate_limit_retries).
     Content moderation retries use max_retries with a brief fixed delay.
@@ -208,22 +201,6 @@ async def process_job(
                         inputs["reference_audios"] = ref_audio_urls
                     if config["seed"] is not None:
                         inputs["seed"] = config["seed"]
-                elif is_lite_model(model_owner, model_name):
-                    # Veo 3.1 Lite: audio always on, no generate_audio param
-                    inputs = {
-                        "prompt": prompt,
-                        "duration": config["duration"],
-                        "aspect_ratio": config["aspect_ratio"],
-                        "resolution": config["resolution"],
-                    }
-                    if first_url:
-                        inputs["image"] = first_url
-                    if last_url:
-                        inputs["last_frame"] = last_url
-                    if config["negative_prompt"]:
-                        inputs["negative_prompt"] = config["negative_prompt"]
-                    if config["seed"] is not None:
-                        inputs["seed"] = config["seed"]
                 else:
                     raise ValueError(f"Unsupported model: {model_owner}/{model_name}")
 
@@ -281,19 +258,12 @@ async def process_job(
 
 def get_model_for_kind(model_kind: str) -> Tuple[str, str]:
     """Get model (owner, name) tuple based on model_kind selection."""
-    if model_kind == "lite":
-        return LITE_MODEL
-    elif model_kind == "seedance":
+    if model_kind == "seedance":
         return SEEDANCE_MODEL
     elif model_kind == "seedance-fast":
         return SEEDANCE_FAST_MODEL
     else:
         return SEEDANCE_FAST_MODEL
-
-
-def is_lite_model(model_owner: str, model_name: str) -> bool:
-    """Check if the given model is a Veo 3.1 Lite model."""
-    return model_name == VEO_31_LITE_NAME
 
 
 def is_seedance_model(model_owner: str, model_name: str) -> bool:
@@ -374,9 +344,9 @@ def main():
     parser.add_argument("--max-rate-limit-retries", type=int, default=10, help="Max retries for rate limit errors with exponential backoff (default: 10).")
     parser.add_argument(
         "--model",
-        choices=["seedance-fast", "seedance", "lite"],
+        choices=["seedance-fast", "seedance"],
         default="seedance-fast",
-        help="Model: 'seedance-fast' (default, cheapest), 'seedance' (higher quality), 'lite' (Veo 3.1 Lite)",
+        help="Model: 'seedance-fast' (default, cheapest) or 'seedance' (higher quality)",
     )
     args = parser.parse_args()
 

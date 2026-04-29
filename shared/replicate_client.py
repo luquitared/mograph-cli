@@ -149,8 +149,8 @@ async def start_prediction(
 
     Args:
         session: aiohttp session
-        owner: Model owner (e.g., "google")
-        name: Model name (e.g., "veo-3.1")
+        owner: Model owner (e.g., "bytedance")
+        name: Model name (e.g., "seedance-2.0-fast")
         inputs: Input parameters for the model
         mock_fixture: Path to mock output file for testing (if provided, returns mock response)
 

@@ -110,6 +110,21 @@ def build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Mock mode: use local test fixtures instead of calling APIs (for fast testing)",
     )
+    parser.add_argument(
+        "--upload-gcs",
+        nargs="?",
+        const="__env__",
+        default=None,
+        metavar="gs://bucket/prefix",
+        help="Upload run outputs (mp4 + wav) to GCS and print signed URLs. "
+             "Pass a gs:// URI, or pass the flag alone to use $GCS_OUTPUT_BUCKET from env.",
+    )
+    parser.add_argument(
+        "--signed-url-days",
+        type=int,
+        default=7,
+        help="Signed-URL expiry in days when --upload-gcs is set (default: 7).",
+    )
 
     return parser
 
@@ -203,7 +218,57 @@ def _run_timeline(args: argparse.Namespace) -> Path:
         for name, path in run_result.outputs.items():
             print(f"  {name}: {path}")
 
+    if args.upload_gcs:
+        _upload_run_to_gcs(run_dir, args.upload_gcs, args.signed_url_days)
+
     return run_dir
+
+
+def _upload_run_to_gcs(run_dir: Path, uri_arg: str, expiry_days: int) -> None:
+    """Upload mp4/wav outputs from a run directory to GCS and print signed URLs."""
+    from datetime import timedelta
+    from google.cloud import storage
+
+    uri = os.environ.get("GCS_OUTPUT_BUCKET") if uri_arg == "__env__" else uri_arg
+    if not uri or not uri.startswith("gs://"):
+        print(f"error: --upload-gcs needs a gs:// URI (got {uri!r}). "
+              "Set $GCS_OUTPUT_BUCKET or pass gs://bucket/prefix.", file=sys.stderr)
+        return
+
+    rest = uri[len("gs://"):].split("/", 1)
+    bucket_name = rest[0]
+    base_prefix = (rest[1] if len(rest) > 1 else "").rstrip("/")
+    run_prefix = f"{base_prefix}/{run_dir.name}" if base_prefix else run_dir.name
+
+    files = sorted(
+        [p for p in run_dir.rglob("*") if p.is_file() and p.suffix.lower() in (".mp4", ".wav", ".mp3", ".m4a")]
+    )
+    if not files:
+        print(f"warning: no media files found under {run_dir} to upload", file=sys.stderr)
+        return
+
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+
+    print(f"\nUploading {len(files)} file(s) → gs://{bucket_name}/{run_prefix}/")
+    for src in files:
+        rel = src.relative_to(run_dir).as_posix()
+        blob_path = f"{run_prefix}/{rel}"
+        blob = bucket.blob(blob_path)
+        content_type = {
+            ".mp4": "video/mp4", ".wav": "audio/wav",
+            ".mp3": "audio/mpeg", ".m4a": "audio/mp4",
+        }.get(src.suffix.lower())
+        blob.upload_from_filename(str(src), content_type=content_type)
+        signed = blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(days=expiry_days),
+            method="GET",
+        )
+        size_mb = src.stat().st_size / 1_000_000
+        print(f"  [{size_mb:5.1f} MB] {rel}")
+        print(f"    {signed}")
+    print(f"\nSigned URLs valid for {expiry_days} days.")
 
 
 def main(args: Optional[argparse.Namespace] = None) -> Path:

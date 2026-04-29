@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 MODEL_KIND_MAP = {
-    "veo-3.1-lite": "lite",
     "seedance-2.0": "seedance",
     "seedance-2.0-fast": "seedance-fast",
 }

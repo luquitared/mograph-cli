@@ -6,7 +6,7 @@
   },
   "defaults": {
     "video": {
-      "model": "veo-3.1-fast",
+      "model": "seedance-2.0-fast",
       "duration": 4,
       "generate_audio": false
     },

@@ -60,7 +60,7 @@ def _full_timeline() -> dict:
             "resolution": "1080p",
         },
         "defaults": {
-            "video": {"model": "veo-3.1-lite", "duration": 8},
+            "video": {"model": "seedance-2.0", "duration": 8},
             "image": {"model": "nano-banana-pro", "reference_images": ["default.png"]},
             "tts": {"voice": "Zephyr"},
         },
@@ -233,23 +233,23 @@ class TestProjectDefaults:
 class TestDefaults:
     def test_defaults_applied_to_video_source(self):
         d = _minimal_timeline()
-        d["defaults"] = {"video": {"model": "veo-3.1-lite", "duration": 8}}
+        d["defaults"] = {"video": {"model": "seedance-2.0", "duration": 8}}
         tl = parse_timeline(d)
         vid = tl.tracks[0].clips[0].source
         assert isinstance(vid, VideoSource)
-        assert vid.model == "veo-3.1-lite"
+        assert vid.model == "seedance-2.0"
         assert vid.duration == 8
 
     def test_clip_overrides_defaults(self):
         """Clip-level values replace defaults (REQ-PARSE-007)."""
         d = _minimal_timeline()
-        d["defaults"] = {"video": {"model": "veo-3.1-lite", "duration": 8}}
-        d["tracks"][0]["clips"][0]["source"]["model"] = "seedance-2.0"
+        d["defaults"] = {"video": {"model": "seedance-2.0", "duration": 8}}
+        d["tracks"][0]["clips"][0]["source"]["model"] = "seedance-2.0-fast"
         d["tracks"][0]["clips"][0]["source"]["duration"] = 4
         tl = parse_timeline(d)
         vid = tl.tracks[0].clips[0].source
         assert isinstance(vid, VideoSource)
-        assert vid.model == "seedance-2.0"
+        assert vid.model == "seedance-2.0-fast"
         assert vid.duration == 4
 
     def test_reference_images_replace_not_merge(self):

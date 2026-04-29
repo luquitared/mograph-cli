@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "project": {
+    "name": "Format Rip ig-C41iECxsrZc Voiceover Montage Remix",
+    "description": "Inspirational voiceover-montage format from ig-C41iECxsrZc. 8 stylized 4s clips (32s total) in varied art styles, all sharing the letterboxed vintage-TV window-box framing of the source. Silent generation; original 30s IG audio (voiceover + music) muxed in post via ffmpeg with -shortest, trimming output to 30s. No karaoke captions in this pass."
+  },
+  "defaults": {
+    "video": {
+      "model": "seedance-2.0-fast",
+      "duration": 4,
+      "resolution": "720p",
+      "aspect_ratio": "9:16",
+      "generate_audio": false
+    }
+  },
+  "tracks": [
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "shot-01-ps1-leaning",
+          "source": {
+            "type": "video",
+            "prompt": "FRAMING: vertical 9:16 with pure black bars top/bottom and small black bars left/right; the actual scene plays inside a centered ~4:3 window-box that takes up the middle 60% of the frame. Heavy 16mm film grain inside the window, soft rounded corners, subtle chromatic-aberration fringe, slight VHS-style scanline shimmer. Outside the window is solid black.\n\nSTYLE INSIDE WINDOW: late-90s PS1 low-poly 3D render — chunky polygons, jagged silhouettes, flat vertex-lit shading, pixelated low-res textures, muted desaturated palette.\n\nSCENE: low-poly young man with a brown polygonal beanie, pixelated face, dark blue baggy hoodie, leaning his shoulder and head against a flat grey concrete wall. Three-quarter side view. He is still, slightly slumped, contemplative. Camera is locked off, no movement. Subtle micro-sway in his breathing only."
+          }
+        },
+        {
+          "id": "shot-02-painterly-portrait",
+          "source": {
+            "type": "video",
+            "prompt": "FRAMING: vertical 9:16 with pure black bars top/bottom and small black bars left/right; the scene plays inside a centered ~4:3 window-box. Heavy 16mm film grain inside, soft rounded corners, chromatic-aberration fringe, VHS shimmer. Outside is solid black.\n\nSTYLE INSIDE WINDOW: expressive oil-painting portrait — visible thick brushstrokes, loose patchwork of saturated complementary colors (oranges, greens, blues), painterly impasto texture, fauvist palette, hand-painted gallery-canvas look brought to life.\n\nSCENE: a young woman's face, three-quarter view, looking up and slightly off-camera with a quiet, melancholic expression. Olive-green hair, painterly cheeks of orange and red, blue under-eye shadow. The brushstrokes shimmer and shift very subtly as if the painting is breathing. Locked camera, no pan, no zoom."
+          }
+        },
+        {
+          "id": "shot-03-inked-comic-figure",
+          "source": {
+            "type": "video",
+            "prompt": "FRAMING: vertical 9:16 with black bars top/bottom and small bars left/right; centered ~4:3 window-box. Heavy 16mm grain, rounded corners, chromatic fringe, VHS shimmer. Outside solid black.\n\nSTYLE INSIDE WINDOW: graphic-novel ink illustration with two-tone halftone shading — bold black contour lines, electric cyan-blue figure on a deep crimson-and-rust background, screen-print texture, occasional ink splatters and dust speckles.\n\nSCENE: a hooded figure in a slim hoodie and joggers stands alone in a stylized courtyard, hands in pockets, head tilted slightly down. Crimson background with abstract ink-cloud forms. Locked camera, the figure breathes slightly, ink splatters drift like slow ash. No pan, no zoom."
+          }
+        },
+        {
+          "id": "shot-04-claymation-figure",
+          "source": {
+            "type": "video",
+            "prompt": "FRAMING: vertical 9:16 with black bars top/bottom and small bars left/right; centered ~4:3 window-box. Heavy 16mm grain, rounded corners, chromatic fringe, VHS shimmer. Outside solid black.\n\nSTYLE INSIDE WINDOW: stop-motion claymation — visible thumbprints in the clay, slightly uneven surfaces, warm tungsten studio light, shallow depth of field, the gentle stutter of 12fps frame-by-frame animation.\n\nSCENE: a small clay figure of a child sits cross-legged on a tiny clay floor, holding a tiny clay paper airplane, looking down at it thoughtfully. Soft beige and pastel-blue palette. The figure breathes in clay-stutter, the paper plane wobbles in their hands. Locked camera."
+          }
+        },
+        {
+          "id": "shot-05-watercolor-landscape",
+          "source": {
+            "type": "video",
+            "prompt": "FRAMING: vertical 9:16 with black bars top/bottom and small bars left/right; centered ~4:3 window-box. Heavy 16mm grain, rounded corners, chromatic fringe, VHS shimmer. Outside solid black.\n\nSTYLE INSIDE WINDOW: loose watercolor wash painting on cold-press paper — bleeding pigments, granulating texture, hand-drawn ink contour lines on top of soft color washes, visible paper grain.\n\nSCENE: a soft hilly landscape at dusk — rolling green-blue hills, a single small cottage with one warm-yellow window, a pale lavender sky with a thin pink ribbon of cloud. Tiny lone figure walking up a path toward the cottage. The watercolor pigments bloom and shift very slowly. Locked camera, no movement."
+          }
+        },
+        {
+          "id": "shot-06-pixel-art-skyline",
+          "source": {
+            "type": "video",
+            "prompt": "FRAMING: vertical 9:16 with black bars top/bottom and small bars left/right; centered ~4:3 window-box. Heavy 16mm grain, rounded corners, chromatic fringe, VHS shimmer. Outside solid black.\n\nSTYLE INSIDE WINDOW: 16-bit pixel art in the style of late-90s Super Nintendo RPGs — tight 32x32 tile look, dithered gradient skies, limited but evocative palette, crisp jagged pixels.\n\nSCENE: a tiny pixel-art figure stands on the rooftop of a small pixel city at sunset, silhouetted against an orange-and-purple dithered sky. Stars begin to twinkle. A single pixel-bird flies across the screen left to right. The figure's hair pixels drift in the wind. Locked camera."
+          }
+        },
+        {
+          "id": "shot-07-rotoscope-dancer",
+          "source": {
+            "type": "video",
+            "prompt": "FRAMING: vertical 9:16 with black bars top/bottom and small bars left/right; centered ~4:3 window-box. Heavy 16mm grain, rounded corners, chromatic fringe, VHS shimmer. Outside solid black.\n\nSTYLE INSIDE WINDOW: rotoscoped hand-drawn animation — bold ink outlines tracing realistic motion, slightly wobbling line work, flat color fills in muted earth tones, paper-texture background, hand-traced indie-rotoscope feel.\n\nSCENE: a young woman in a flowing earth-toned dress turns slowly in place, arms slightly raised, eyes closed, in a quiet meditative half-spin. Warm beige background. The wobbling rotoscope line breathes life into every frame. Locked camera, no pan."
+          }
+        },
+        {
+          "id": "shot-08-anime-cel-still",
+          "source": {
+            "type": "video",
+            "prompt": "FRAMING: vertical 9:16 with black bars top/bottom and small bars left/right; centered ~4:3 window-box. Heavy 16mm grain, rounded corners, chromatic fringe, VHS shimmer. Outside solid black.\n\nSTYLE INSIDE WINDOW: 90s hand-drawn anime cel — flat cel-shaded color, hand-painted background, soft chromatic grain like a VHS recording of a 90s slice-of-life anime, faint dust scratches.\n\nSCENE: a teenage girl in a pale yellow sundress stands at the end of a wooden pier at golden hour, looking out across a calm sea. Her hair lifts slightly in the breeze. A single distant seabird drifts across the orange sky. Camera is locked off. Subtle ambient motion only — hair, water shimmer, bird drift."
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4"
+  }
+}

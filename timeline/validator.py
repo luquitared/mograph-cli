@@ -38,15 +38,15 @@ from timeline.security import SecurityError, validate_path, validate_url
 
 VALID_TRACK_TYPES = {"video", "narration", "audio"}
 VALID_SOURCE_TYPES = {"image", "video", "tts", "file", "silence", "still"}
-VALID_IMAGE_MODELS = {"nano-banana-pro", "nano-banana-2"}
-VALID_VIDEO_MODELS = {"veo-3.1-lite", "seedance-2.0", "seedance-2.0-fast"}
+VALID_IMAGE_MODELS = {"nano-banana-pro", "nano-banana-2", "gpt-image-2"}
+VALID_VIDEO_MODELS = {"seedance-2.0", "seedance-2.0-fast"}
 SEEDANCE_MODELS = {"seedance-2.0", "seedance-2.0-fast"}
-VEO_MODELS = {"veo-3.1-lite"}
-VEO_DURATIONS = {4, 6, 8}
 SEEDANCE_QUALITY_VALUES = {"basic", "high"}
 SEEDANCE_RESOLUTIONS = {"480p", "720p"}
 SEEDANCE_ASPECT_RATIOS = {"16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "adaptive"}
-VALID_IMAGE_FORMATS = {"png", "jpg"}
+GPT_IMAGE_ASPECT_RATIOS = {"1:1", "3:2", "2:3"}
+GPT_IMAGE_FORMATS = {"webp", "png", "jpeg"}
+VALID_IMAGE_FORMATS = {"png", "jpg", "jpeg", "webp"}
 VALID_EXTRACT_VALUES = {"first_frame", "last_frame", "audio"}
 ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 
@@ -291,7 +291,20 @@ def _validate_image_source(
         ))
 
     # REQ-SVAL-019: output_format
-    if source.output_format not in VALID_IMAGE_FORMATS:
+    if source.model == "gpt-image-2":
+        if source.output_format not in GPT_IMAGE_FORMATS:
+            errors.append(ValidationError(
+                f"{path}.output_format",
+                f"Invalid output_format '{source.output_format}' for gpt-image-2. Must be one of: {', '.join(sorted(GPT_IMAGE_FORMATS))}",
+                "error",
+            ))
+        if source.aspect_ratio and source.aspect_ratio not in GPT_IMAGE_ASPECT_RATIOS:
+            errors.append(ValidationError(
+                f"{path}.aspect_ratio",
+                f"Invalid aspect_ratio '{source.aspect_ratio}' for gpt-image-2. Must be one of: {', '.join(sorted(GPT_IMAGE_ASPECT_RATIOS))}",
+                "error",
+            ))
+    elif source.output_format not in {"png", "jpg"}:
         errors.append(ValidationError(
             f"{path}.output_format",
             f"Invalid output_format: '{source.output_format}'. Must be 'png' or 'jpg'",
@@ -335,32 +348,6 @@ def _validate_video_source(
         errors.append(ValidationError(
             f"{path}.model",
             f"Invalid video model: '{source.model}'. Must be one of: {', '.join(sorted(VALID_VIDEO_MODELS))}",
-            "error",
-        ))
-
-    # REQ-SVAL-007: Veo duration
-    if source.model in VEO_MODELS:
-        if source.duration != "auto" and source.duration is not None:
-            if source.duration not in VEO_DURATIONS:
-                errors.append(ValidationError(
-                    f"{path}.duration",
-                    f"Invalid duration {source.duration} for {source.model}. Must be 4, 6, or 8",
-                    "error",
-                ))
-
-    # REQ-SVAL-011: Veo Lite generate_audio warning
-    if source.model == "veo-3.1-lite" and source.generate_audio is False:
-        warnings.append(ValidationError(
-            f"{path}.generate_audio",
-            "generate_audio is ignored for veo-3.1-lite (audio is always generated)",
-            "warning",
-        ))
-
-    # REQ-SVAL-008: Veo Lite resolution
-    if source.model == "veo-3.1-lite" and source.resolution not in ("720p", "1080p"):
-        errors.append(ValidationError(
-            f"{path}.resolution",
-            f"veo-3.1-lite supports 720p or 1080p, got '{source.resolution}'",
             "error",
         ))
 
