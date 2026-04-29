@@ -1,0 +1,28 @@
+{
+  "pack_name": "news-show-v1",
+  "description": "Reference assets for the news-video workflow: 3-character sakuga cast, voice samples, environment refs, and topic-introducing composite examples.",
+  "gcs_uri": "gs://${GCS_OUTPUT_BUCKET}/asset-packs/news-show-v1/",
+  "pull_command": "python scripts/asset_pack_pull.py news-show-v1",
+  "local_path_after_pull": "runs/asset-packs/news-show-v1/",
+  "files": {
+    "characters/sakuga_maya.png": "Primary cast — sharp female anchor, anime sakuga style, 3-pose turnaround + 4 expressions. Used as `reference_images` for any clip Maya appears in.",
+    "characters/sakuga_trip.png": "Primary cast — blonde himbo co-host, anime sakuga style, 3-pose turnaround + 4 expressions.",
+    "characters/sakuga_faq9000.png": "Primary cast — deadpan tin robot with single red eye, anime sakuga style, 3-pose turnaround + 4 detail close-ups.",
+    "characters/alternates/laika_*.png": "Same 3-character cast in Laika/Aardman claymation style. Use these to swap visual style without changing personality. Has been confirmed to pass Seedance moderation.",
+    "characters/alternates/robotchicken_*.png": "Same 3-character cast in Robot Chicken plastic-action-figure style. WARNING: triggers Seedance E005 photoreal-human moderation; use as reference for static images only, not video generation.",
+    "voices/maya_voice.wav": "5.8s WAV of Maya's voice (sharp, polished female anchor delivery). Pass via `reference_audios` to keep Maya's voice consistent across clips.",
+    "voices/trip_voice.wav": "4.0s WAV of Trip's voice (warm, upbeat himbo delivery). Pass via `reference_audios`.",
+    "environments/sakuga_newsroom.png": "Empty news studio set with desk, name plates, BREAKING NEWS neon, CRT wall. Note: rendered slightly photoreal/cinematic, less anime than the cast — use as a vibe reference, not a direct match for the cast style.",
+    "environments/sakuga_scene_china.png": "B-roll scene ref — airliner at sunset over Pacific. Example of single-subject motion-suggestive scene.",
+    "environments/sakuga_scene_dhs.png": "B-roll scene ref — Capitol dome at night with autumn leaves. Example.",
+    "environments/sakuga_scene_fbi.png": "B-roll scene ref — federal HQ building under overcast sky. Example.",
+    "composites/comp_patel.png": "Topic-introducing composite — cast at desk + portrait on TV monitor + bold caption ('KASH PATEL'). Example of the pattern; generate your own per topic.",
+    "composites/comp_china.png": "Topic-introducing composite — Trump portrait + 'TRUMP — CHINA TRIP' caption. WARNING: this composite triggers Seedance copyright filter when used as a reference for video generation. Kept here as a cautionary example — see strategy doc.",
+    "composites/comp_dhs.png": "Topic-introducing composite — Capitol on TV + 'DHS SHUTDOWN — DAY 50' caption. Passes Seedance moderation cleanly. Best example of the pattern."
+  },
+  "notes": [
+    "Pack files are NOT committed to the repo — pull from GCS via scripts/asset_pack_pull.py.",
+    "The local pull location (runs/asset-packs/) is gitignored.",
+    "Path references in docs/news-video/examples/*.json assume the pack is pulled to runs/asset-packs/news-show-v1/."
+  ]
+}

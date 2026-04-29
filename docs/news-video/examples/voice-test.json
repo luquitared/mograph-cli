@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "project": {
+    "name": "Voice Consistency Test",
+    "description": "Two short Seedance clips testing whether reference_audios holds character voice"
+  },
+  "defaults": {
+    "video": {
+      "model": "seedance-2.0-fast",
+      "duration": 5,
+      "resolution": "480p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true
+    }
+  },
+  "tracks": [
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "maya-test",
+          "source": {
+            "type": "video",
+            "prompt": "Anime-style hand-drawn animation. Maya, the sharp female news anchor, sits at the news desk and looks at camera with a small dry smirk. She delivers in her polished anchor voice, exactly: 'And in tonight's lead story: yet another scandal.' One subtle eyebrow raise on 'scandal'. Camera locked off, no movement. Audio: clean close-mic'd dialogue matching the reference voice timbre, faint studio room tone.",
+            "reference_images": ["runs/asset-packs/news-show-v1/characters/sakuga_maya.png"],
+            "reference_audios": ["runs/asset-packs/news-show-v1/voices/maya_voice.wav"]
+          }
+        },
+        {
+          "id": "trip-test",
+          "source": {
+            "type": "video",
+            "prompt": "Anime-style hand-drawn animation. Trip, the blonde himbo co-host, grins wide-eyed at camera and exclaims sincerely in his upbeat doofus voice, exactly: 'Oh boy, scandals are my favorite!' He gives a cheerful little fist-pump on 'favorite'. Camera locked off. Audio: clean close-mic'd dialogue matching the reference voice timbre, faint studio room tone.",
+            "reference_images": ["runs/asset-packs/news-show-v1/characters/sakuga_trip.png"],
+            "reference_audios": ["runs/asset-packs/news-show-v1/voices/trip_voice.wav"]
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4"
+  }
+}

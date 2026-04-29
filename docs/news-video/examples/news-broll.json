@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "project": {
+    "name": "Kalshi B-Roll Test",
+    "description": "Three b-roll Seedance clips with Maya VO over scene visuals, no characters in frame"
+  },
+  "defaults": {
+    "video": {
+      "model": "seedance-2.0-fast",
+      "duration": 8,
+      "resolution": "480p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true
+    }
+  },
+  "tracks": [
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "broll-china",
+          "duration": 8,
+          "source": {
+            "type": "video",
+            "prompt": "Anime-style hand-drawn animation b-roll footage. NO CHARACTERS visible on camera — this is voiceover footage. [0.0s-3.5s] Wide shot: a presidential-style airliner silhouetted against an orange-and-pink sunset, flying east over the Pacific. Slow tracking pan. [3.5s-8.0s] Cut to: an empty podium on a long red carpet at an airport tarmac, foreign flags on poles flapping gently, no one in frame. VOICEOVER (Maya, sharp anchor voice, matching reference): 'Sources confirm the President's plane is already en route. State media is staging the welcome ceremony as we speak.' Audio: voiceover dialogue clean and close-mic'd matching the reference voice timbre, faint distant jet engine ambience and gentle wind.",
+            "reference_images": ["runs/asset-packs/news-show-v1/environments/sakuga_scene_china.png"],
+            "reference_audios": ["runs/asset-packs/news-show-v1/voices/maya_voice.wav"]
+          }
+        },
+        {
+          "id": "broll-dhs",
+          "duration": 8,
+          "source": {
+            "type": "video",
+            "prompt": "Anime-style hand-drawn animation b-roll footage. NO CHARACTERS visible on camera. [0.0s-4.0s] Wide low-angle shot: the Capitol dome lit up against a navy night sky, an American flag flapping at half-staff in the foreground. [4.0s-8.0s] Cut to: a closed federal building entrance with a paper 'CLOSED — APPROPRIATIONS LAPSED' sign taped to glass doors, autumn leaves blowing past in the wind. VOICEOVER (Maya, sharp anchor voice, matching reference): 'Day fifty of the homeland security shutdown — the longest in agency history. Both chambers have now passed funding bills, awaiting reconciliation.' Audio: voiceover dialogue clean and close-mic'd matching the reference voice timbre, distant city ambience, faint wind.",
+            "reference_images": ["runs/asset-packs/news-show-v1/environments/sakuga_scene_dhs.png"],
+            "reference_audios": ["runs/asset-packs/news-show-v1/voices/maya_voice.wav"]
+          }
+        },
+        {
+          "id": "broll-fbi",
+          "duration": 8,
+          "source": {
+            "type": "video",
+            "prompt": "Anime-style hand-drawn animation b-roll footage. NO CHARACTERS visible on camera. [0.0s-3.5s] Establishing shot of a large stone federal headquarters building exterior, gloomy overcast sky, lone flagpole. [3.5s-8.0s] Cut to: an empty corner office, a stack of unmarked cardboard moving boxes on the floor, an office chair slowly spinning to a stop, fluorescent ceiling lights flickering once. VOICEOVER (Maya, sharp anchor voice, matching reference): 'Sources inside the Bureau report cardboard boxes have been spotted on the seventh floor. Make of that what you will.' Audio: voiceover dialogue clean and close-mic'd matching the reference voice timbre, faint office hum and a single fluorescent buzz.",
+            "reference_images": ["runs/asset-packs/news-show-v1/environments/sakuga_scene_fbi.png"],
+            "reference_audios": ["runs/asset-packs/news-show-v1/voices/maya_voice.wav"]
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4"
+  }
+}

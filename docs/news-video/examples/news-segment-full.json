@@ -1,0 +1,182 @@
+{
+  "version": 1,
+  "project": {
+    "name": "Kalshi Top 5 v2",
+    "description": "Top 5 Kalshi political picks. Sakuga style, real names, topic-introducing composite refs, b-roll cutaways."
+  },
+  "defaults": {
+    "video": {
+      "model": "seedance-2.0-fast",
+      "duration": 10,
+      "resolution": "480p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true
+    }
+  },
+  "tracks": [
+    {
+      "id": "visuals",
+      "type": "video",
+      "_comment": "10 video clips: cold open, 5 picks, 3 b-roll cutaways, outro. Each pick references the topic composite as ref[0] for visual topic intro.",
+      "clips": [
+        {
+          "id": "01-cold-open",
+          "duration": 11,
+          "source": {
+            "type": "video",
+            "prompt": "Anime-style hand-drawn animation news show. Wide shot of all three characters at the news desk. Maya on the left, Trip in the center, FAQ-9000 standing on the right with red eye glowing steady. Camera locked off. [0.0s-5.0s] Maya looks at camera with a dry smirk and delivers in her sharp polished anchor voice: 'Tonight on the news: our top five Kalshi political picks — backed by data, narrated badly.' [5.0s-9.0s] Trip grins enthusiastically and exclaims sincerely in his upbeat doofus voice: 'I love when we have data!' [9.0s-11.0s] Maya smirks and glances at her papers. FAQ-9000 stays motionless. Audio: clean close-mic'd dialogue matching reference voices, faint flickering-neon buzz, soft news-show jingle sting in the last second.",
+            "reference_images": [
+              "runs/asset-packs/news-show-v1/characters/sakuga_maya.png",
+              "runs/asset-packs/news-show-v1/characters/sakuga_trip.png",
+              "runs/asset-packs/news-show-v1/characters/sakuga_faq9000.png"
+            ],
+            "reference_audios": [
+              "runs/asset-packs/news-show-v1/voices/maya_voice.wav",
+              "runs/asset-packs/news-show-v1/voices/trip_voice.wav"
+            ]
+          }
+        },
+        {
+          "id": "02-pick5-dhs",
+          "duration": 12,
+          "source": {
+            "type": "video",
+            "prompt": "Anime-style hand-drawn animation news show, same set, all three characters at the news desk. Maya left, Trip center, FAQ-9000 right. The wall of CRT monitors behind them is prominently displaying the DHS SHUTDOWN — DAY 50 title card with the Capitol dome, exactly as in the reference image. Camera locked off. [0.0s-2.0s] HOLD on the establishing shot — the audience clearly sees the title card on the central monitor behind the cast. [2.0s-5.5s] Maya turns toward camera, gestures up at the screen, and delivers in her sharp anchor voice: 'Number five: Department of Homeland Security funding by May fifteenth. Forty cents.' [5.5s-8.5s] FAQ-9000's red eye brightens, his belly oscilloscope pulses, and he intones in flat robotic monotone: 'PROBABILITY: FIFTY-EIGHT PERCENT. EDGE: PLUS TWELVE.' [8.5s-12.0s] Trip lights up and yells in his doofus voice: 'Twelve cents! Yacht time!' Maya allows a tiny smile. Audio: dialogue matching reference voices, robot servo whir, neon buzz.",
+            "reference_images": [
+              "runs/asset-packs/news-show-v1/composites/comp_dhs.png",
+              "runs/asset-packs/news-show-v1/characters/sakuga_maya.png",
+              "runs/asset-packs/news-show-v1/characters/sakuga_trip.png",
+              "runs/asset-packs/news-show-v1/characters/sakuga_faq9000.png"
+            ],
+            "reference_audios": [
+              "runs/asset-packs/news-show-v1/voices/maya_voice.wav",
+              "runs/asset-packs/news-show-v1/voices/trip_voice.wav"
+            ]
+          }
+        },
+        {
+          "id": "broll-dhs",
+          "duration": 8,
+          "source": {
+            "type": "video",
+            "prompt": "Anime-style hand-drawn animation b-roll. NO CHARACTERS visible on camera. FULLY ANIMATED, CONTINUOUS MOTION THROUGHOUT THE ENTIRE CLIP — not a still image, not a slow pan over a still. The camera tracks past the United States Capitol dome at night under a deep navy sky. An American flag flaps continuously in strong wind at half-staff. Autumn leaves fall continuously, drifting and tumbling across frame for the full eight seconds. Subtle clouds move overhead. VOICEOVER (Maya, sharp anchor voice, matching reference): 'Day fifty of the homeland security shutdown — the longest in agency history. Both chambers have now passed funding bills, awaiting reconciliation.' Audio: clean close-mic'd voiceover matching reference voice timbre, distant city ambience, wind.",
+            "reference_images": ["runs/asset-packs/news-show-v1/environments/sakuga_scene_dhs.png"],
+            "reference_audios": ["runs/asset-packs/news-show-v1/voices/maya_voice.wav"]
+          }
+        },
+        {
+          "id": "03-pick4-patel-announce",
+          "duration": 12,
+          "source": {
+            "type": "video",
+            "prompt": "Anime-style hand-drawn animation news show, same set, all three characters at the news desk. Maya left, Trip center, FAQ-9000 right. The wall of CRT monitors behind them is prominently displaying the KASH PATEL portrait title card, exactly as in the reference image. Camera locked off. [0.0s-2.0s] HOLD on the establishing shot — the audience clearly sees Patel's portrait and name on the central monitor behind the cast. [2.0s-6.0s] Maya turns toward camera and delivers in her sharp anchor voice: 'Number four: FBI Director Kash Patel announces departure by June. Sixty-three cents.' [6.0s-8.5s] FAQ-9000 intones flatly: 'PROBABILITY: SEVENTY PERCENT. EDGE: PLUS SIX.' [8.5s-12.0s] Trip frowns thoughtfully and says in his doofus voice: 'Six cents? I'm scaling down to a kayak.' Audio: dialogue matching reference voices, robot servo whir, faint studio room tone.",
+            "reference_images": [
+              "runs/asset-packs/news-show-v1/composites/comp_patel.png",
+              "runs/asset-packs/news-show-v1/characters/sakuga_maya.png",
+              "runs/asset-packs/news-show-v1/characters/sakuga_trip.png",
+              "runs/asset-packs/news-show-v1/characters/sakuga_faq9000.png"
+            ],
+            "reference_audios": [
+              "runs/asset-packs/news-show-v1/voices/maya_voice.wav",
+              "runs/asset-packs/news-show-v1/voices/trip_voice.wav"
+            ]
+          }
+        },
+        {
+          "id": "broll-fbi",
+          "duration": 8,
+          "source": {
+            "type": "video",
+            "prompt": "Anime-style hand-drawn animation b-roll. NO CHARACTERS visible on camera. FULLY ANIMATED, CONTINUOUS MOTION THROUGHOUT — not a still image. Inside an empty federal corner office: an unoccupied office chair SPINS CONTINUOUSLY for the entire eight seconds, slowly rotating round and round. A stack of cardboard moving boxes sits in the corner. Sunlight slants through venetian blinds, dust motes visibly drifting in the beams. The fluorescent ceiling light flickers a couple of times. VOICEOVER (Maya, sharp anchor voice, matching reference): 'Sources inside the Bureau report cardboard boxes have been spotted on the seventh floor. Make of that what you will.' Audio: clean close-mic'd voiceover matching reference voice timbre, faint office hum, single fluorescent buzz.",
+            "reference_images": ["runs/asset-packs/news-show-v1/environments/sakuga_scene_fbi.png"],
+            "reference_audios": ["runs/asset-packs/news-show-v1/voices/maya_voice.wav"]
+          }
+        },
+        {
+          "id": "04-pick3-patel-leaves",
+          "duration": 10,
+          "source": {
+            "type": "video",
+            "prompt": "Anime-style hand-drawn animation news show, same set, all three characters at the news desk. Maya left, Trip center, FAQ-9000 right. The wall of CRT monitors behind them still shows the KASH PATEL portrait and name on the central screen, exactly as in the reference image. Camera locked off. [0.0s-1.5s] HOLD on the establishing shot — Patel's portrait clearly visible on the central monitor. [1.5s-4.5s] Maya, smirking, delivers in her sharp anchor voice: 'Number three: Patel actually walks. Probability sixty-five percent.' [4.5s-6.5s] FAQ-9000's red eye flares brighter and he announces flatly: 'WHITE HOUSE LEAKS DETECTED.' [6.5s-9.0s] Trip blinks and asks earnestly in his doofus voice: 'Wait, who's Patel?' [9.0s-10.0s] Maya silently puts her face in her hands and sighs. Audio: dialogue matching reference voices, robot servo whir, defeated sigh, neon buzz.",
+            "reference_images": [
+              "runs/asset-packs/news-show-v1/composites/comp_patel.png",
+              "runs/asset-packs/news-show-v1/characters/sakuga_maya.png",
+              "runs/asset-packs/news-show-v1/characters/sakuga_trip.png",
+              "runs/asset-packs/news-show-v1/characters/sakuga_faq9000.png"
+            ],
+            "reference_audios": [
+              "runs/asset-packs/news-show-v1/voices/maya_voice.wav",
+              "runs/asset-packs/news-show-v1/voices/trip_voice.wav"
+            ]
+          }
+        },
+        {
+          "id": "05-pick2-china-jun",
+          "duration": 13,
+          "source": {
+            "type": "video",
+            "prompt": "Anime-style hand-drawn animation news show, same set, all three characters at the news desk. Maya left, Trip center, FAQ-9000 right. The wall of CRT monitors behind them is prominently displaying the TRUMP — CHINA TRIP title card, exactly as in the reference image. Camera locked off. [0.0s-2.0s] HOLD on the establishing shot — Trump's portrait and the 'CHINA TRIP' caption clearly visible on the central monitor. [2.0s-6.0s] Maya turns toward camera, glances at the screen, and delivers professionally: 'Number two: President Trump visits China by June first. Seventy-seven cents.' [6.0s-9.0s] FAQ-9000 intones flatly: 'PROBABILITY: NINETY PERCENT. ADVANCE TEAMS DEPLOYED.' [9.0s-13.0s] Trip beams and announces proudly in his doofus voice: 'I went to China once! In a dream. On a plane.' Maya gives a tiny exhausted smile. Audio: dialogue matching reference voices, robot servo whir, soft studio hum.",
+            "reference_images": [
+              "runs/asset-packs/news-show-v1/composites/comp_china.png",
+              "runs/asset-packs/news-show-v1/characters/sakuga_maya.png",
+              "runs/asset-packs/news-show-v1/characters/sakuga_trip.png",
+              "runs/asset-packs/news-show-v1/characters/sakuga_faq9000.png"
+            ],
+            "reference_audios": [
+              "runs/asset-packs/news-show-v1/voices/maya_voice.wav",
+              "runs/asset-packs/news-show-v1/voices/trip_voice.wav"
+            ]
+          }
+        },
+        {
+          "id": "broll-china",
+          "duration": 8,
+          "source": {
+            "type": "video",
+            "prompt": "Anime-style hand-drawn animation b-roll. NO CHARACTERS visible on camera. FULLY ANIMATED, CONTINUOUS MOTION THROUGHOUT — not a still image, not a slow pan. A presidential-style airliner flies CONTINUOUSLY ACROSS THE FRAME from left to right against a sweeping orange-and-pink sunset over the Pacific Ocean. The plane is clearly moving forward across the eight seconds — wings dipping slightly, engine exhaust rippling. Soft cloud layer drifts below. VOICEOVER (Maya, sharp anchor voice, matching reference): 'Sources confirm the President's plane is already en route. State media is staging the welcome ceremony as we speak.' Audio: clean close-mic'd voiceover matching reference voice timbre, distant jet engine hum, gentle wind.",
+            "reference_images": ["runs/asset-packs/news-show-v1/environments/sakuga_scene_china.png"],
+            "reference_audios": ["runs/asset-packs/news-show-v1/voices/maya_voice.wav"]
+          }
+        },
+        {
+          "id": "06-pick1-china-may",
+          "duration": 12,
+          "source": {
+            "type": "video",
+            "prompt": "Anime-style hand-drawn animation news show, same set, all three characters at the news desk. Maya left, Trip center, FAQ-9000 right. The wall of CRT monitors behind them still shows the TRUMP — CHINA TRIP title card, exactly as in the reference image. Camera locked off, very subtle slow push-in over the clip. [0.0s-1.5s] HOLD on the establishing shot. [1.5s-6.0s] Maya delivers with conviction in her sharp anchor voice: 'And number one: same trip, May fifteenth. Sixty-six cents. Highest conviction.' [6.0s-8.0s] FAQ-9000 intones flatly: 'PROBABILITY: EIGHTY-TWO PERCENT.' [8.0s-11.0s] Trip grins giddily and exclaims: 'Eighty-two percent! That's almost a whole percent!' [11.0s-12.0s] Maya audibly sighs and stares blankly into the middle distance. Audio: dialogue matching reference voices, robot servo whir, defeated sigh.",
+            "reference_images": [
+              "runs/asset-packs/news-show-v1/composites/comp_china.png",
+              "runs/asset-packs/news-show-v1/characters/sakuga_maya.png",
+              "runs/asset-packs/news-show-v1/characters/sakuga_trip.png",
+              "runs/asset-packs/news-show-v1/characters/sakuga_faq9000.png"
+            ],
+            "reference_audios": [
+              "runs/asset-packs/news-show-v1/voices/maya_voice.wav",
+              "runs/asset-packs/news-show-v1/voices/trip_voice.wav"
+            ]
+          }
+        },
+        {
+          "id": "07-outro",
+          "duration": 9,
+          "source": {
+            "type": "video",
+            "prompt": "Anime-style hand-drawn animation news show, same set, all three characters at the news desk. Maya left, Trip center, FAQ-9000 right. Camera locked off. [0.0s-4.5s] Maya looks at camera with a tight-lipped smile and delivers in her sharp anchor voice: 'That's our top five. Don't take financial advice from cartoons.' [4.5s-9.0s] Trip leans in, grins, and shouts cheerfully: 'Or do! I'm not your dad. ...probably.' FAQ-9000's red eye dims slightly as if powering down. End-card neon buzz. Audio: dialogue matching reference voices, faint news-show outro sting in the last second, neon buzz.",
+            "reference_images": [
+              "runs/asset-packs/news-show-v1/characters/sakuga_maya.png",
+              "runs/asset-packs/news-show-v1/characters/sakuga_trip.png",
+              "runs/asset-packs/news-show-v1/characters/sakuga_faq9000.png"
+            ],
+            "reference_audios": [
+              "runs/asset-packs/news-show-v1/voices/maya_voice.wav",
+              "runs/asset-packs/news-show-v1/voices/trip_voice.wav"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4"
+  }
+}
