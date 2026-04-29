@@ -152,6 +152,19 @@ def validate(timeline_path: Path, project_root: Path) -> Tuple[List[Dict], List[
                                 "message": f"{label} ref points at unknown clip id: {ref_id!r}",
                             })
 
+            # Prompt length — Replicate silently truncates at 2000 chars.
+            # Warn at 1900 to leave a small buffer.
+            if len(prompt) > 2000:
+                errors.append({
+                    "clip_id": cid, "level": "error", "code": "PROMPT_TRUNCATED",
+                    "message": f"prompt is {len(prompt)} chars — Replicate silently truncates at 2000. Trim before running.",
+                })
+            elif len(prompt) > 1900:
+                warnings.append({
+                    "clip_id": cid, "level": "warn", "code": "PROMPT_NEAR_LIMIT",
+                    "message": f"prompt is {len(prompt)} chars — close to Replicate's 2000-char truncation limit",
+                })
+
             # WPS sanity check on dialogue inside the prompt
             dialogue_words = sum(_word_count(line) for line in _find_quoted_dialogue(prompt))
             if dialogue_words > 0 and isinstance(duration, int) and duration > 0:

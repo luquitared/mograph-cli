@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "project": {
+    "name": "Format Rip Dating After 25 Clone PS1 V2",
+    "description": "Clone the original Dating After 25 reel in PS1 low-poly, no video ref (E005 fallback)"
+  },
+  "defaults": {
+    "video": {
+      "model": "seedance-2.0-fast",
+      "duration": 11,
+      "resolution": "480p",
+      "aspect_ratio": "9:16",
+      "generate_audio": true
+    }
+  },
+  "tracks": [
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "dating-after-25-ps1",
+          "duration": 11,
+          "source": {
+            "type": "video",
+            "prompt": "STYLE: Late 90s PS1 low-poly 3D render — pixelated textures, jagged edges, no anti-aliasing, flat vertex lighting, vivid color palette. Match the PS1 reference frames exactly.\n\nSHOT: vertical 9:16, locked-off static medium shot, no camera movement.\n\nSUBJECT: a low-poly 3D young woman with long straight dark polygonal hair past her shoulders, blocky head, pixelated face texture with painted-on Asian features and pink eyeshadow, wearing a loose oversized pink-and-white silk-style jersey shirt with a dark graphic across the front, grey sweatpants. She sits cross-legged on top of a low-poly bed with peach pillows and a peach-pink duvet, against a black iron bed-frame headboard, in a pink-toned bedroom corner. She holds a low-poly smartphone in both hands.\n\nPERSISTENT OVERLAY (full 11s, top center): bold white sans-serif 'Dating after 25' with thick black stroke. Stays at the top, never fades.\n\n[0.0s-1.5s] BEAT 1: She stares at the phone, mouth slightly open, vacant resigned expression. A grey iMessage incoming bubble pops in mid-frame: 'i miss you so much babe'. AUDIO: Apple iMessage notification ding at exactly 0.0s, then quiet room tone.\n\n[1.5s-4.5s] BEAT 2: She types on the phone with both thumbs, eyes still on the screen. TWO blue iMessage outgoing bubbles appear stacked on the right: first 'same', then below it 'I miss you sm that I can't even fall asleep'. AUDIO: silent typing taps.\n\n[4.5s-11.0s] BEAT 3 — PUNCHLINE: At exactly 4.5s the bubbles vanish. She tosses the phone aside onto the bed, lies down on her side, pulls the peach duvet up and over her head and shoulders, and immediately falls asleep, eyes closed. AUDIO: at exactly 4.5s a single LOUD deep-bass 'Vine boom' impact (the iconic 'BWAH' sub-bass hit), then silence.",
+            "reference_images": [
+              "runs/style-packs/ig-DW2FRgojpMa/frames/frame_01.jpg",
+              "runs/style-packs/ig-DW2FRgojpMa/frames/frame_02.jpg",
+              "runs/style-packs/ig-DW2FRgojpMa/frames/frame_06.jpg"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4"
+  }
+}

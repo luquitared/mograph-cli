@@ -1,0 +1,47 @@
+{
+  "packs": {
+    "ig-DXsns8PpVlj": {
+      "name": "Dating After 25 — Setup-Punchline Meme",
+      "archetype": "setup-punchline meme — text-vs-action contradiction",
+      "tagline": "Persistent top caption establishes a relatable scenario; an iMessage exchange frames a dramatic claim; a Vine boom + immediate contradictory action delivers the punchline.",
+      "source_url": "https://www.instagram.com/reel/DXsns8PpVlj/",
+      "source_aspect_ratio": "9:16",
+      "source_duration_sec": 11.0,
+      "gcs_uri": "gs://${GCS_OUTPUT_BUCKET}/style-packs/ig-DXsns8PpVlj/",
+      "pull_command": "python scripts/asset_pack_pull.py ig-DXsns8PpVlj --prefix style-packs",
+      "local_path_after_pull": "runs/style-packs/ig-DXsns8PpVlj/",
+      "files": {
+        "source.mp4": "Original IG reel — 1080x1920, 11s. Don't pass as reference_videos for remixes (the photoreal human in it trips Seedance E005). Used for analysis and reference only.",
+        "frames/frame_01..10.jpg": "10 frames extracted at ~1.2s intervals.",
+        "format.json": "Gemini structural analysis. Read `beats[]`, `audio_design.key_sfx[]`, `remixable.swappable[]` / `fixed[]`, and `remix_template` before designing a remix. The `remix_template` field is the load-bearing scaffold.",
+        "overlays/overlay_healthy_lifestyle.png": "Example overlay PNG for the healthy-lifestyle remix — header text + iMessage bubbles. Reference for the overlay-pre-render pattern; future remixes generate their own overlays."
+      },
+      "load_bearing_sfx": [
+        {"timestamp_sec": 0.0, "sfx": "iMessage notification ding"},
+        {"timestamp_sec": 4.5, "sfx": "Vine boom impact"}
+      ],
+      "load_bearing_structure": [
+        "Persistent top-center caption establishing the scenario, full duration",
+        "Beat 1 (0–1.5s): incoming iMessage bubble + ding",
+        "Beat 2 (1.5–4.5s): outgoing iMessage reply bubbles with a dramatic claim",
+        "Beat 3 (4.5–end): Vine boom + immediate physical action that contradicts the claim"
+      ],
+      "swappable": [
+        "The persistent caption text (the scenario)",
+        "The text in each iMessage bubble (the lie and the prompt)",
+        "The setting / character / visual style",
+        "The contradictory physical action"
+      ],
+      "tested_with_examples": [
+        "docs/format-rip/examples/dating-after-25-clone.json",
+        "docs/format-rip/examples/healthy-lifestyle-remix.json"
+      ]
+    }
+  },
+  "notes": [
+    "Format packs are pulled from GCS, not committed.",
+    "Format packs share the GCS prefix `style-packs/` with style packs — a pack can have `format.json` and/or `style.json` and be used in either workflow.",
+    "Path references in docs/format-rip/examples/*.json assume the pack is pulled to runs/style-packs/<slug>/.",
+    "To add a new format pack: follow the workflow in docs/format-rip/README.md, then push with `python scripts/asset_pack_push.py runs/style-packs/<slug> <slug> --prefix style-packs`, then add an entry here."
+  ]
+}

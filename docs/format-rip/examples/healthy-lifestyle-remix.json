@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "project": {
+    "name": "Format Rip Healthy Lifestyle V2",
+    "description": "Trimmed prompt to fit under Replicate's 2000-char truncation limit"
+  },
+  "defaults": {
+    "video": {
+      "model": "seedance-2.0-fast",
+      "duration": 11,
+      "resolution": "480p",
+      "aspect_ratio": "9:16",
+      "generate_audio": true
+    }
+  },
+  "tracks": [
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "healthy-lifestyle-meme",
+          "duration": 11,
+          "source": {
+            "type": "video",
+            "prompt": "STYLE: Late 90s PS1 low-poly 3D render. Match reference frames exactly — pixelated textures, jagged edges, no anti-aliasing, flat vertex lighting, vivid neon palette.\n\nSHOT: vertical 9:16, locked-off static medium shot, no camera move.\n\nSUBJECT: low-poly mid-20s scruffy guy in dark beanie, patchy beard, black hoodie. Sits cross-legged on the tiled floor of a low-poly 7-Eleven. A half-eaten low-poly hot dog rests in his lap on a paper tray, an open low-poly Mountain Dew bottle is next to him, candy wrappers scattered around. He holds a low-poly smartphone. Fluorescent ceiling lights, 7-Eleven branding visible behind him.\n\nPERSISTENT OVERLAY (full 11s, top center): bold white sans-serif 'Healthy lifestyle in your 20s' with thick black stroke, exactly as in the overlay reference. Stays bolted to the top, never fades.\n\n[0.0s-1.5s] BEAT 1: He stares at the phone, slightly slouched. A grey iMessage incoming bubble pops in mid-left of frame: 'you coming to the gym?'. AUDIO: clean Apple iMessage notification ding right at 0.0s, then quiet store hum.\n\n[1.5s-4.5s] BEAT 2: He leans in with fake-confident posture and types. TWO blue iMessage bubbles appear stacked on the right: first 'yeah totally', then below it 'I'm grinding hard this month'. The hot dog and Mountain Dew remain clearly in his lap. AUDIO: silent typing taps and ambient store hum, no sfx.\n\n[4.5s-11.0s] BEAT 3 — PUNCHLINE: At exactly 4.5s the bubbles vanish from screen. He puts the phone face-down on the floor, picks up the hot dog with both hands, and takes a huge slow-motion bite, eyes deadpan to camera, while reaching for the Mountain Dew. AUDIO: at 4.5s a single LOUD deep-bass 'Vine boom' impact (the iconic 'BWAH' hit), then chewing and the hiss of the Mountain Dew being opened.",
+            "reference_images": [
+              "runs/style-packs/ig-DXsns8PpVlj/overlays/overlay_healthy_lifestyle.png",
+              "runs/style-packs/ig-DW2FRgojpMa/frames/frame_02.jpg",
+              "runs/style-packs/ig-DW2FRgojpMa/frames/frame_04.jpg",
+              "runs/style-packs/ig-DW2FRgojpMa/frames/frame_06.jpg"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4"
+  }
+}
