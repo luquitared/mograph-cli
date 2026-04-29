@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "project": {
+    "name": "Style Rip Stoner Selfie",
+    "description": "Low-poly PS1 stoner selfie monologue, 8s test"
+  },
+  "defaults": {
+    "video": {
+      "model": "seedance-2.0-fast",
+      "duration": 8,
+      "resolution": "480p",
+      "aspect_ratio": "9:16",
+      "generate_audio": true
+    }
+  },
+  "tracks": [
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "stoner-selfie",
+          "duration": 8,
+          "source": {
+            "type": "video",
+            "prompt": "STYLE: Late 90s PS1 video game 3D render. Low-poly geometry with low-resolution pixelated photographic textures and no anti-aliasing (visible jaggies on every edge). Flat vertex lighting, no dynamic shadows, bright unlit shaders for neon signs. Match the look in the reference images exactly — same polygon count, same pixelated texture quality, same flat lighting, same vivid neon palette. SHOT TYPE: handheld vertical phone selfie video, the character is holding the phone himself in front of his own face, camera close to face at slightly tilted off-center angle, subtle natural handheld sway throughout the entire clip — NOT a static or cinematic shot. SUBJECT: a low-poly 3D character — mid-20s scruffy white guy, dark grey knit beanie pulled low over his forehead, patchy short beard, faintly red/glassy eyes, lopsided easygoing smile, wearing a worn black hoodie. Blocky polygonal head, simple low-poly hair texture, pixelated face texture with painted-on features. SETTING: standing outside a low-poly 7-Eleven at night, the storefront glowing red and green visible behind him, deep navy starry skybox above, same look as the reference images. ACTION: he looks straight into the camera with a goofy stoned grin and rambles slowly in a SCRUFFY STONER VOICE — slow, easy-going, slightly slurred, occasional pauses for emphasis, mid-20s American accent, raspy and laid-back, faintly amused at his own thought: 'Yo bro... check this out. 7-Eleven? Always open. Like... always. They never close, dude. Ever. That's kinda sus, right?' He gives a single soft chuckle at the very end. AUDIO: phone-mic quality vocals close in foreground, faint background ambience of distant cars and gentle night wind, no music.",
+            "reference_images": [
+              "runs/style-packs/ig-DW2FRgojpMa/frames/frame_01.jpg",
+              "runs/style-packs/ig-DW2FRgojpMa/frames/frame_02.jpg",
+              "runs/style-packs/ig-DW2FRgojpMa/frames/frame_06.jpg"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4"
+  }
+}

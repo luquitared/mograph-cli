@@ -1,18 +1,26 @@
 #!/usr/bin/env python3
-"""Download a named asset pack from GCS to a local directory.
+"""Download a named pack from GCS to a local directory.
 
 Mirror of asset_pack_push.py. Pulls everything under
-gs://$GCS_OUTPUT_BUCKET/asset-packs/<pack_name>/ to <dest_dir>/<pack_name>/,
+gs://$GCS_OUTPUT_BUCKET/<prefix>/<pack_name>/ to <dest_dir>/<pack_name>/,
 preserving the relative directory structure.
 
-Usage:
-    python scripts/asset_pack_pull.py <pack_name> [<dest_dir>]
+Default prefix is `asset-packs`. Use `--prefix style-packs` for style packs.
 
-Example:
+Usage:
+    python scripts/asset_pack_pull.py <pack_name> [<dest_dir>] [--prefix <prefix>]
+
+Examples:
+    # Asset pack (default prefix)
     python scripts/asset_pack_pull.py news-show-v1
-    python scripts/asset_pack_pull.py news-show-v1 ./my-assets
+    # → runs/asset-packs/news-show-v1/
+
+    # Style pack
+    python scripts/asset_pack_pull.py ig-DW2FRgojpMa --prefix style-packs
+    # → runs/style-packs/ig-DW2FRgojpMa/
 """
 
+import argparse
 import os
 import sys
 from pathlib import Path
@@ -23,13 +31,18 @@ from cloudrun.gcs_storage import download_file, list_files, parse_gcs_uri
 
 
 def main() -> int:
-    if len(sys.argv) < 2:
-        print("usage: asset_pack_pull.py <pack_name> [<dest_dir>]", file=sys.stderr)
-        return 2
+    ap = argparse.ArgumentParser(description="Download a named pack from GCS")
+    ap.add_argument("pack_name", help="Pack name to pull")
+    ap.add_argument("dest_dir", nargs="?", default=None,
+                    help="Destination root directory (default: runs/<prefix>/)")
+    ap.add_argument("--prefix", default="asset-packs",
+                    help="GCS path component (default: asset-packs). Use 'style-packs' for style-rip packs.")
+    args = ap.parse_args()
 
-    pack_name = sys.argv[1]
-    dest_root = Path(sys.argv[2]).resolve() if len(sys.argv) >= 3 else (
-        Path(__file__).resolve().parent.parent / "runs" / "asset-packs"
+    pack_name = args.pack_name
+    prefix = args.prefix.strip("/")
+    dest_root = Path(args.dest_dir).resolve() if args.dest_dir else (
+        Path(__file__).resolve().parent.parent / "runs" / prefix
     )
     dest_dir = dest_root / pack_name
 
@@ -40,7 +53,7 @@ def main() -> int:
     if not bucket.startswith("gs://"):
         bucket = f"gs://{bucket}"
 
-    base_uri = f"{bucket}/asset-packs/{pack_name}"
+    base_uri = f"{bucket}/{prefix}/{pack_name}"
     base_prefix = parse_gcs_uri(base_uri)[1].rstrip("/") + "/"
     print(f"[pull] {base_uri} → {dest_dir}", file=sys.stderr)
 

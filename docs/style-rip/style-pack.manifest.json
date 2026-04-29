@@ -1,0 +1,40 @@
+{
+  "packs": {
+    "ig-DW2FRgojpMa": {
+      "name": "Retro PS1 Low-Poly Nightscape",
+      "tagline": "Late-90s 3D video game aesthetic suited for liminal late-night urban scenes.",
+      "source_url": "https://www.instagram.com/p/DW2FRgojpMa/",
+      "source_aspect_ratio": "9:16",
+      "source_duration_sec": 12.5,
+      "gcs_uri": "gs://${GCS_OUTPUT_BUCKET}/style-packs/ig-DW2FRgojpMa/",
+      "pull_command": "python scripts/asset_pack_pull.py ig-DW2FRgojpMa --prefix style-packs",
+      "local_path_after_pull": "runs/style-packs/ig-DW2FRgojpMa/",
+      "files": {
+        "source.mp4": "Original IG reel — 1080x1920, 12.5s. Use frames/ for references; rarely need to pass the full mp4.",
+        "frames/frame_01..08.jpg": "8 representative frames extracted at ~1.5s intervals. Pass 3-5 of these as reference_images per clip.",
+        "style.json": "Gemini structured style description. The `prompt_template` field is the load-bearing line — paste verbatim into prompts. The `what_to_avoid` list is non-decorative; strip those terms from your prompt."
+      },
+      "best_used_for": [
+        "UGC selfie monologues (vertical 9:16, single character)",
+        "Retro-styled news scenes (single anchor, low-poly desk + monitor wall)",
+        "Late-night urban establishing shots (storefronts, signage, payphones)"
+      ],
+      "iconic_motifs_in_source": [
+        "7-Eleven storefront at night",
+        "Bell payphone with graffiti",
+        "Deep navy starry skybox",
+        "Floating game-pickup items with glowing auras",
+        "CIBC / Mountain Dew / Pepsi signage"
+      ],
+      "tested_with_examples": [
+        "docs/style-rip/examples/news-anchor-test.json",
+        "docs/style-rip/examples/stoner-selfie-test.json"
+      ]
+    }
+  },
+  "notes": [
+    "Style packs are pulled, not committed. The local pull location (runs/style-packs/) is gitignored.",
+    "Path references in docs/style-rip/examples/*.json assume the pack is pulled to runs/style-packs/<slug>/.",
+    "To add a new style pack: follow the workflow in docs/style-rip/README.md, then push with `python scripts/asset_pack_push.py runs/style-packs/<slug> <slug> --prefix style-packs`, then add an entry to this manifest."
+  ]
+}

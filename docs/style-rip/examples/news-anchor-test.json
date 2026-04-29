@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "project": {
+    "name": "Style Rip Test PS1",
+    "description": "Single 5s news scene, 1 host, PS1 low-poly aesthetic ripped from IG reel"
+  },
+  "defaults": {
+    "video": {
+      "model": "seedance-2.0-fast",
+      "duration": 5,
+      "resolution": "480p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true
+    }
+  },
+  "tracks": [
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "host-test",
+          "duration": 5,
+          "source": {
+            "type": "video",
+            "prompt": "STYLE: Late 90s PS1 video game 3D render. Low-poly geometry with low-resolution pixelated photographic textures and no anti-aliasing (visible jaggies on every edge). Flat vertex lighting, no dynamic shadows, bright unlit shaders for neon signs. Match the look in the reference images exactly — same polygon count, same pixelated texture quality, same flat lighting, same vivid neon palette. SCENE: A low-poly news studio at night, modeled like a PS1-era video game environment. A single news anchor sits behind a chunky polygonal news desk. The anchor is a low-poly 3D character: blocky proportions, simple polygonal hair, pixelated face texture with painted-on features, wearing a vivid red blazer over a white shirt. Behind the anchor, a wall of low-poly TV monitors glowing with abstract neon signage and a 'BREAKING NEWS' sign in vivid red unlit shader. Static deep navy starry skybox visible through a window on the side. ACTION: The camera is locked off. The anchor looks at camera and says with deadpan delivery: 'Welcome to the news. Tonight, everything is fine.' AUDIO: clean close-mic'd dialogue, slight retro low-fi compression, faint synth news-jingle sting at the very start, distant night ambience.",
+            "reference_images": [
+              "runs/style-packs/ig-DW2FRgojpMa/frames/frame_02.jpg",
+              "runs/style-packs/ig-DW2FRgojpMa/frames/frame_04.jpg",
+              "runs/style-packs/ig-DW2FRgojpMa/frames/frame_07.jpg"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "output": {
+    "format": "mp4"
+  }
+}

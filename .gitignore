@@ -12,6 +12,8 @@ runs/
 !docs/timeline/examples/*.json
 !docs/news-video/examples/*.json
 !docs/news-video/asset-pack.manifest.json
+!docs/style-rip/examples/*.json
+!docs/style-rip/style-pack.manifest.json
 
 # E2E generation log (output of tests/e2e_log.py)
 tests/e2e_generation_log.jsonl
