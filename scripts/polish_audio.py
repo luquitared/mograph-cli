@@ -42,6 +42,32 @@ def concat_clips(clip_paths: list[Path], out_path: Path, list_path: Path) -> Non
     subprocess.run(cmd, check=True, capture_output=True)
 
 
+def _ordered_clips(run_dir: Path, videos_dir: Path) -> list[Path]:
+    """Return clip paths in timeline order if a cached timeline.json exists,
+    otherwise fall back to alphabetical."""
+    import json
+    tl_path = run_dir / "timeline.json"
+    if tl_path.exists():
+        try:
+            tl = json.loads(tl_path.read_text())
+            ordered: list[Path] = []
+            for track in tl.get("tracks", []):
+                if track.get("type") != "video":
+                    continue
+                for clip in track.get("clips", []):
+                    cid = clip.get("id")
+                    if not cid:
+                        continue
+                    p = videos_dir / f"{cid}.mp4"
+                    if p.exists():
+                        ordered.append(p)
+            if ordered:
+                return ordered
+        except Exception:
+            pass
+    return sorted(videos_dir.glob("*.mp4"))
+
+
 def main() -> int:
     if len(sys.argv) < 2:
         print("usage: polish_audio.py <run_dir>", file=sys.stderr)
@@ -62,7 +88,7 @@ def main() -> int:
     norm_dir.mkdir(exist_ok=True)
     final_dir.mkdir(exist_ok=True)
 
-    clips = sorted(videos_dir.glob("*.mp4"))
+    clips = _ordered_clips(run_dir, videos_dir)
     if not clips:
         print(f"no .mp4 files in {videos_dir}", file=sys.stderr)
         return 1

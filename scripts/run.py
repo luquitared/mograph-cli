@@ -140,10 +140,24 @@ def main() -> int:
                 print(f"[run] --force-clip: removing {f.name}", file=sys.stderr)
                 f.unlink()
 
+    # If the timeline already lives inside the project_dir (e.g. user is
+    # re-running against runs/<slug>/timeline.json), pipeline.py would try to
+    # copy the file onto itself and raise SameFileError. Stage to a temp
+    # location outside the run dir so the source/dest are distinct.
+    pipeline_timeline_path = timeline_path
+    try:
+        timeline_path.relative_to(project_dir)
+        staging_dir = PROJECT_ROOT / "runs" / ".staging"
+        staging_dir.mkdir(parents=True, exist_ok=True)
+        pipeline_timeline_path = staging_dir / f"{project_slug}.json"
+        shutil.copy2(timeline_path, pipeline_timeline_path)
+    except ValueError:
+        pass  # timeline is outside project_dir — safe to use directly
+
     # Run pipeline with --resume-dir pointing at our stable project dir
     cmd = [
         "python", str(PROJECT_ROOT / "pipeline.py"),
-        "--timeline-file", str(timeline_path),
+        "--timeline-file", str(pipeline_timeline_path),
         "--resume-dir", str(project_dir),
         "--stage", args.stage,
     ]
