@@ -80,6 +80,10 @@ export async function loader({ context, params }: Route.LoaderArgs) {
       visibility: workflows.visibility,
       createdAt: workflows.createdAt,
       handle: anonymousHandles.handle,
+      models: workflows.models,
+      clipCount: workflows.clipCount,
+      totalDurationS: workflows.totalDurationS,
+      totalBytes: workflows.totalBytes,
     })
     .from(workflows)
     .innerJoin(
@@ -126,6 +130,10 @@ export async function loader({ context, params }: Route.LoaderArgs) {
     handle: wf.handle,
     created_at: wf.createdAt,
     readme_md: wf.readmeMd,
+    models: wf.models,
+    clip_count: wf.clipCount,
+    total_duration_s: wf.totalDurationS,
+    total_bytes: wf.totalBytes,
     files: [
       ...videos.map((v) => ({
         kind: "video" as const,

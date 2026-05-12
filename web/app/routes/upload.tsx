@@ -38,6 +38,80 @@ async function sha256Hex(buf: ArrayBuffer): Promise<string> {
     .join("");
 }
 
+function coerceDuration(v: unknown): number | null {
+  if (typeof v === "number" && Number.isFinite(v) && v >= 0) return v;
+  if (typeof v === "string") {
+    const n = Number(v);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+  return null;
+}
+
+async function extractTimelineMetadata(
+  files: { file: File; kind: FileKind }[],
+): Promise<{
+  models?: string[];
+  clip_count?: number;
+  total_duration_s?: number;
+}> {
+  const timelines = files.filter((s) => s.kind === "timeline");
+  if (timelines.length === 0) return {};
+  const models = new Set<string>();
+  let clipCount = 0;
+  const trackTotals: number[] = [];
+  for (const t of timelines) {
+    let doc: unknown;
+    try {
+      doc = JSON.parse(await t.file.text());
+    } catch {
+      continue;
+    }
+    if (!doc || typeof doc !== "object") continue;
+    const d = doc as Record<string, unknown>;
+    const defaults =
+      typeof d.defaults === "object" && d.defaults
+        ? (d.defaults as Record<string, unknown>)
+        : {};
+    const defaultDur = coerceDuration(defaults.duration);
+    const tracks = Array.isArray(d.tracks) ? d.tracks : [];
+    let docMax = 0;
+    for (const tr of tracks) {
+      if (!tr || typeof tr !== "object") continue;
+      const clips = Array.isArray((tr as Record<string, unknown>).clips)
+        ? ((tr as Record<string, unknown>).clips as unknown[])
+        : [];
+      let trackDur = 0;
+      for (const cl of clips) {
+        if (!cl || typeof cl !== "object") continue;
+        clipCount += 1;
+        const c = cl as Record<string, unknown>;
+        if (typeof c.model === "string" && c.model.trim()) {
+          models.add(c.model.trim());
+        }
+        const dur =
+          coerceDuration(c.duration) ??
+          coerceDuration(c.duration_s) ??
+          defaultDur;
+        if (dur != null) trackDur += dur;
+      }
+      docMax = Math.max(docMax, trackDur);
+    }
+    trackTotals.push(docMax);
+  }
+  const out: {
+    models?: string[];
+    clip_count?: number;
+    total_duration_s?: number;
+  } = {};
+  if (models.size) out.models = Array.from(models).sort();
+  if (clipCount) out.clip_count = clipCount;
+  if (trackTotals.length) {
+    const total = Math.max(...trackTotals);
+    if (total > 0) out.total_duration_s = Math.round(total);
+  }
+  return out;
+}
+
 type StagedFile = {
   file: File;
   kind: FileKind;
@@ -161,11 +235,13 @@ export default function UploadPage() {
         }),
       );
 
+      const metadata = await extractTimelineMetadata(staged);
       const body = JSON.stringify({
         title: title.trim(),
         summary: summary.trim() || undefined,
         readme_md: readme,
         files: manifestFiles.map(({ _buf, ...rest }) => rest),
+        ...(Object.keys(metadata).length ? { metadata } : {}),
       });
 
       setProgress((p) => [...p, "creating workflow…"]);

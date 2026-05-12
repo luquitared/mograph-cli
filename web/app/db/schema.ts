@@ -61,6 +61,10 @@ export const workflows = pgTable(
     mainVideoId: uuid("main_video_id"),
     visibility: text("visibility").notNull().default("public"),
     license: text("license").default("CC-BY-4.0"),
+    models: text("models").array(),
+    clipCount: integer("clip_count"),
+    totalDurationS: integer("total_duration_s"),
+    totalBytes: bigint("total_bytes", { mode: "number" }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .default(sql`now()`),

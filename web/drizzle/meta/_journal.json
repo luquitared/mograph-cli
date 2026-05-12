@@ -15,6 +15,13 @@
       "when": 1778626791999,
       "tag": "0001_add_path_and_video_name",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778629550750,
+      "tag": "0002_workflow_metadata",
+      "breakpoints": true
     }
   ]
 }

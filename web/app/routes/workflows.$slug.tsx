@@ -12,6 +12,7 @@ import { SiteNav } from "../components/site-nav";
 import { SiteFooter } from "../components/site-footer";
 import { CopyCommand } from "../components/copy-command";
 import { Markdown } from "../components/markdown";
+import { WorkflowStatsRow } from "../components/workflow-stats";
 
 export function meta({ data }: Route.MetaArgs) {
   if (!data) return [{ title: "Not found — mograph" }];
@@ -36,6 +37,10 @@ export async function loader({ context, params }: Route.LoaderArgs) {
       mainVideoId: workflows.mainVideoId,
       handle: anonymousHandles.handle,
       createdAt: workflows.createdAt,
+      models: workflows.models,
+      clipCount: workflows.clipCount,
+      totalDurationS: workflows.totalDurationS,
+      totalBytes: workflows.totalBytes,
     })
     .from(workflows)
     .innerJoin(
@@ -82,6 +87,9 @@ export default function WorkflowDetail({ loaderData }: Route.ComponentProps) {
         {workflow.summary && (
           <p className="text-lg text-zinc-500 mt-2">{workflow.summary}</p>
         )}
+        <div className="mt-4">
+          <WorkflowStatsRow stats={workflow} />
+        </div>
 
         {main && (
           <div className="mt-8 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800">

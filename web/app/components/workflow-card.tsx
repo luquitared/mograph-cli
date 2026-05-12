@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { WorkflowStatsRow, type WorkflowStats } from "./workflow-stats";
 
 export type WorkflowCardData = {
   slug: string;
@@ -7,7 +8,7 @@ export type WorkflowCardData = {
   handle: string;
   mainVideoKey: string | null;
   mainPosterKey: string | null;
-};
+} & WorkflowStats;
 
 export function WorkflowCard({
   workflow,
@@ -50,6 +51,9 @@ export function WorkflowCard({
         {w.summary && (
           <p className="text-sm text-zinc-500 mt-1 line-clamp-2">{w.summary}</p>
         )}
+        <div className="mt-3">
+          <WorkflowStatsRow stats={w} size="sm" />
+        </div>
         {showAuthor && (
           <div className="mt-3 text-xs text-zinc-500 font-mono">@{w.handle}</div>
         )}

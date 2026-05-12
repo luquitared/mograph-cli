@@ -10,6 +10,8 @@ import { eq } from "drizzle-orm";
 import { getEnv, json } from "../lib/env";
 import { verifyRequest, makeUploadToken } from "../lib/sig";
 
+const RESERVED_SLUGS = new Set(["mine", "new", "edit"]);
+
 type Declared = {
   name: string;
   path: string;
@@ -20,12 +22,19 @@ type Declared = {
   duration_s?: number;
 };
 
+type Metadata = {
+  models?: string[];
+  clip_count?: number;
+  total_duration_s?: number;
+};
+
 type PushBody = {
   slug?: string;
   title: string;
   summary?: string;
   readme_md: string;
   files: Declared[];
+  metadata?: Metadata;
 };
 
 function slugify(s: string): string {
@@ -83,16 +92,74 @@ export async function action({ context, request }: Route.ActionArgs) {
     return json({ error: "title, readme_md, files required" }, { status: 400 });
   }
 
-  let slug = body.slug ? slugify(body.slug) : slugify(body.title);
-  for (let i = 0; i < 6; i++) {
-    const conflict = await d
-      .select({ id: workflows.id })
+  const requestedSlug = body.slug ? slugify(body.slug) : null;
+  let slug: string;
+  let existingForUpdate: { id: string; ownerPubkey: string } | null = null;
+
+  if (requestedSlug) {
+    if (RESERVED_SLUGS.has(requestedSlug)) {
+      return json({ error: `slug '${requestedSlug}' is reserved` }, { status: 400 });
+    }
+    const [existing] = await d
+      .select({
+        id: workflows.id,
+        ownerPubkey: anonymousHandles.pubkey,
+      })
       .from(workflows)
-      .where(eq(workflows.slug, slug))
+      .innerJoin(
+        anonymousHandles,
+        eq(workflows.ownerHandleId, anonymousHandles.id),
+      )
+      .where(eq(workflows.slug, requestedSlug))
       .limit(1);
-    if (!conflict[0]) break;
-    slug = `${slugify(body.title)}-${Math.floor(Math.random() * 9000 + 1000)}`;
+    if (existing) {
+      if (existing.ownerPubkey !== pubkey) {
+        return json(
+          { error: `slug '${requestedSlug}' is taken by another author` },
+          { status: 409 },
+        );
+      }
+      existingForUpdate = existing;
+    }
+    slug = requestedSlug;
+  } else {
+    slug = slugify(body.title);
+    for (let i = 0; i < 6; i++) {
+      const conflict = await d
+        .select({ id: workflows.id })
+        .from(workflows)
+        .where(eq(workflows.slug, slug))
+        .limit(1);
+      if (!conflict[0]) break;
+      slug = `${slugify(body.title)}-${Math.floor(Math.random() * 9000 + 1000)}`;
+    }
   }
+
+  // If updating an existing workflow we own: blow away the prior R2 objects
+  // and DB rows, then recreate cleanly.
+  if (existingForUpdate) {
+    let cursor: string | undefined;
+    do {
+      const listed = await env.R2_PUBLIC.list({
+        prefix: `workflows/${existingForUpdate.id}/`,
+        cursor,
+      });
+      if (listed.objects.length) {
+        await env.R2_PUBLIC.delete(listed.objects.map((o) => o.key));
+      }
+      cursor = listed.truncated ? listed.cursor : undefined;
+    } while (cursor);
+    await d.delete(workflows).where(eq(workflows.id, existingForUpdate.id));
+  }
+
+  const meta = body.metadata ?? {};
+  const totalBytes = body.files.reduce(
+    (sum, f) => sum + (typeof f.size_bytes === "number" ? f.size_bytes : 0),
+    0,
+  );
+  const models = Array.isArray(meta.models)
+    ? Array.from(new Set(meta.models.filter((m) => typeof m === "string" && m).map((m) => m.slice(0, 80)))).slice(0, 24)
+    : null;
 
   const [wf] = await d
     .insert(workflows)
@@ -103,6 +170,11 @@ export async function action({ context, request }: Route.ActionArgs) {
       readmeMd: body.readme_md.slice(0, 200_000),
       ownerHandleId: handle.id,
       visibility: "public",
+      models: models && models.length ? models : null,
+      clipCount: typeof meta.clip_count === "number" ? meta.clip_count : null,
+      totalDurationS:
+        typeof meta.total_duration_s === "number" ? meta.total_duration_s : null,
+      totalBytes: totalBytes || null,
     })
     .returning();
 

@@ -42,6 +42,10 @@ export async function loader({ context, request }: Route.LoaderArgs) {
       handle: anonymousHandles.handle,
       mainVideoKey: workflowVideos.r2Key,
       mainPosterKey: workflowVideos.posterR2Key,
+      models: workflows.models,
+      clipCount: workflows.clipCount,
+      totalDurationS: workflows.totalDurationS,
+      totalBytes: workflows.totalBytes,
     })
     .from(workflows)
     .innerJoin(

@@ -26,6 +26,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -183,6 +184,72 @@ def parse_workflow_folder(path: Path):
     return title, summary, readme, files
 
 
+def _extract_timeline_metadata(files: list) -> dict:
+    """Walk staged timeline JSON files and aggregate models / clip count / duration."""
+    models: set[str] = set()
+    clip_count = 0
+    durations_per_track: list[float] = []
+
+    timeline_paths = [p for p, k, _ in files if k == "timeline"]
+    if not timeline_paths:
+        return {}
+
+    for p in timeline_paths:
+        try:
+            doc = json.loads(p.read_text())
+        except Exception:
+            continue
+        if not isinstance(doc, dict):
+            continue
+        defaults = doc.get("defaults") if isinstance(doc.get("defaults"), dict) else {}
+        default_dur = _coerce_duration(defaults.get("duration"))
+        tracks = doc.get("tracks") if isinstance(doc.get("tracks"), list) else []
+        track_total_max = 0.0
+        for track in tracks:
+            if not isinstance(track, dict):
+                continue
+            clips = track.get("clips") if isinstance(track.get("clips"), list) else []
+            track_dur = 0.0
+            for clip in clips:
+                if not isinstance(clip, dict):
+                    continue
+                clip_count += 1
+                model = clip.get("model")
+                if isinstance(model, str) and model.strip():
+                    models.add(model.strip())
+                d = _coerce_duration(clip.get("duration") or clip.get("duration_s"))
+                if d is None:
+                    d = default_dur
+                if d is not None:
+                    track_dur += d
+            track_total_max = max(track_total_max, track_dur)
+        durations_per_track.append(track_total_max)
+
+    out: dict = {}
+    if models:
+        out["models"] = sorted(models)
+    if clip_count:
+        out["clip_count"] = clip_count
+    if durations_per_track:
+        total = max(durations_per_track)
+        if total > 0:
+            out["total_duration_s"] = int(round(total))
+    return out
+
+
+def _coerce_duration(v) -> Optional[float]:
+    if v is None:
+        return None
+    if isinstance(v, (int, float)):
+        return float(v) if v >= 0 else None
+    if isinstance(v, str):
+        try:
+            return float(v)
+        except ValueError:
+            return None
+    return None
+
+
 def cmd_push(args, creds):
     if not creds:
         sys.exit("Not logged in. Run: mograph login")
@@ -235,12 +302,18 @@ def cmd_push(args, creds):
             entry["is_main_video"] = True
         manifest.append(entry)
 
+    metadata = _extract_timeline_metadata(files)
     body_obj = {
         "title": title,
         "summary": summary,
         "readme_md": readme,
         "files": manifest,
     }
+    if metadata:
+        body_obj["metadata"] = metadata
+    update_slug = getattr(args, "update", None)
+    if update_slug:
+        body_obj["slug"] = update_slug
     body = json.dumps(body_obj, separators=(",", ":")).encode()
 
     api = creds["api_base"]
@@ -433,6 +506,7 @@ def cmd_publish(args, creds):
             path=str(staging),
             main=final_video.name,
             api=creds["api_base"],
+            update=getattr(args, "update", None),
         )
         print(f"Publishing run {run_dir.name} as workflow '{title}'…")
         cmd_push(push_args, creds)
@@ -500,25 +574,24 @@ def cmd_rm(args, creds):
     print(f"✓ Deleted {data['slug']} ({data.get('deleted_objects', 0)} R2 objects)")
 
 
-def cmd_pull(args, creds):
-    api = args.api
-    slug = args.slug
-    target = Path(args.dir).resolve() if args.dir else Path.cwd() / slug
-
+def _fetch_manifest(api: str, slug: str) -> dict:
     resp = requests.get(f"{api}/api/workflows/{slug}", timeout=20)
     if not resp.ok:
-        sys.exit(f"fetch failed: {resp.status_code} {resp.text}")
-    manifest = resp.json()
+        sys.exit(f"fetch {slug} failed: {resp.status_code} {resp.text}")
+    return resp.json()
 
+
+def _pull_to(target: Path, manifest: dict, api: str, force: bool, quiet: bool = False) -> None:
     if target.exists() and any(target.iterdir()):
-        if not args.force:
+        if not force:
             sys.exit(
                 f"{target} already exists and is non-empty. Use --force to overwrite."
             )
     target.mkdir(parents=True, exist_ok=True)
 
     (target / "README.md").write_text(manifest["readme_md"])
-    print(f"  ⬇ README.md")
+    if not quiet:
+        print("  ⬇ README.md")
 
     for f in manifest["files"]:
         rel = f["path"]
@@ -534,11 +607,79 @@ def cmd_pull(args, creds):
                 for chunk in r.iter_content(chunk_size=1 << 16):
                     if chunk:
                         out.write(chunk)
-        marker = " ⭐ main" if f.get("is_main") else ""
-        print(f"  ⬇ {rel}{marker}")
+        if not quiet:
+            marker = " ⭐ main" if f.get("is_main") else ""
+            print(f"  ⬇ {rel}{marker}")
 
+
+def cmd_pull(args, creds):
+    api = args.api
+    slug = args.slug
+    target = Path(args.dir).resolve() if args.dir else Path.cwd() / slug
+    manifest = _fetch_manifest(api, slug)
+    _pull_to(target, manifest, api, args.force)
     print(f"\n✓ Pulled {manifest['title']} @{manifest['handle']}")
     print(f"  → {target}")
+
+
+def _find_main_timeline(target: Path, manifest: dict) -> Optional[Path]:
+    """Pick the timeline JSON that best matches the workflow's main video."""
+    timelines = [f for f in manifest["files"] if f["kind"] == "timeline"]
+    if not timelines:
+        return None
+    main_video = next(
+        (f for f in manifest["files"] if f["kind"] == "video" and f.get("is_main")),
+        None,
+    )
+    if main_video:
+        stem = Path(main_video["name"]).stem
+        for t in timelines:
+            if Path(t["name"]).stem == stem:
+                return target / t["path"]
+    # Fall back to a literal `timeline.json` then the first JSON we have.
+    named = next((t for t in timelines if Path(t["name"]).name == "timeline.json"), None)
+    chosen = named or timelines[0]
+    return target / chosen["path"]
+
+
+def cmd_run(args, _creds):
+    api = args.api
+    slug = args.slug
+    target = Path(args.dir).resolve() if args.dir else Path.cwd() / slug
+
+    manifest = _fetch_manifest(api, slug)
+    needs_pull = args.force or (not target.exists()) or not any(target.iterdir())
+    if needs_pull:
+        print(f"Pulling {slug}…")
+        _pull_to(target, manifest, api, force=True)
+    else:
+        print(f"Reusing {target} (already populated)")
+
+    timeline = _find_main_timeline(target, manifest)
+    if not timeline or not timeline.exists():
+        sys.exit("Could not locate a timeline JSON to run.")
+
+    repo_root = Path(__file__).resolve().parent.parent
+    pipeline = repo_root / "pipeline.py"
+    if not pipeline.exists():
+        sys.exit(f"pipeline.py not found at {pipeline}")
+
+    cmd = [
+        sys.executable,
+        str(pipeline),
+        "--timeline-file",
+        str(timeline),
+        "--stage",
+        args.stage,
+    ]
+    if args.mock:
+        cmd.append("--mock")
+    if args.extra:
+        cmd.extend(args.extra)
+
+    print(f"\n→ running: {' '.join(cmd)}\n")
+    rc = subprocess.call(cmd, cwd=repo_root)
+    sys.exit(rc)
 
 
 def main():
@@ -572,6 +713,11 @@ def main():
         "--main",
         help="Filename of the main video (omit to be prompted)",
     )
+    p_push.add_argument(
+        "--update",
+        metavar="SLUG",
+        help="Replace an existing workflow you own (same slug) instead of creating a new one",
+    )
 
     wsub.add_parser("list", help="List your workflows")
     p_open = wsub.add_parser("open", help="Open a workflow in your browser")
@@ -587,6 +733,34 @@ def main():
         "--force",
         action="store_true",
         help="Overwrite if target exists and is non-empty",
+    )
+
+    p_run = wsub.add_parser(
+        "run",
+        help="Pull a workflow and run its main timeline through pipeline.py",
+    )
+    p_run.add_argument("slug", help="Workflow slug (from the URL)")
+    p_run.add_argument("--dir", help="Local directory (defaults to ./<slug>)")
+    p_run.add_argument(
+        "--stage",
+        default="final",
+        help="Pipeline stage to run (default: final)",
+    )
+    p_run.add_argument(
+        "--mock",
+        action="store_true",
+        help="Pass --mock to pipeline.py (use local fixtures, no real API calls)",
+    )
+    p_run.add_argument(
+        "--force",
+        action="store_true",
+        help="Re-pull even if the target directory is already populated",
+    )
+    p_run.add_argument(
+        "--",
+        dest="extra",
+        nargs=argparse.REMAINDER,
+        help="Extra args forwarded to pipeline.py after `--`",
     )
 
     p_rm = wsub.add_parser("rm", help="Delete one of your published workflows")
@@ -624,6 +798,11 @@ def main():
         "--readme",
         help="Path to a custom README.md (defaults to auto-generated from timeline)",
     )
+    p_pub.add_argument(
+        "--update",
+        metavar="SLUG",
+        help="Replace an existing workflow you own (same slug)",
+    )
 
     args = ap.parse_args()
     creds = load_creds()
@@ -645,6 +824,8 @@ def main():
             cmd_rm(args, creds)
         elif args.subcmd == "new":
             cmd_workflow_new(args, creds)
+        elif args.subcmd == "run":
+            cmd_run(args, creds)
 
 
 if __name__ == "__main__":
