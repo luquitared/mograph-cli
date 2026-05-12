@@ -95,6 +95,14 @@ export default function WorkflowsIndex({ loaderData }: Route.ComponentProps) {
                       alt=""
                       className="w-full h-full object-cover"
                     />
+                  ) : w.mainVideoKey ? (
+                    <video
+                      src={`/cdn/${w.mainVideoKey}#t=0.1`}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <div className="absolute inset-0 grid place-items-center text-zinc-400 font-mono text-xs">
                       no preview
