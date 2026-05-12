@@ -11,6 +11,7 @@ import { getEnv } from "../lib/env";
 import { SiteNav } from "../components/site-nav";
 import { SiteFooter } from "../components/site-footer";
 import { CopyCommand } from "../components/copy-command";
+import { Markdown } from "../components/markdown";
 
 export function meta({ data }: Route.MetaArgs) {
   if (!data) return [{ title: "Not found — mograph" }];
@@ -105,8 +106,8 @@ export default function WorkflowDetail({ loaderData }: Route.ComponentProps) {
           </p>
         </div>
 
-        <article className="prose prose-zinc dark:prose-invert mt-10 max-w-none whitespace-pre-wrap font-sans">
-          {workflow.readmeMd}
+        <article className="mt-10">
+          <Markdown>{workflow.readmeMd}</Markdown>
         </article>
 
         {files.length > 0 && (

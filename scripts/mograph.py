@@ -25,7 +25,9 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import sys
+import tempfile
 import time
 import webbrowser
 from pathlib import Path
@@ -313,6 +315,172 @@ def cmd_open(args, creds):
     webbrowser.open(url)
 
 
+def cmd_workflow_new(args, _creds):
+    target = Path(args.dir).resolve() if args.dir else (
+        Path.cwd() / "docs" / "workflows" / args.slug
+    )
+    if target.exists() and any(target.iterdir()):
+        if not args.force:
+            sys.exit(
+                f"{target} already exists and is non-empty. Use --force to overwrite."
+            )
+    (target / "examples").mkdir(parents=True, exist_ok=True)
+    (target / "videos").mkdir(parents=True, exist_ok=True)
+    readme_path = target / "README.md"
+    if not readme_path.exists() or args.force:
+        readme_path.write_text(_readme_template(args.slug, args.title))
+    print(f"✓ Scaffolded {target}")
+    print(f"  edit  {readme_path}")
+    print(f"  add   examples/<your-timeline>.json")
+    print(f"  add   videos/<rendered>.mp4   (or place under examples/)")
+    print(f"  push  mograph workflow push {target}")
+
+
+def _readme_template(slug: str, title: Optional[str]) -> str:
+    pretty = title or slug.replace("-", " ").replace("_", " ").title()
+    return (
+        f"# {pretty}\n"
+        "\n"
+        "One-line summary of what this workflow makes.\n"
+        "\n"
+        "## Recipe\n"
+        "\n"
+        "- Model(s) used: (e.g. Seedance 1.1 Pro, Gemini 3.1 Flash TTS)\n"
+        "- Duration: \n"
+        "- Reference style: \n"
+        "\n"
+        "## Run it\n"
+        "\n"
+        "```\n"
+        f"python pipeline.py --timeline-file examples/{slug}.json --stage final\n"
+        "```\n"
+        "\n"
+        "## Notes\n"
+        "\n"
+        "- (any gotchas, multi-clip consistency tips, etc.)\n"
+    )
+
+
+def _read_timeline(path: Path) -> Optional[dict]:
+    try:
+        return json.loads(path.read_text())
+    except Exception:
+        return None
+
+
+def _find_final_video(run_dir: Path) -> Optional[Path]:
+    candidates = [
+        run_dir / "final" / "final_with_sfx.mp4",
+        run_dir / "final" / "final.mp4",
+        run_dir / "final_with_sfx.mp4",
+        run_dir / "final.mp4",
+    ]
+    for c in candidates:
+        if c.exists() and c.is_file():
+            return c
+    # Fallback: any .mp4 under run_dir, prefer one with "final" in the name.
+    mp4s = sorted(run_dir.rglob("*.mp4"))
+    if not mp4s:
+        return None
+    mp4s.sort(key=lambda p: (0 if "final" in p.name.lower() else 1, p.stat().st_size * -1))
+    return mp4s[0]
+
+
+def cmd_publish(args, creds):
+    if not creds:
+        sys.exit("Not logged in. Run: mograph login")
+    run_dir = Path(args.run_dir).resolve()
+    if not run_dir.is_dir():
+        sys.exit(f"Not a directory: {run_dir}")
+
+    final_video = _find_final_video(run_dir)
+    if not final_video:
+        sys.exit(f"No final mp4 found under {run_dir}")
+
+    timeline_path = run_dir / "timeline.json"
+    if not timeline_path.exists():
+        candidates = list(run_dir.glob("*.timeline.json")) + list(run_dir.glob("*.json"))
+        if candidates:
+            timeline_path = candidates[0]
+        else:
+            timeline_path = None
+    timeline = _read_timeline(timeline_path) if timeline_path else None
+
+    project = (timeline or {}).get("project", {})
+    title = args.title or project.get("name") or run_dir.name
+    summary = args.summary
+    if not summary:
+        desc = (project.get("description") or "").strip()
+        if desc:
+            summary = desc.splitlines()[0]
+
+    readme: str
+    if args.readme:
+        readme = Path(args.readme).read_text()
+    else:
+        readme = _auto_readme(title, summary, timeline, final_video.name)
+
+    staging = Path(tempfile.mkdtemp(prefix="mograph-publish-"))
+    try:
+        (staging / "examples").mkdir(parents=True)
+        (staging / "README.md").write_text(readme)
+        shutil.copy(final_video, staging / "examples" / final_video.name)
+        if timeline_path and timeline_path.exists():
+            shutil.copy(timeline_path, staging / "examples" / "timeline.json")
+
+        # Re-use cmd_push by faking the namespace it expects.
+        push_args = argparse.Namespace(
+            path=str(staging),
+            main=final_video.name,
+            api=creds["api_base"],
+        )
+        print(f"Publishing run {run_dir.name} as workflow '{title}'…")
+        cmd_push(push_args, creds)
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
+
+
+def _auto_readme(
+    title: str,
+    summary: Optional[str],
+    timeline: Optional[dict],
+    main_video_name: str,
+) -> str:
+    parts: list[str] = [f"# {title}", ""]
+    if summary:
+        parts.extend([summary, ""])
+    parts.append("## Recipe")
+    parts.append("")
+    if timeline:
+        tracks = timeline.get("tracks") or []
+        clip_count = sum(len(t.get("clips") or []) for t in tracks)
+        models = sorted({
+            (c.get("model") or "").strip()
+            for t in tracks
+            for c in (t.get("clips") or [])
+            if c.get("model")
+        })
+        if models:
+            parts.append(f"- Models: {', '.join(models)}")
+        if clip_count:
+            parts.append(f"- Clips: {clip_count}")
+        defaults = timeline.get("defaults") or {}
+        if defaults.get("resolution"):
+            parts.append(f"- Resolution: {defaults['resolution']}")
+        if defaults.get("aspect_ratio"):
+            parts.append(f"- Aspect ratio: {defaults['aspect_ratio']}")
+    parts.append("")
+    parts.append("## Run it")
+    parts.append("")
+    parts.append("```")
+    parts.append("python pipeline.py --timeline-file examples/timeline.json --stage final")
+    parts.append("```")
+    parts.append("")
+    parts.append(f"The rendered output is `examples/{main_video_name}`.")
+    parts.append("")
+    return "\n".join(parts)
+
+
 def cmd_rm(args, creds):
     if not creds:
         sys.exit("Not logged in. Run: mograph login")
@@ -427,11 +595,43 @@ def main():
         "-y", "--yes", action="store_true", help="Skip the confirmation prompt"
     )
 
+    p_new = wsub.add_parser(
+        "new", help="Scaffold a new workflow folder (README + examples/ + videos/)"
+    )
+    p_new.add_argument("slug", help="Workflow slug (becomes the directory name)")
+    p_new.add_argument(
+        "--dir",
+        help="Target directory (defaults to ./docs/workflows/<slug>)",
+    )
+    p_new.add_argument("--title", help="Pretty title (defaults to slug)")
+    p_new.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite README/dirs even if non-empty",
+    )
+
+    p_pub = sub.add_parser(
+        "publish",
+        help="Publish a pipeline run dir as a workflow (auto-detects final mp4 + timeline)",
+    )
+    p_pub.add_argument(
+        "run_dir",
+        help="Path to a run directory (e.g. runs/My_Project-20260512-160000)",
+    )
+    p_pub.add_argument("--title", help="Override the workflow title")
+    p_pub.add_argument("--summary", help="One-line summary")
+    p_pub.add_argument(
+        "--readme",
+        help="Path to a custom README.md (defaults to auto-generated from timeline)",
+    )
+
     args = ap.parse_args()
     creds = load_creds()
 
     if args.cmd == "login":
         cmd_login(args, creds)
+    elif args.cmd == "publish":
+        cmd_publish(args, creds)
     elif args.cmd == "workflow":
         if args.subcmd == "push":
             cmd_push(args, creds)
@@ -443,6 +643,8 @@ def main():
             cmd_pull(args, creds)
         elif args.subcmd == "rm":
             cmd_rm(args, creds)
+        elif args.subcmd == "new":
+            cmd_workflow_new(args, creds)
 
 
 if __name__ == "__main__":
