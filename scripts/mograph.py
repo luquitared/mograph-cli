@@ -216,14 +216,15 @@ def cmd_push(args, creds):
     print(f"  files: {len(files)} ({len(videos)} videos, main = {main_name})")
 
     manifest = []
-    for p, k, n in files:
+    for p, k, rel in files:
         data = p.read_bytes()
         is_main = (
             k == "video"
-            and (n == main_name or os.path.basename(n) == main_name)
+            and (rel == main_name or os.path.basename(rel) == main_name)
         )
         entry = {
-            "name": os.path.basename(n),
+            "name": os.path.basename(rel),
+            "path": rel.replace(os.sep, "/"),
             "kind": k,
             "size_bytes": len(data),
             "sha256": hashlib.sha256(data).hexdigest(),
@@ -251,11 +252,11 @@ def cmd_push(args, creds):
         sys.exit(f"create failed: {resp.status_code} {resp.text}")
     info = resp.json()
 
-    file_by_name = {os.path.basename(n): p for p, _, n in files}
+    file_by_path = {rel.replace(os.sep, "/"): p for p, _, rel in files}
     for u in info["uploads"]:
-        local = file_by_name.get(u["name"])
+        local = file_by_path.get(u["path"])
         if not local:
-            print(f"warn: no local file for {u['name']}", file=sys.stderr)
+            print(f"warn: no local file for {u['path']}", file=sys.stderr)
             continue
         ct = "application/octet-stream"
         if u["kind"] == "video":
@@ -312,6 +313,47 @@ def cmd_open(args, creds):
     webbrowser.open(url)
 
 
+def cmd_pull(args, creds):
+    api = args.api
+    slug = args.slug
+    target = Path(args.dir).resolve() if args.dir else Path.cwd() / slug
+
+    resp = requests.get(f"{api}/api/workflows/{slug}", timeout=20)
+    if not resp.ok:
+        sys.exit(f"fetch failed: {resp.status_code} {resp.text}")
+    manifest = resp.json()
+
+    if target.exists() and any(target.iterdir()):
+        if not args.force:
+            sys.exit(
+                f"{target} already exists and is non-empty. Use --force to overwrite."
+            )
+    target.mkdir(parents=True, exist_ok=True)
+
+    (target / "README.md").write_text(manifest["readme_md"])
+    print(f"  ⬇ README.md")
+
+    for f in manifest["files"]:
+        rel = f["path"]
+        dest = target / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        url = f["url"]
+        if url.startswith("/"):
+            url = f"{api}{url}"
+        with requests.get(url, stream=True, timeout=600) as r:
+            if not r.ok:
+                sys.exit(f"download {rel} failed: {r.status_code}")
+            with open(dest, "wb") as out:
+                for chunk in r.iter_content(chunk_size=1 << 16):
+                    if chunk:
+                        out.write(chunk)
+        marker = " ⭐ main" if f.get("is_main") else ""
+        print(f"  ⬇ {rel}{marker}")
+
+    print(f"\n✓ Pulled {manifest['title']} @{manifest['handle']}")
+    print(f"  → {target}")
+
+
 def main():
     ap = argparse.ArgumentParser(
         prog="mograph",
@@ -348,6 +390,18 @@ def main():
     p_open = wsub.add_parser("open", help="Open a workflow in your browser")
     p_open.add_argument("slug")
 
+    p_pull = wsub.add_parser(
+        "pull",
+        help="Download a workflow into a local directory (no auth needed)",
+    )
+    p_pull.add_argument("slug", help="Workflow slug (from the URL)")
+    p_pull.add_argument("--dir", help="Target directory (defaults to ./<slug>)")
+    p_pull.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite if target exists and is non-empty",
+    )
+
     args = ap.parse_args()
     creds = load_creds()
 
@@ -360,6 +414,8 @@ def main():
             cmd_list(args, creds)
         elif args.subcmd == "open":
             cmd_open(args, creds)
+        elif args.subcmd == "pull":
+            cmd_pull(args, creds)
 
 
 if __name__ == "__main__":

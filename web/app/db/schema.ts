@@ -82,6 +82,8 @@ export const workflowVideos = pgTable(
     workflowId: uuid("workflow_id")
       .notNull()
       .references(() => workflows.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    path: text("path").notNull(),
     r2Key: text("r2_key").notNull(),
     posterR2Key: text("poster_r2_key"),
     durationS: integer("duration_s"),
@@ -102,6 +104,7 @@ export const workflowFiles = pgTable(
       .references(() => workflows.id, { onDelete: "cascade" }),
     kind: text("kind").notNull(),
     name: text("name").notNull(),
+    path: text("path").notNull(),
     r2Key: text("r2_key").notNull(),
     sizeBytes: bigint("size_bytes", { mode: "number" }),
     createdAt: timestamp("created_at", { withTimezone: true })

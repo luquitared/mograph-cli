@@ -12,6 +12,7 @@ import { verifyRequest, makeUploadToken } from "../lib/sig";
 
 type Declared = {
   name: string;
+  path: string;
   kind: "video" | "timeline" | "md" | "txt" | "pack";
   size_bytes?: number;
   sha256?: string;
@@ -35,9 +36,22 @@ function slugify(s: string): string {
     .slice(0, 60) || "workflow";
 }
 
-function r2KeyFor(workflowId: string, kind: string, name: string): string {
-  const safe = name.replace(/[^a-zA-Z0-9._-]+/g, "_");
-  return `workflows/${workflowId}/${kind}/${safe}`;
+function r2KeyFor(workflowId: string, path: string): string {
+  const safe = path
+    .split("/")
+    .map((seg) => seg.replace(/[^a-zA-Z0-9._-]+/g, "_"))
+    .join("/");
+  return `workflows/${workflowId}/${safe}`;
+}
+
+function sanitizePath(p: string): string | null {
+  if (!p) return null;
+  const norm = p.replace(/\\/g, "/").replace(/^\/+/, "");
+  if (norm.split("/").some((s) => s === "" || s === "." || s === "..")) {
+    return null;
+  }
+  if (norm.length > 240) return null;
+  return norm;
 }
 
 export async function action({ context, request }: Route.ActionArgs) {
@@ -95,6 +109,7 @@ export async function action({ context, request }: Route.ActionArgs) {
   const expiresAt = Math.floor(Date.now() / 1000) + 3600;
   const out: Array<{
     name: string;
+    path: string;
     kind: string;
     file_id: string;
     upload_url: string;
@@ -102,7 +117,11 @@ export async function action({ context, request }: Route.ActionArgs) {
   let mainVideoId: string | null = null;
 
   for (const f of body.files) {
-    const r2Key = r2KeyFor(wf.id, f.kind, f.name);
+    const safePath = sanitizePath(f.path ?? f.name);
+    if (!safePath) {
+      return json({ error: `bad path: ${f.path}` }, { status: 400 });
+    }
+    const r2Key = r2KeyFor(wf.id, safePath);
     let fileId: string;
 
     if (f.kind === "video") {
@@ -110,6 +129,8 @@ export async function action({ context, request }: Route.ActionArgs) {
         .insert(workflowVideos)
         .values({
           workflowId: wf.id,
+          name: f.name,
+          path: safePath,
           r2Key,
           durationS: f.duration_s ?? null,
           isMain: !!f.is_main_video,
@@ -124,6 +145,7 @@ export async function action({ context, request }: Route.ActionArgs) {
           workflowId: wf.id,
           kind: f.kind,
           name: f.name,
+          path: safePath,
           r2Key,
           sizeBytes: f.size_bytes ?? null,
         })
@@ -140,6 +162,7 @@ export async function action({ context, request }: Route.ActionArgs) {
     });
     out.push({
       name: f.name,
+      path: safePath,
       kind: f.kind,
       file_id: fileId,
       upload_url: `/api/upload/${token}`,
