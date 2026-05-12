@@ -79,9 +79,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--tts-model",
-        default="gemini-2.5-flash-preview-tts",
-        help="Gemini TTS model (default: gemini-2.5-flash-preview-tts). "
-             "Use 'gemini-2.5-pro-preview-tts' for higher quality.",
+        default="gemini-3.1-flash-tts-preview",
+        help="Gemini TTS model (default: gemini-3.1-flash-tts-preview). "
+             "Pass 'gemini-2.5-flash-preview-tts' to fall back to the 2.5 model.",
     )
     parser.add_argument(
         "--tts-concurrency",

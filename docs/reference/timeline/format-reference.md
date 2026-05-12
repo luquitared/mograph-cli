@@ -62,7 +62,7 @@ Fields prefixed with `_` (e.g. `_comment`) are silently ignored by the parser an
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `voice` | `string` | `"Kore"` | Voice name (see models.md for full list). |
-| `model` | `string` | `"gemini-2.5-flash-tts"` | TTS model. |
+| `model` | `string` | `"gemini-3.1-flash-tts"` | TTS model. Use `"gemini-2.5-flash-tts"` to fall back. |
 | `voice_prompt` | `string` | `null` | Optional style/tone instructions for the voice. |
 
 ## Track

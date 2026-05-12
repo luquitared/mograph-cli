@@ -1,10 +1,10 @@
 # tts/
 
-Text-to-speech synthesis, transcription, and audio timestamp processing. Primary TTS engine is Gemini 2.5 Flash; ElevenLabs provides forced alignment for precise word timestamps; Deepgram handles voice-mode transcription.
+Text-to-speech synthesis, transcription, and audio timestamp processing. Primary TTS engine is Gemini 3.1 Flash TTS (`gemini-3.1-flash-tts-preview`); supports inline audio tags like `[whispers]`, `[laughs]`, `[excited]` and custom tags. ElevenLabs provides forced alignment for precise word timestamps; Deepgram handles voice-mode transcription. 2.5 Flash TTS is still selectable via `model = "gemini-2.5-flash-tts"` in the timeline.
 
 ## Files
 
-- `gemini_tts.py` — Primary TTS via Google Gemini 2.5 Flash. Handles batch synthesis with voice selection by Gemini voice name
+- `gemini_tts.py` — Primary TTS via Google Gemini 3.1 Flash TTS. Handles batch synthesis with voice selection by Gemini voice name. Output is PCM 24kHz 16-bit mono, watermarked with SynthID.
 - `eleven.py` — ElevenLabs TTS with `convert_with_timestamps` for character-level timing, and `forced_alignment_sync()` for word-level timestamps on pre-existing audio
 - `transcribe.py` — Deepgram transcription for voice mode. Extracts word-level timestamps and formats for LLM consumption
 - `tts_transcript.py` — Converts ElevenLabs/forced-alignment timestamps into `TTSTranscript` objects with word-level timing for TTS-first pipeline mode

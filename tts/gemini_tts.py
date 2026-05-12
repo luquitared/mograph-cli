@@ -63,7 +63,7 @@ def _jsonable(value: Any) -> Any:
         return str(value)
 
 
-# Available Gemini TTS voices
+# Available Gemini TTS voices (30 prebuilt voices for 3.1 Flash TTS)
 GEMINI_VOICES = [
     # Female voices
     "Achernar", "Aoede", "Autonoe", "Callirrhoe", "Despina", "Erinome",
@@ -72,12 +72,12 @@ GEMINI_VOICES = [
     # Male voices
     "Achird", "Algenib", "Algieba", "Alnilam", "Charon", "Enceladus",
     "Fenrir", "Iapetus", "Orus", "Puck", "Rasalgethi", "Sadachbia",
-    "Sadaltager", "Schedar", "Umbriel",
+    "Sadaltager", "Schedar", "Umbriel", "Zubenelgenubi",
 ]
 
 # Default voice settings
 DEFAULT_VOICE = "Kore"
-DEFAULT_MODEL = "gemini-2.5-flash-preview-tts"
+DEFAULT_MODEL = "gemini-3.1-flash-tts-preview"
 SAMPLE_RATE = 24000
 SAMPLE_WIDTH = 2
 CHANNELS = 1

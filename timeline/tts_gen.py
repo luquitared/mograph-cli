@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 # Timeline canonical names → actual model IDs used by GeminiTTS
 TTS_MODEL_MAP: Dict[str, str] = {
+    "gemini-3.1-flash-tts": "gemini-3.1-flash-tts-preview",
     "gemini-2.5-flash-tts": "gemini-2.5-flash-preview-tts",
 }
 

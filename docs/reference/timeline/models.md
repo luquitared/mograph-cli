@@ -133,18 +133,30 @@ OpenAI's `openai/gpt-image-2` model via Replicate. Strong at photoreal compositi
 
 ## TTS Models
 
-### Gemini TTS (`gemini-2.5-flash-tts`)
+### Gemini TTS (`gemini-3.1-flash-tts`)
 
-Text-to-speech via Google Gemini Flash TTS.
+Default. Text-to-speech via Google Gemini 3.1 Flash TTS (API ID `gemini-3.1-flash-tts-preview`). Output is PCM 24kHz 16-bit mono, watermarked with SynthID.
 
 | Parameter | Values | Default |
 |-----------|--------|---------|
 | `voice` | See voice list below | `"Kore"` |
-| `voice_prompt` | any string | `null` |
+| `voice_prompt` | any string (Director's Notes / Audio Profile) | `null` |
 
-**Available Voices:**
+**Audio tags (inline):** Square-bracketed tags placed directly in `text` modulate delivery. 200+ tags supported.
 
-Achernar, Achird, Algenib, Algieba, Alnilam, Aoede, Autonoe, Callirrhoe, Charon, Despina, Enceladus, Erinome, Fenrir, Gacrux, Iapetus, Kore, Laomedeia, Leda, Orus, Puck, Pulcherrima, Rasalgethi, Sadachbia, Sadaltager, Schedar, Sulafat, Umbriel, Vindemiatrix, Zephyr
+Built-ins include `[amazed] [crying] [curious] [excited] [sighs] [gasp] [giggles] [laughs] [mischievously] [panicked] [sarcastic] [serious] [shouting] [tired] [trembling] [whispers]`. Custom tags work too, e.g. `[like a cartoon dog]` or `[one painfully slow word at a time]`.
+
+```
+"text": "Oh, you really thought you could outrun me? [laughs] That's adorable."
+```
+
+**Available Voices (30):**
+
+Achernar, Achird, Algenib, Algieba, Alnilam, Aoede, Autonoe, Callirrhoe, Charon, Despina, Enceladus, Erinome, Fenrir, Gacrux, Iapetus, Kore, Laomedeia, Leda, Orus, Puck, Pulcherrima, Rasalgethi, Sadachbia, Sadaltager, Schedar, Sulafat, Umbriel, Vindemiatrix, Zephyr, Zubenelgenubi
+
+### Gemini TTS (`gemini-2.5-flash-tts`) — legacy
+
+Same call shape, no inline audio tags. Pass `model: "gemini-2.5-flash-tts"` to opt back into it.
 
 ---
 

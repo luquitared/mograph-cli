@@ -13,7 +13,7 @@ pipeline.py:
 
   # Audio settings (Gemini TTS)
   --voice NAME               # Gemini voice name (default: Kore)
-  --tts-model MODEL          # Gemini TTS model (default: gemini-2.5-flash-preview-tts)
+  --tts-model MODEL          # Gemini TTS model (default: gemini-3.1-flash-tts-preview)
   --tts-concurrency N        # Concurrent TTS requests (default: 5)
   --list-voices              # List available Gemini voices and exit
 

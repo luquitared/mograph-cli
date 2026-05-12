@@ -72,7 +72,7 @@ class TTSSource:
     text: str = ""
     voice: str = "Kore"
     voice_prompt: Optional[str] = None
-    model: str = "gemini-2.5-flash-tts"
+    model: str = "gemini-3.1-flash-tts"
     candidates: Optional[List[Dict[str, Any]]] = None
     select: Optional[int] = None
 
@@ -193,7 +193,7 @@ class ImageDefaults:
 @dataclass
 class TTSDefaults:
     voice: str = "Kore"
-    model: str = "gemini-2.5-flash-tts"
+    model: str = "gemini-3.1-flash-tts"
     voice_prompt: Optional[str] = None
 
 

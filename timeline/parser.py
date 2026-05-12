@@ -276,7 +276,7 @@ def _parse_defaults(raw: Any, warnings: List[str]) -> Defaults:
 
     tts_defaults = TTSDefaults(
         voice=tts_raw.get("voice", "Kore"),
-        model=tts_raw.get("model", "gemini-2.5-flash-tts"),
+        model=tts_raw.get("model", "gemini-3.1-flash-tts"),
         voice_prompt=tts_raw.get("voice_prompt"),
     )
 

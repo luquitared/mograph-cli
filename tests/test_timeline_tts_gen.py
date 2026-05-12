@@ -25,6 +25,7 @@ from timeline.tts_gen import (
 
 
 def test_resolve_model_mapped():
+    assert _resolve_model("gemini-3.1-flash-tts") == "gemini-3.1-flash-tts-preview"
     assert _resolve_model("gemini-2.5-flash-tts") == "gemini-2.5-flash-preview-tts"
 
 

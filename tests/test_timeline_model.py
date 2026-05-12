@@ -114,7 +114,7 @@ class TestSourceTypes:
         assert s.text == ""
         assert s.voice == "Kore"
         assert s.voice_prompt is None
-        assert s.model == "gemini-2.5-flash-tts"
+        assert s.model == "gemini-3.1-flash-tts"
 
     def test_file_source_defaults(self):
         s = FileSource()
