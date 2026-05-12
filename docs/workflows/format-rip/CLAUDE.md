@@ -35,6 +35,8 @@ python scripts/asset_pack_push.py runs/style-packs/<slug> <slug> --prefix style-
 - Format analysis model: `gemini-3.1-pro-preview` (what `scripts/format_describe.py` uses).
 - Generation: `seedance-2.0-fast` at 480p for testing, `seedance-2.0` at 720p for finals.
 - **Aspect ratio: match the source.** Vertical reels → `9:16`. Don't default to 16:9.
+- **Ask the user about source audio.** Format-rip's source mp4 has a load-bearing audio bed (the format-defining sfx + music). Before writing the timeline, ask: *"Use the source's original audio (muxed in post via ffmpeg), or let Seedance generate fresh audio?"* Default to **source audio muxed in post** when the format has `audio_design.key_sfx[].load_bearing: true` cues — those are the format. Set `generate_audio: false` and after the run: `ffmpeg -i final/video_concat.mp4 -i runs/style-packs/<slug>/source.mp4 -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -shortest <output>.mp4`
+- **Multi-clip consistency:** see root `CLAUDE.md`. For format-rip, generate the character anchor with the source's frames as refs so it lands in-style.
 
 ## Critical rules
 

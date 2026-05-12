@@ -73,7 +73,7 @@ avoids), agents default to whatever and produce generic output. Ask:
 |---|---|---|
 | Music timeline JSON gets clobbered | Multiple songs writing to `music_timeline.json` | Always name song-specifically: `analyze_music.py x.mp3 > x_timeline.json` |
 | Clips feel generic | No creative brief gathered | Ask the user the 4 questions above before designing clips |
-| Visual continuity weak across cuts | Each clip prompt independent | Use `reference_images` chaining or first/last-frame extraction across consecutive clips (see `docs/timeline/patterns.md` on chaining) |
+| Visual continuity weak across cuts | Each clip prompt independent | Use `reference_images` chaining or first/last-frame extraction across consecutive clips |
 | Long clips look static | Seedance over-stabilizes 15s clips | Use timestamped shot changes inside the prompt; or split into shorter clips |
 
 ## Files in this workflow

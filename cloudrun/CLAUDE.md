@@ -8,7 +8,7 @@ Cloud Run HTTP API deployment — FastAPI server for remote video generation wit
 - `gcs_storage.py` — GCS upload/download/signed URL helpers and `GCSWorkspace` class that manages a temp local workspace with GCS sync. Handles input download and output upload.
 - `CLOUDRUN.md` — Comprehensive API documentation (prerequisites, deployment steps, endpoint reference, config)
 - `Dockerfile` — Container image for Cloud Run
-- `cloudbuild.yaml` — Cloud Build config used by `scripts/deploy.sh`
+- `cloudbuild.yaml` — Cloud Build config used by `deployment/deploy.sh`
 - `requirements.txt` — Python dependencies for the container
 
 ## Key Interfaces
@@ -23,6 +23,6 @@ Cloud Run HTTP API deployment — FastAPI server for remote video generation wit
 
 - **Imports from**: `timeline/` package, `cloudrun/gcs_storage.py`, `google.cloud.storage`
 - **Imported by**: nothing (deployed as standalone service)
-- **Deployment**: `scripts/deploy.sh` → `gcloud builds submit --config cloudrun/cloudbuild.yaml`
+- **Deployment**: `deployment/deploy.sh` → `gcloud builds submit --config cloudrun/cloudbuild.yaml`
 
 > See `CLOUDRUN.md` for full API documentation.

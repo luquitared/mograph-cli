@@ -19,10 +19,10 @@ Webapp (Next.js on Vercel) --> Cloud Run (FastAPI) --> GCS (inputs/outputs)
 
 ```bash
 # Production
-./scripts/deploy.sh
+./deployment/deploy.sh
 
 # Staging (limited to 3 instances)
-./scripts/deploy.sh --env staging
+./deployment/deploy.sh --env staging
 ```
 
 The script writes a `VERSION` file with git commit + timestamp, then runs `gcloud builds submit --config cloudrun/cloudbuild.yaml`.

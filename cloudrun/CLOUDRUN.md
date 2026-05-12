@@ -401,7 +401,7 @@ Health check endpoint.
 | `phase` | string | Selection phase: `images`, `videos`, or `tts` (required) |
 | `selections` | object | Mapping of node_id to list of selected candidate indices (required) |
 
-> For full timeline format documentation, see [`docs/timeline/`](../docs/timeline/).
+> For full timeline format documentation, see [`docs/reference/timeline/`](../docs/reference/timeline/).
 
 ## Usage Examples
 

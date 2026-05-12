@@ -26,7 +26,7 @@ in `runs/<slug>/`.
 - Video: `seedance-2.0-fast` at 480p, 16:9, **`generate_audio: false`**
   (narration IS the audio)
 - Image: `nano-banana-pro` (or `gpt-image-2` if any text in the image)
-- TTS: `Kore` (Gemini TTS, see `docs/tts-voices.md` for alternatives)
+- TTS: `Kore` (Gemini TTS, see `docs/reference/tts-voices.md` for alternatives)
 
 ## The shape
 
@@ -80,7 +80,7 @@ invocation only does the work that stage represents.
 This workflow's clips are short and visually focused — one subject per
 clip, motion described concretely. **Don't stage multi-character scenes
 in narration-explainer**. If the user wants a recurring cast, they want
-`docs/news-video/` instead.
+`docs/workflows/news-video/` instead.
 
 ## Examples
 

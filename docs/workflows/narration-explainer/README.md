@@ -15,7 +15,7 @@ single visual subject per clip, no recurring cast.
 - The user has a script in mind, or wants TTS to read one
 
 If the user wants a recurring on-screen cast or interleaved b-roll
-cutaways, they want `docs/news-video/` instead.
+cutaways, they want `docs/workflows/news-video/` instead.
 
 ## Inputs
 
@@ -162,7 +162,7 @@ Set the model on `defaults.image` in the timeline.
 ## 6. TTS voices
 
 `defaults.tts.voice` selects a Gemini TTS voice. See
-`docs/tts-voices.md` for the catalog. Defaults to `Kore` if unset.
+`docs/reference/tts-voices.md` for the catalog. Defaults to `Kore` if unset.
 
 To override per-clip: `narration` clip's `source.voice: "<name>"`.
 
@@ -180,7 +180,56 @@ To override per-clip: `narration` clip's `source.voice: "<name>"`.
 
 ---
 
-## 8. Examples
+## 8. Pre-recorded voice over
+
+Same workflow shape, but use an existing audio file as the narration
+instead of TTS. Slice a long recording into segments with `start`/`end`,
+or point at separate files per clip.
+
+```json
+{
+  "version": 1,
+  "project": { "name": "Product Walkthrough" },
+  "defaults": {
+    "video": { "model": "seedance-2.0-fast", "generate_audio": false }
+  },
+  "tracks": [
+    {
+      "id": "narration",
+      "type": "narration",
+      "clips": [
+        { "id": "narr-intro",    "source": { "type": "file", "path": "recordings/walkthrough.mp3", "start": 0,    "end": 12.5 } },
+        { "id": "narr-features", "source": { "type": "file", "path": "recordings/walkthrough.mp3", "start": 12.5, "end": 28.0 } },
+        { "id": "narr-closing",  "source": { "type": "file", "path": "recordings/outro.mp3" } }
+      ]
+    },
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        { "id": "vid-intro",    "fit_to": "narr-intro",    "source": { "type": "video", "prompt": "Sleek product floating in space, soft studio lighting, slow rotation" } },
+        { "id": "vid-features", "fit_to": "narr-features", "source": { "type": "video", "prompt": "Product exploded view showing internal components, technical diagram style" } },
+        { "id": "vid-closing",  "fit_to": "narr-closing",  "source": { "type": "video", "prompt": "Product on a desk in a modern office, pull back to wide shot" } }
+      ]
+    }
+  ]
+}
+```
+
+**Key pattern:** `"type": "file"` sources with `start`/`end` slice an
+existing recording into per-clip segments (seconds, optional). File
+paths are relative to the timeline JSON. Each video uses `fit_to` the
+same way TTS clips do — the pipeline measures actual audio duration
+and sizes the video to match. The same WPS-2.5 / 15s-per-clip
+constraints apply: if a recorded segment is too long, split it into
+two clips.
+
+When the user has a script but no recording, use TTS (sections 1–7
+above). When they hand you an mp3, use this section.
+
+---
+
+## 9. Examples
 
 `tests/e2e_scripts/06_long_narration_timing.json` exercises a long-then-
 short narration pair — useful as a reference for `fit_to` semantics.

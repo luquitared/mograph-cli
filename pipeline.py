@@ -55,7 +55,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--timeline-file",
         required=False,
-        help="Path to timeline JSON file. See docs/timeline/ for reference.",
+        help="Path to timeline JSON file. See docs/reference/timeline/ for reference.",
     )
     # Deprecated flags — recognize them to give helpful migration messages
     parser.add_argument("--script-file", default=None, help=argparse.SUPPRESS)
@@ -286,10 +286,10 @@ def main(args: Optional[argparse.Namespace] = None) -> Path:
 
     # Check for deprecated flags and give migration guidance
     deprecated_flags = {
-        "script_file": "--script-file has been removed. Use --timeline-file with the new timeline JSON format.\n  See docs/timeline/ for migration guidance.",
-        "voice_file": "--voice-file has been removed. Use file sources in timeline tracks instead.\n  See docs/timeline/patterns.md for voice-mode examples.",
+        "script_file": "--script-file has been removed. Use --timeline-file with the new timeline JSON format.\n  See docs/reference/timeline/ for migration guidance.",
+        "voice_file": "--voice-file has been removed. Use file sources in timeline tracks instead.\n  See docs/workflows/narration-explainer/ for pre-recorded voice-over examples.",
         "tts_only": "--tts-only has been removed. Use --stage images to run TTS + image generation only.",
-        "timing_mode": "--timing-mode has been removed. Use fit_to in timeline clips for timing control.\n  See docs/timeline/format-reference.md for details.",
+        "timing_mode": "--timing-mode has been removed. Use fit_to in timeline clips for timing control.\n  See docs/reference/timeline/format-reference.md for details.",
     }
     used_deprecated = []
     for attr, msg in deprecated_flags.items():

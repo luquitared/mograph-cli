@@ -33,7 +33,7 @@ python scripts/asset_pack_pull.py news-show-v1
 # → runs/asset-packs/news-show-v1/{characters,voices,environments,composites}/
 
 # 2. Run an example timeline
-python pipeline.py --timeline-file docs/news-video/examples/news-segment-full.json --stage final
+python pipeline.py --timeline-file docs/workflows/news-video/examples/news-segment-full.json --stage final
 
 # 3. Polish audio
 python scripts/polish_audio.py runs/Kalshi_Top_5_v2-*
@@ -282,7 +282,7 @@ N.  Outro                      — full cast, no composite
 ```
 
 Total target: 60–120s. See
-`docs/news-video/examples/news-segment-full.json` for a concrete 7-clip
+`docs/workflows/news-video/examples/news-segment-full.json` for a concrete 7-clip
 example.
 
 ### Reference type cheat sheet
@@ -340,7 +340,7 @@ suggested fixes. Use the `biggest_fixes[]` array as a punch list.
 | `E005` content moderation on retry loop | Photoreal-human reference image | Stylized refs (claymation, anime, illustrated) pass. Don't use action-figure photography as a ref. |
 | `E005` on a prompt that mentions a named studio | Named-style copyright block | Describe the aesthetic instead of saying e.g. "Robot Chicken style" / "Studio Ghibli style" |
 | `E006` "Reference audio requires at least one reference image or video" | `reference_audios` alone | Always pair with at least one `reference_images` or `reference_videos` entry |
-| `E006` on `duration < 4` | Seedance min duration | Use ≥4s; `docs/timeline/models.md` lists 1s but server rejects it |
+| `E006` on `duration < 4` | Seedance min duration | Use ≥4s; `docs/reference/timeline/models.md` lists 1s but server rejects it |
 | "may be related to copyright restrictions" error | Recognizable politician likeness in a ref | Use silhouette / symbolic imagery / caption-only — see Section 3c |
 | `E003` "Service is currently unavailable due to high demand" on retry loop | Genuine Seedance capacity issue | Wait 30+ min; or try `seedance-2.0` (different pool, ~5x cost). Sometimes the request hash routing helps — slight prompt tweaks can land on a less-loaded shard. |
 | B-roll comes out as static slideshow | Reference image anchors model too hard | Lead prompt with `"FULLY ANIMATED, CONTINUOUS MOTION THROUGHOUT"`; single subject; consider motion-blur scene refs |
@@ -365,7 +365,6 @@ suggested fixes. Use the `biggest_fixes[]` array as a punch list.
 
 ## 11. See also
 
-- `docs/timeline/format-reference.md` — full timeline schema
-- `docs/timeline/models.md` — per-model parameters and constraints
-- `docs/timeline/patterns.md` — chaining, exploration, mixing patterns
-- `docs/music-video-workflow.md` — sister workflow (different shape, same pipeline)
+- `docs/reference/timeline/format-reference.md` — full timeline schema
+- `docs/reference/timeline/models.md` — per-model parameters and constraints
+- `docs/workflows/music-video/` — sister workflow (different shape, same pipeline)
