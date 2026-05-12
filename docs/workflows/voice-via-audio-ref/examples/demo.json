@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "project": {
+    "name": "Voice via Audio Ref Demo",
+    "description": "Demonstrates Seedance's reference_audios feature: pass a clean reference WAV (here generated with Gemini 3.1 Flash TTS) and a matching still, and Seedance produces audio that takes on the reference voice's timbre and cadence. Much better than Seedance's bare-prompt audio for non-photoreal characters."
+  },
+  "defaults": {
+    "video": {
+      "model": "seedance-2.0-fast",
+      "resolution": "480p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true
+    }
+  },
+  "tracks": [
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "villain_clip",
+          "source": {
+            "type": "video",
+            "prompt": "Claymation stop-motion. The same plasticine chess player from [Image1] in his small wood-paneled chess parlor. He pushes his last piece forward across the board with two fingers, looks up at the unseen opponent with mock-pity, mouth visibly moving with each syllable, and delivers exactly: 'Oh, you really thought you could outrun me?' He tilts his head back with one short clipped laugh. Then leans forward over the board again, dry and dismissive: 'That's adorable.' Warm parlor lamp key light, hand-built miniature set, subtle handheld camera, 24fps stop-motion frame-step feel. Audio: match the voice timbre and cadence of [Audio1] — theatrical hobbyist gloating, mock-pity then dismissive delivery, one short laugh between sentences.",
+            "duration": 8,
+            "reference_images": ["docs/workflows/voice-via-audio-ref/assets/villain_ref.png"],
+            "reference_audios": ["docs/workflows/voice-via-audio-ref/assets/villain_voice.wav"]
+          }
+        }
+      ]
+    }
+  ],
+  "output": { "format": "mp4" }
+}

@@ -13,6 +13,7 @@ Each folder is a self-contained recipe for a kind of video. Match the folder to 
 - `style-rip/` — clone an existing video's visual style into a reusable pack
 - `character-asset/` — produce a transparent (alpha) character video asset; uses `scripts/key_character.py` for keying
 - `video-clone/` — recreate an existing video shot-by-shot
+- `voice-via-audio-ref/` — fix emotionless Seedance dialogue by passing a clean reference WAV (e.g. from Gemini TTS) as `reference_audios` on a stylized character clip
 
 ## `reference/` — coding-side reference
 
