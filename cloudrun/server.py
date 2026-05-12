@@ -7,7 +7,7 @@ Provides HTTP endpoints for:
 - /health: Health check endpoint
 
 Supports both webhook callbacks and SSE for real-time progress updates.
-Uploads assets incrementally and emits GCS URLs as they're generated.
+Uploads assets incrementally and emits r2:// URIs as they're generated.
 """
 
 import asyncio
@@ -33,8 +33,24 @@ from pydantic import BaseModel, Field
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from cloudrun import gcs_storage
-from cloudrun.gcs_storage import GCSWorkspace
+from cloudrun import r2_storage
+from cloudrun.r2_storage import R2Workspace
+
+
+def _default_output_uri() -> Optional[str]:
+    """Resolve the default object-storage prefix for pipeline outputs.
+
+    Preference order: explicit R2_OUTPUT_URI, then R2_BUCKET_NAME (synthesized
+    as r2://<bucket>/cloudrun-outputs), then the legacy GCS_OUTPUT_BUCKET (still
+    usable because r2_storage.parse_uri accepts gs:// for back-compat).
+    """
+    explicit = os.environ.get("R2_OUTPUT_URI")
+    if explicit:
+        return explicit
+    bucket = os.environ.get("R2_BUCKET_NAME") or os.environ.get("R2_BUCKET")
+    if bucket:
+        return f"r2://{bucket.strip().strip('/')}/cloudrun-outputs"
+    return os.environ.get("GCS_OUTPUT_BUCKET")
 
 # Thread pool for running pipeline (avoids asyncio.run() conflicts)
 executor = ThreadPoolExecutor(max_workers=4)
@@ -99,10 +115,10 @@ class GenerateRequest(BaseModel):
     """Request body for timeline-based video generation."""
     # Timeline input (one required)
     timeline_json: Optional[dict] = Field(None, description="Inline timeline JSON")
-    timeline_file: Optional[str] = Field(None, description="GCS URI to timeline JSON file")
+    timeline_file: Optional[str] = Field(None, description="R2 URI to timeline JSON file (r2:// or gs://)")
 
     # Output
-    output_uri: Optional[str] = Field(None, description="GCS URI for output (gs://bucket/path). Optional for local testing.")
+    output_uri: Optional[str] = Field(None, description="R2 URI for output (r2://bucket/path; gs:// also accepted). Optional for local testing.")
 
     # Callback options
     callback_url: Optional[str] = Field(None, description="URL to POST status updates (webhook)")
@@ -228,7 +244,7 @@ def _emit_progress(
 def _run_timeline_sync(request: GenerateRequest, job_id: str) -> dict:
     """Execute the timeline pipeline synchronously with progress reporting.
 
-    Uses GCSWorkspace, asset watcher, and SSE event patterns for real-time updates.
+    Uses R2Workspace, asset watcher, and SSE event patterns for real-time updates.
     """
     from timeline.parser import parse_timeline
     from timeline.validator import validate as validate_timeline_doc
@@ -239,13 +255,13 @@ def _run_timeline_sync(request: GenerateRequest, job_id: str) -> dict:
     # Determine output destination
     output_uri = request.output_uri
     if not output_uri:
-        output_uri = os.environ.get("GCS_OUTPUT_BUCKET")
+        output_uri = _default_output_uri()
 
     local_output_dir = os.environ.get("LOCAL_OUTPUT_DIR")
     if local_output_dir and not output_uri:
-        workspace = GCSWorkspace(None, local_base=Path(local_output_dir))
+        workspace = R2Workspace(None, local_base=Path(local_output_dir))
     else:
-        workspace = GCSWorkspace(output_uri)
+        workspace = R2Workspace(output_uri)
 
     external_job_id = request.job_id or job_id
     project_id = request.project_id
@@ -261,7 +277,7 @@ def _run_timeline_sync(request: GenerateRequest, job_id: str) -> dict:
             timeline = parse_timeline(request.timeline_json)
             timeline_dir = workspace.local_base
         elif request.timeline_file:
-            # Download from GCS
+            # Download from R2
             inputs = workspace.download_inputs(
                 timeline_file=request.timeline_file,
                 reference_images=[],
@@ -306,21 +322,15 @@ def _run_timeline_sync(request: GenerateRequest, job_id: str) -> dict:
             """Watch for new assets in the run directory."""
             seen_files: Set[Path] = set()
 
-            bucket = None
             bucket_name = None
             prefix = ""
+            r2_client = None
             if not workspace.is_local_only:
-                from google.cloud import storage
-                gcs_base = workspace.output_uri
-                if gcs_base.startswith("gs://"):
-                    gcs_base = gcs_base[5:]
-                bucket_name, *prefix_parts = gcs_base.split("/", 1)
-                prefix = prefix_parts[0] if prefix_parts else ""
+                bucket_name, prefix = r2_storage.parse_uri(workspace.output_uri)
                 try:
-                    client = storage.Client()
-                    bucket = client.bucket(bucket_name)
+                    r2_client = r2_storage.get_client()
                 except Exception as e:
-                    print(f"[WATCHER-TL] Failed to init GCS client: {e}")
+                    print(f"[WATCHER-TL] Failed to init R2 client: {e}")
                     return
 
             def upload_and_emit(file_path: Path, asset_type: str):
@@ -347,9 +357,13 @@ def _run_timeline_sync(request: GenerateRequest, job_id: str) -> dict:
                         asset_url = f"file://{file_path}"
                     else:
                         rel_path = file_path.relative_to(run_dir)
-                        gcs_path = f"{prefix}/{run_dir.name}/{rel_path}" if prefix else f"{run_dir.name}/{rel_path}"
-                        bucket.blob(gcs_path).upload_from_filename(str(file_path))
-                        asset_url = f"gs://{bucket_name}/{gcs_path}"
+                        r2_key = (
+                            f"{prefix}/{run_dir.name}/{rel_path}"
+                            if prefix
+                            else f"{run_dir.name}/{rel_path}"
+                        )
+                        r2_client.upload_file(str(file_path), bucket_name, r2_key)
+                        asset_url = f"r2://{bucket_name}/{r2_key}"
                     _emit_progress(
                         external_job_id, f"asset.{asset_type}",
                         callback_url=callback_url,
@@ -447,8 +461,8 @@ def _run_timeline_sync(request: GenerateRequest, job_id: str) -> dict:
                 "error": "; ".join(run_result.errors),
             }
 
-        # Upload remaining outputs to GCS
-        print(f"[SERVER-TL] Uploading outputs to GCS (job_id={external_job_id})...", flush=True)
+        # Upload remaining outputs to R2
+        print(f"[SERVER-TL] Uploading outputs to R2 (job_id={external_job_id})...", flush=True)
         upload_result = workspace.upload_outputs(run_dir, job_id=external_job_id)
         print(f"[SERVER-TL] Upload complete: {len(upload_result.get('files', []))} files", flush=True)
 
@@ -456,14 +470,14 @@ def _run_timeline_sync(request: GenerateRequest, job_id: str) -> dict:
         final_video_url = None
         thumbnail_url = None
         signed_urls = upload_result.get("signed_urls", upload_result["files"])
-        gcs_files = upload_result["files"]
+        uploaded_files = upload_result["files"]
 
-        for gcs_uri, signed_url in zip(gcs_files, signed_urls):
-            if "final_with_sfx.mp4" in gcs_uri:
+        for object_uri, signed_url in zip(uploaded_files, signed_urls):
+            if "final_with_sfx.mp4" in object_uri:
                 final_video_url = signed_url
-            elif "final.mp4" in gcs_uri and not final_video_url:
+            elif "final.mp4" in object_uri and not final_video_url:
                 final_video_url = signed_url
-            if gcs_uri.endswith((".jpg", ".png")) and not thumbnail_url:
+            if object_uri.endswith((".jpg", ".png")) and not thumbnail_url:
                 thumbnail_url = signed_url
 
         # Emit: generation completed
@@ -774,26 +788,17 @@ async def download_file(job_id: str, file_path: str, raw_request: Request):
     if ".." in file_path or file_path.startswith("/"):
         raise HTTPException(400, "Invalid file path")
 
-    bucket = os.environ.get("GCS_OUTPUT_BUCKET")
-    if not bucket:
-        raise HTTPException(500, "GCS_OUTPUT_BUCKET environment variable not set")
+    output_uri = _default_output_uri()
+    if not output_uri:
+        raise HTTPException(500, "R2_BUCKET_NAME (or R2_OUTPUT_URI) not set")
 
-    gcs_uri = f"gs://{bucket}/{job_id}/{file_path}"
+    object_uri = f"{output_uri.rstrip('/')}/{job_id}/{file_path}"
 
-    # Check if the blob exists
-    try:
-        bucket_name, blob_path = gcs_storage.parse_gcs_uri(gcs_uri)
-        client = gcs_storage.get_gcs_client()
-        blob = client.bucket(bucket_name).blob(blob_path)
-        if not blob.exists():
-            raise HTTPException(404, f"File not found: {job_id}/{file_path}")
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(500, f"Error checking file existence: {e}")
+    if not r2_storage.object_exists(object_uri):
+        raise HTTPException(404, f"File not found: {job_id}/{file_path}")
 
     try:
-        signed_url = gcs_storage.generate_signed_url(gcs_uri)
+        signed_url = r2_storage.generate_signed_url(object_uri)
     except Exception as e:
         raise HTTPException(500, f"Error generating signed URL: {e}")
 
@@ -806,14 +811,14 @@ async def download_job_files(job_id: str, raw_request: Request):
     if not verify_api_key(raw_request):
         raise HTTPException(401, "Invalid or missing API key")
 
-    bucket = os.environ.get("GCS_OUTPUT_BUCKET")
-    if not bucket:
-        raise HTTPException(500, "GCS_OUTPUT_BUCKET environment variable not set")
+    output_uri = _default_output_uri()
+    if not output_uri:
+        raise HTTPException(500, "R2_BUCKET_NAME (or R2_OUTPUT_URI) not set")
 
-    gcs_prefix = f"gs://{bucket}/{job_id}/"
+    prefix_uri = f"{output_uri.rstrip('/')}/{job_id}/"
 
     try:
-        file_uris = gcs_storage.list_files(gcs_prefix)
+        file_uris = r2_storage.list_files(prefix_uri)
     except Exception as e:
         raise HTTPException(500, f"Error listing files: {e}")
 
@@ -822,13 +827,13 @@ async def download_job_files(job_id: str, raw_request: Request):
 
     files = []
     for uri in file_uris:
-        _, blob_path = gcs_storage.parse_gcs_uri(uri)
+        _, blob_path = r2_storage.parse_uri(uri)
         # Get path relative to job_id prefix
         relative_path = blob_path[len(f"{job_id}/"):]
         if not relative_path:
             continue
         try:
-            signed_url = gcs_storage.generate_signed_url(uri)
+            signed_url = r2_storage.generate_signed_url(uri)
         except Exception as e:
             raise HTTPException(500, f"Error generating signed URL for {relative_path}: {e}")
         files.append({"path": relative_path, "url": signed_url})

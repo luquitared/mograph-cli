@@ -65,10 +65,40 @@ VEOF
 
 echo "Version info: commit=${GIT_COMMIT}${GIT_DIRTY} branch=${GIT_BRANCH}"
 
-# Build substitutions for staging environment
+# Build substitutions
 SUBSTITUTIONS=""
+append_sub() {
+    if [ -n "$SUBSTITUTIONS" ]; then
+        SUBSTITUTIONS="$SUBSTITUTIONS,$1"
+    else
+        SUBSTITUTIONS="$1"
+    fi
+}
+
 if [ "$ENV" = "staging" ]; then
-    SUBSTITUTIONS="_SERVICE_NAME=explainer-mograph-staging,_MAX_INSTANCES=3"
+    append_sub "_SERVICE_NAME=explainer-mograph-staging"
+    append_sub "_MAX_INSTANCES=3"
+fi
+
+# R2 config — load from .env if not already in the shell. Required for the
+# pipeline to upload outputs to object storage. The access keys live in
+# Secret Manager (see cloudbuild.yaml); the account id + bucket name flow
+# through substitutions so they don't need a secret entry.
+if [ -z "$R2_ACCOUNT_ID" ] || [ -z "$R2_BUCKET_NAME" ]; then
+    if [ -f "$PROJECT_DIR/.env" ]; then
+        # shellcheck disable=SC1091
+        set -a; . "$PROJECT_DIR/.env"; set +a
+    fi
+fi
+if [ -n "$R2_ACCOUNT_ID" ]; then
+    append_sub "_R2_ACCOUNT_ID=$R2_ACCOUNT_ID"
+fi
+if [ -n "$R2_BUCKET_NAME" ]; then
+    append_sub "_R2_BUCKET_NAME=$R2_BUCKET_NAME"
+fi
+if [ -z "$R2_ACCOUNT_ID" ] || [ -z "$R2_BUCKET_NAME" ]; then
+    echo "warning: R2_ACCOUNT_ID and R2_BUCKET_NAME not set — Cloud Run will" >&2
+    echo "         start without R2 config and uploads will fail at runtime." >&2
 fi
 
 # Submit build to Cloud Build

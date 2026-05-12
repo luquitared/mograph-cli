@@ -111,19 +111,23 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Mock mode: use local test fixtures instead of calling APIs (for fast testing)",
     )
     parser.add_argument(
+        "--upload-r2",
         "--upload-gcs",
         nargs="?",
         const="__env__",
         default=None,
-        metavar="gs://bucket/prefix",
-        help="Upload run outputs (mp4 + wav) to GCS and print signed URLs. "
-             "Pass a gs:// URI, or pass the flag alone to use $GCS_OUTPUT_BUCKET from env.",
+        dest="upload_r2",
+        metavar="r2://bucket/prefix",
+        help="Upload run outputs (mp4 + wav) to R2 and print signed URLs. "
+             "Pass an r2:// (or s3://, gs://) URI, or pass the flag alone to "
+             "use $R2_BUCKET_NAME + 'cloudrun-outputs' (falls back to "
+             "$GCS_OUTPUT_BUCKET for back-compat).",
     )
     parser.add_argument(
         "--signed-url-days",
         type=int,
         default=7,
-        help="Signed-URL expiry in days when --upload-gcs is set (default: 7).",
+        help="Signed-URL expiry in days when --upload-r2 is set (default: 7).",
     )
 
     return parser
@@ -218,53 +222,62 @@ def _run_timeline(args: argparse.Namespace) -> Path:
         for name, path in run_result.outputs.items():
             print(f"  {name}: {path}")
 
-    if args.upload_gcs:
-        _upload_run_to_gcs(run_dir, args.upload_gcs, args.signed_url_days)
+    if args.upload_r2:
+        _upload_run_to_r2(run_dir, args.upload_r2, args.signed_url_days)
 
     return run_dir
 
 
-def _upload_run_to_gcs(run_dir: Path, uri_arg: str, expiry_days: int) -> None:
-    """Upload mp4/wav outputs from a run directory to GCS and print signed URLs."""
-    from datetime import timedelta
-    from google.cloud import storage
+def _upload_run_to_r2(run_dir: Path, uri_arg: str, expiry_days: int) -> None:
+    """Upload mp4/wav outputs from a run directory to R2 and print signed URLs."""
+    from cloudrun import r2_storage
 
-    uri = os.environ.get("GCS_OUTPUT_BUCKET") if uri_arg == "__env__" else uri_arg
-    if not uri or not uri.startswith("gs://"):
-        print(f"error: --upload-gcs needs a gs:// URI (got {uri!r}). "
-              "Set $GCS_OUTPUT_BUCKET or pass gs://bucket/prefix.", file=sys.stderr)
+    if uri_arg == "__env__":
+        bucket = os.environ.get("R2_BUCKET_NAME") or os.environ.get("R2_BUCKET")
+        if bucket:
+            uri = f"r2://{bucket.strip().strip('/')}/cloudrun-outputs"
+        else:
+            uri = os.environ.get("GCS_OUTPUT_BUCKET")
+    else:
+        uri = uri_arg
+
+    if not uri:
+        print(
+            "error: --upload-r2 needs an r2:// URI. Set $R2_BUCKET_NAME (the "
+            "outputs land under r2://<bucket>/cloudrun-outputs/) or pass an "
+            "explicit URI.",
+            file=sys.stderr,
+        )
         return
 
-    rest = uri[len("gs://"):].split("/", 1)
-    bucket_name = rest[0]
-    base_prefix = (rest[1] if len(rest) > 1 else "").rstrip("/")
-    run_prefix = f"{base_prefix}/{run_dir.name}" if base_prefix else run_dir.name
+    base_bucket, base_key = r2_storage.parse_uri(uri)
+    base_key = base_key.rstrip("/")
+    run_prefix = f"{base_key}/{run_dir.name}" if base_key else run_dir.name
 
     files = sorted(
-        [p for p in run_dir.rglob("*") if p.is_file() and p.suffix.lower() in (".mp4", ".wav", ".mp3", ".m4a")]
+        [
+            p
+            for p in run_dir.rglob("*")
+            if p.is_file() and p.suffix.lower() in (".mp4", ".wav", ".mp3", ".m4a")
+        ]
     )
     if not files:
         print(f"warning: no media files found under {run_dir} to upload", file=sys.stderr)
         return
 
-    client = storage.Client()
-    bucket = client.bucket(bucket_name)
-
-    print(f"\nUploading {len(files)} file(s) → gs://{bucket_name}/{run_prefix}/")
+    print(f"\nUploading {len(files)} file(s) → r2://{base_bucket}/{run_prefix}/")
     for src in files:
         rel = src.relative_to(run_dir).as_posix()
-        blob_path = f"{run_prefix}/{rel}"
-        blob = bucket.blob(blob_path)
+        key = f"{run_prefix}/{rel}"
+        target = f"r2://{base_bucket}/{key}"
         content_type = {
-            ".mp4": "video/mp4", ".wav": "audio/wav",
-            ".mp3": "audio/mpeg", ".m4a": "audio/mp4",
+            ".mp4": "video/mp4",
+            ".wav": "audio/wav",
+            ".mp3": "audio/mpeg",
+            ".m4a": "audio/mp4",
         }.get(src.suffix.lower())
-        blob.upload_from_filename(str(src), content_type=content_type)
-        signed = blob.generate_signed_url(
-            version="v4",
-            expiration=timedelta(days=expiry_days),
-            method="GET",
-        )
+        r2_storage.upload_file(src, target, content_type=content_type)
+        signed = r2_storage.generate_signed_url(target, expiration_hours=expiry_days * 24)
         size_mb = src.stat().st_size / 1_000_000
         print(f"  [{size_mb:5.1f} MB] {rel}")
         print(f"    {signed}")

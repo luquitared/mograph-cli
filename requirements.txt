@@ -8,3 +8,6 @@ google-genai>=1.0.0
 # CLI auth + workflow push (scripts/mograph.py)
 requests>=2.31.0
 cryptography>=42.0.0
+
+# Object storage (Cloudflare R2 via S3 API) — replaces google-cloud-storage
+boto3>=1.34.0

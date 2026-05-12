@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Upload a local directory as a named pack to GCS.
+"""Upload a local directory as a named pack to R2.
 
 Packs are reusable bundles workflows can pull on-demand instead of
 committing to the repo. Two pack types today:
@@ -19,11 +19,12 @@ Examples:
     # Style pack
     python scripts/asset_pack_push.py runs/style-packs/ig-DW2FRgojpMa ig-DW2FRgojpMa --prefix style-packs
 
-GCS layout:
-    gs://$GCS_OUTPUT_BUCKET/<prefix>/<pack_name>/...
+R2 layout:
+    r2://$R2_BUCKET_NAME/<prefix>/<pack_name>/...
 
 Env:
-    GCS_OUTPUT_BUCKET — bucket URI (e.g. gs://my-bucket)
+    R2_BUCKET_NAME — bucket name (legacy GCS_OUTPUT_BUCKET still works)
+    R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
 """
 
 import argparse
@@ -33,15 +34,32 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from cloudrun.gcs_storage import upload_directory
+from cloudrun.r2_storage import upload_directory
+
+
+def _resolve_bucket() -> str:
+    name = os.environ.get("R2_BUCKET_NAME") or os.environ.get("R2_BUCKET")
+    if name:
+        return name.strip().strip("/")
+    legacy = os.environ.get("GCS_OUTPUT_BUCKET", "").strip()
+    if legacy:
+        for scheme in ("gs://", "r2://", "s3://"):
+            if legacy.startswith(scheme):
+                legacy = legacy[len(scheme):]
+                break
+        return legacy.split("/", 1)[0].strip("/")
+    return ""
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Upload a local directory as a named pack to GCS")
+    ap = argparse.ArgumentParser(description="Upload a local directory as a named pack to R2")
     ap.add_argument("local_dir", help="Local directory to upload")
-    ap.add_argument("pack_name", help="Pack name (becomes the GCS folder name)")
-    ap.add_argument("--prefix", default="asset-packs",
-                    help="GCS path component (default: asset-packs). Use 'style-packs' for style-rip packs.")
+    ap.add_argument("pack_name", help="Pack name (becomes the R2 folder name)")
+    ap.add_argument(
+        "--prefix",
+        default="asset-packs",
+        help="R2 path component (default: asset-packs). Use 'style-packs' for style-rip packs.",
+    )
     args = ap.parse_args()
 
     local_dir = Path(args.local_dir).resolve()
@@ -52,14 +70,12 @@ def main() -> int:
         print(f"not a directory: {local_dir}", file=sys.stderr)
         return 2
 
-    bucket = os.environ.get("GCS_OUTPUT_BUCKET", "").rstrip("/")
+    bucket = _resolve_bucket()
     if not bucket:
-        print("GCS_OUTPUT_BUCKET not set", file=sys.stderr)
+        print("R2_BUCKET_NAME not set", file=sys.stderr)
         return 2
-    if not bucket.startswith("gs://"):
-        bucket = f"gs://{bucket}"
 
-    base_uri = f"{bucket}/{prefix}/{pack_name}"
+    base_uri = f"r2://{bucket}/{prefix}/{pack_name}"
     print(f"[push] {local_dir} → {base_uri}", file=sys.stderr)
 
     result = upload_directory(local_dir, base_uri, pattern="**/*")
