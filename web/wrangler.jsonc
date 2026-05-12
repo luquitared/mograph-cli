@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mograph",
+  "compatibility_date": "2025-04-04",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "./workers/app.ts",
+  "observability": {
+    "enabled": true
+  },
+  "r2_buckets": [
+    { "binding": "R2_PUBLIC", "bucket_name": "mograph-public" },
+    { "binding": "R2_PRIVATE", "bucket_name": "mograph-private" }
+  ]
+}

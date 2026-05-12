@@ -10,6 +10,8 @@ runs/
 !tests/fixtures/*.json
 !tests/e2e_scripts/*.json
 !docs/workflows/**/*.json
+!web/**/*.json
+!web/**/*.jsonc
 
 # E2E generation log (output of tests/e2e_log.py)
 tests/e2e_generation_log.jsonl
