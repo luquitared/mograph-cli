@@ -313,6 +313,25 @@ def cmd_open(args, creds):
     webbrowser.open(url)
 
 
+def cmd_rm(args, creds):
+    if not creds:
+        sys.exit("Not logged in. Run: mograph login")
+    api = creds["api_base"]
+    slug = args.slug
+    if not args.yes:
+        confirm = input(f"Permanently delete workflow '{slug}'? [y/N] ").strip().lower()
+        if confirm not in ("y", "yes"):
+            print("aborted")
+            return
+    path = f"/api/workflows/{slug}"
+    headers = sign_request(creds["privkey"], "DELETE", path, b"")
+    resp = requests.delete(f"{api}{path}", headers=headers, timeout=60)
+    if not resp.ok:
+        sys.exit(f"delete failed: {resp.status_code} {resp.text}")
+    data = resp.json()
+    print(f"✓ Deleted {data['slug']} ({data.get('deleted_objects', 0)} R2 objects)")
+
+
 def cmd_pull(args, creds):
     api = args.api
     slug = args.slug
@@ -402,6 +421,12 @@ def main():
         help="Overwrite if target exists and is non-empty",
     )
 
+    p_rm = wsub.add_parser("rm", help="Delete one of your published workflows")
+    p_rm.add_argument("slug", help="Workflow slug")
+    p_rm.add_argument(
+        "-y", "--yes", action="store_true", help="Skip the confirmation prompt"
+    )
+
     args = ap.parse_args()
     creds = load_creds()
 
@@ -416,6 +441,8 @@ def main():
             cmd_open(args, creds)
         elif args.subcmd == "pull":
             cmd_pull(args, creds)
+        elif args.subcmd == "rm":
+            cmd_rm(args, creds)
 
 
 if __name__ == "__main__":

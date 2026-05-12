@@ -2,10 +2,13 @@ import { Link } from "react-router";
 import type { Route } from "./+types/workflows._index";
 import { db } from "../db/client";
 import { workflows, anonymousHandles, workflowVideos } from "../db/schema";
-import { desc, eq } from "drizzle-orm";
+import { count, desc, eq } from "drizzle-orm";
 import { getEnv } from "../lib/env";
 import { SiteNav } from "../components/site-nav";
 import { SiteFooter } from "../components/site-footer";
+import { WorkflowCard } from "../components/workflow-card";
+
+const PAGE_SIZE = 24;
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -17,9 +20,18 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
+export async function loader({ context, request }: Route.LoaderArgs) {
   const env = getEnv(context);
   const d = db(env.DATABASE_URL);
+  const url = new URL(request.url);
+  const page = Math.max(1, Number(url.searchParams.get("page") ?? "1") | 0);
+  const offset = (page - 1) * PAGE_SIZE;
+
+  const [totalRow] = await d
+    .select({ n: count() })
+    .from(workflows)
+    .where(eq(workflows.visibility, "public"));
+  const total = totalRow.n;
 
   const rows = await d
     .select({
@@ -39,13 +51,15 @@ export async function loader({ context }: Route.LoaderArgs) {
     .leftJoin(workflowVideos, eq(workflows.mainVideoId, workflowVideos.id))
     .where(eq(workflows.visibility, "public"))
     .orderBy(desc(workflows.createdAt))
-    .limit(60);
+    .limit(PAGE_SIZE)
+    .offset(offset);
 
-  return { workflows: rows };
+  return { workflows: rows, page, total, pageSize: PAGE_SIZE };
 }
 
 export default function WorkflowsIndex({ loaderData }: Route.ComponentProps) {
-  const { workflows: rows } = loaderData;
+  const { workflows: rows, page, total, pageSize } = loaderData;
+  const pages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
@@ -60,7 +74,7 @@ export default function WorkflowsIndex({ loaderData }: Route.ComponentProps) {
             <h1 className="text-4xl font-medium tracking-tight">Workflows</h1>
           </div>
           <div className="text-sm text-zinc-500 hidden sm:block">
-            {rows.length} {rows.length === 1 ? "workflow" : "workflows"}
+            {total} {total === 1 ? "workflow" : "workflows"}
           </div>
         </div>
 
@@ -69,11 +83,15 @@ export default function WorkflowsIndex({ loaderData }: Route.ComponentProps) {
             <div className="text-3xl mb-3 font-mono text-zinc-400">∅</div>
             <p className="font-medium mb-1">No workflows pushed yet.</p>
             <p className="text-sm text-zinc-500 max-w-md mx-auto">
-              Be the first. From any{" "}
+              Be the first.{" "}
+              <Link to="/upload" className="text-fuchsia-600 dark:text-fuchsia-400 hover:underline">
+                Upload one from the browser
+              </Link>{" "}
+              or from any{" "}
               <code className="font-mono text-xs px-1.5 py-0.5 bg-zinc-100 dark:bg-zinc-900 rounded">
                 docs/workflows/&lt;name&gt;
               </code>{" "}
-              folder, run{" "}
+              folder run{" "}
               <code className="font-mono text-xs px-1.5 py-0.5 bg-zinc-100 dark:bg-zinc-900 rounded">
                 mograph workflow push
               </code>
@@ -81,50 +99,45 @@ export default function WorkflowsIndex({ loaderData }: Route.ComponentProps) {
             </p>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {rows.map((w) => (
-              <Link
-                key={w.slug}
-                to={`/workflows/${w.slug}`}
-                className="group rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors"
-              >
-                <div className="aspect-video bg-zinc-100 dark:bg-zinc-900 relative overflow-hidden">
-                  {w.mainPosterKey ? (
-                    <img
-                      src={`/cdn/${w.mainPosterKey}`}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : w.mainVideoKey ? (
-                    <video
-                      src={`/cdn/${w.mainVideoKey}#t=0.1`}
-                      muted
-                      playsInline
-                      preload="metadata"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 grid place-items-center text-zinc-400 font-mono text-xs">
-                      no preview
-                    </div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <div className="font-medium group-hover:text-fuchsia-600 dark:group-hover:text-fuchsia-400">
-                    {w.title}
-                  </div>
-                  {w.summary && (
-                    <p className="text-sm text-zinc-500 mt-1 line-clamp-2">
-                      {w.summary}
-                    </p>
-                  )}
-                  <div className="mt-3 text-xs text-zinc-500 font-mono">
+          <>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {rows.map((w) => (
+                <div key={w.slug}>
+                  <WorkflowCard workflow={w} showAuthor={false} />
+                  <Link
+                    to={`/u/${w.handle}`}
+                    className="block mt-2 text-xs text-zinc-500 font-mono hover:text-zinc-700 dark:hover:text-zinc-300"
+                  >
                     @{w.handle}
-                  </div>
+                  </Link>
                 </div>
-              </Link>
-            ))}
-          </div>
+              ))}
+            </div>
+
+            {pages > 1 && (
+              <nav className="mt-10 flex items-center justify-center gap-1 text-sm">
+                {page > 1 && (
+                  <Link
+                    to={`/workflows?page=${page - 1}`}
+                    className="px-3 py-1.5 rounded border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                  >
+                    ← prev
+                  </Link>
+                )}
+                <span className="px-3 py-1.5 text-zinc-500 font-mono">
+                  {page} / {pages}
+                </span>
+                {page < pages && (
+                  <Link
+                    to={`/workflows?page=${page + 1}`}
+                    className="px-3 py-1.5 rounded border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                  >
+                    next →
+                  </Link>
+                )}
+              </nav>
+            )}
+          </>
         )}
       </main>
 

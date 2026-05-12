@@ -68,7 +68,12 @@ export default function WorkflowDetail({ loaderData }: Route.ComponentProps) {
             ← workflows
           </a>
           {" / "}
-          <span className="text-zinc-400">@{workflow.handle}</span>
+          <a
+            href={`/u/${workflow.handle}`}
+            className="text-zinc-400 hover:text-zinc-200"
+          >
+            @{workflow.handle}
+          </a>
         </div>
         <h1 className="text-3xl sm:text-4xl font-medium tracking-tight">
           {workflow.title}

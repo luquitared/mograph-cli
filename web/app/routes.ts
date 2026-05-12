@@ -4,6 +4,7 @@ export default [
   index("routes/home.tsx"),
   route("workflows", "routes/workflows._index.tsx"),
   route("workflows/:slug", "routes/workflows.$slug.tsx"),
+  route("u/:handle", "routes/u.$handle.tsx"),
   route("upload", "routes/upload.tsx"),
   route("cdn/*", "routes/cdn.$.tsx"),
 
