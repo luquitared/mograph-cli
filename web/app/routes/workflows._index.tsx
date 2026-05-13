@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import type { Route } from "./+types/workflows._index";
 import { db } from "../db/client";
-import { workflows, anonymousHandles, workflowVideos } from "../db/schema";
+import { users, workflows, workflowVideos } from "../db/schema";
 import { count, desc, eq } from "drizzle-orm";
 import { getEnv } from "../lib/env";
 import { SiteNav } from "../components/site-nav";
@@ -39,7 +39,8 @@ export async function loader({ context, request }: Route.LoaderArgs) {
       title: workflows.title,
       summary: workflows.summary,
       createdAt: workflows.createdAt,
-      handle: anonymousHandles.handle,
+      handle: users.handle,
+      displayName: users.displayName,
       mainVideoKey: workflowVideos.r2Key,
       mainPosterKey: workflowVideos.posterR2Key,
       models: workflows.models,
@@ -48,10 +49,7 @@ export async function loader({ context, request }: Route.LoaderArgs) {
       totalBytes: workflows.totalBytes,
     })
     .from(workflows)
-    .innerJoin(
-      anonymousHandles,
-      eq(workflows.ownerHandleId, anonymousHandles.id),
-    )
+    .innerJoin(users, eq(workflows.ownerUserId, users.id))
     .leftJoin(workflowVideos, eq(workflows.mainVideoId, workflowVideos.id))
     .where(eq(workflows.visibility, "public"))
     .orderBy(desc(workflows.createdAt))
@@ -91,15 +89,11 @@ export default function WorkflowsIndex({ loaderData }: Route.ComponentProps) {
               <Link to="/upload" className="text-fuchsia-600 dark:text-fuchsia-400 hover:underline">
                 Upload one from the browser
               </Link>{" "}
-              or from any{" "}
+              or run{" "}
               <code className="font-mono text-xs px-1.5 py-0.5 bg-zinc-100 dark:bg-zinc-900 rounded">
-                docs/workflows/&lt;name&gt;
+                mograph publish runs/&lt;your-run&gt;
               </code>{" "}
-              folder run{" "}
-              <code className="font-mono text-xs px-1.5 py-0.5 bg-zinc-100 dark:bg-zinc-900 rounded">
-                mograph workflow push
-              </code>
-              .
+              from the CLI.
             </p>
           </div>
         ) : (
@@ -113,6 +107,7 @@ export default function WorkflowsIndex({ loaderData }: Route.ComponentProps) {
                     className="block mt-2 text-xs text-zinc-500 font-mono hover:text-zinc-700 dark:hover:text-zinc-300"
                   >
                     @{w.handle}
+                    {w.displayName ? ` · ${w.displayName}` : ""}
                   </Link>
                 </div>
               ))}

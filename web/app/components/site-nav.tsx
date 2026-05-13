@@ -47,8 +47,9 @@ export function SiteNav() {
           {user ? (
             <div className="flex items-center gap-3 pl-2 border-l border-zinc-200 dark:border-zinc-800">
               <Link
-                to="/claim"
+                to={`/u/${user.handle}`}
                 className="flex items-center gap-2 text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white"
+                title="Your workflows"
               >
                 {user.avatarUrl ? (
                   <img
@@ -63,6 +64,12 @@ export function SiteNav() {
                 )}
                 <span className="hidden sm:inline">@{user.handle}</span>
               </Link>
+              <Link
+                to="/settings"
+                className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 text-xs"
+              >
+                settings
+              </Link>
               <Form method="post" action="/auth/signout">
                 <button
                   type="submit"
@@ -74,7 +81,7 @@ export function SiteNav() {
             </div>
           ) : (
             <Link
-              to="/auth/github/start?next=/claim"
+              to="/auth/github/start?next=/workflows"
               reloadDocument
               className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
             >

@@ -50,8 +50,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   if (!cookieState || cookieState !== state) {
     return new Response("state mismatch", { status: 400 });
   }
-  const next = cookieNext ? decodeURIComponent(cookieNext) : "/claim";
-  const safeNext = next.startsWith("/") ? next : "/claim";
+  const next = cookieNext ? decodeURIComponent(cookieNext) : "/workflows";
+  const safeNext = next.startsWith("/") ? next : "/workflows";
 
   // Exchange code for access token.
   const tokenResp = await fetch("https://github.com/login/oauth/access_token", {

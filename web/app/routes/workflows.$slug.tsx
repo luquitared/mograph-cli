@@ -1,8 +1,8 @@
 import type { Route } from "./+types/workflows.$slug";
 import { db } from "../db/client";
 import {
+  users,
   workflows,
-  anonymousHandles,
   workflowVideos,
   workflowFiles,
 } from "../db/schema";
@@ -35,7 +35,9 @@ export async function loader({ context, params }: Route.LoaderArgs) {
       summary: workflows.summary,
       readmeMd: workflows.readmeMd,
       mainVideoId: workflows.mainVideoId,
-      handle: anonymousHandles.handle,
+      handle: users.handle,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
       createdAt: workflows.createdAt,
       models: workflows.models,
       clipCount: workflows.clipCount,
@@ -43,10 +45,7 @@ export async function loader({ context, params }: Route.LoaderArgs) {
       totalBytes: workflows.totalBytes,
     })
     .from(workflows)
-    .innerJoin(
-      anonymousHandles,
-      eq(workflows.ownerHandleId, anonymousHandles.id),
-    )
+    .innerJoin(users, eq(workflows.ownerUserId, users.id))
     .where(eq(workflows.slug, slug))
     .limit(1);
 
@@ -76,9 +75,19 @@ export default function WorkflowDetail({ loaderData }: Route.ComponentProps) {
           {" / "}
           <a
             href={`/u/${workflow.handle}`}
-            className="text-zinc-400 hover:text-zinc-200"
+            className="inline-flex items-center gap-1.5 text-zinc-400 hover:text-zinc-200"
           >
-            @{workflow.handle}
+            {workflow.avatarUrl && (
+              <img
+                src={workflow.avatarUrl}
+                alt=""
+                className="w-4 h-4 rounded-full"
+              />
+            )}
+            <span>@{workflow.handle}</span>
+            {workflow.displayName && (
+              <span className="text-zinc-500">· {workflow.displayName}</span>
+            )}
           </a>
         </div>
         <h1 className="text-3xl sm:text-4xl font-medium tracking-tight">

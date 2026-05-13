@@ -1,27 +1,25 @@
 import type { Route } from "./+types/api.workflows.mine";
 import { db } from "../db/client";
-import { anonymousHandles, workflows } from "../db/schema";
+import { users, workflows } from "../db/schema";
 import { desc, eq } from "drizzle-orm";
 import { getEnv, json } from "../lib/env";
-import { verifyRequest } from "../lib/sig";
+import { authenticate } from "../lib/auth";
 
 /**
  * GET /api/workflows/mine
- * Signed (Ed25519). Returns workflows owned by the handle behind the pubkey.
+ * Accepts either a session cookie or a signed CLI request.
  */
 export async function loader({ context, request }: Route.LoaderArgs) {
   const env = getEnv(context);
-  const d = db(env.DATABASE_URL);
-  const { pubkey } = await verifyRequest(request, new Uint8Array());
+  const authed = await authenticate(request, env);
 
-  const [handle] = await d
-    .select()
-    .from(anonymousHandles)
-    .where(eq(anonymousHandles.pubkey, pubkey))
+  const d = db(env.DATABASE_URL);
+  const [me] = await d
+    .select({ id: users.id, handle: users.handle })
+    .from(users)
+    .where(eq(users.id, authed.userId))
     .limit(1);
-  if (!handle) {
-    return json({ error: "pubkey not registered" }, { status: 401 });
-  }
+  if (!me) return json({ error: "user not found" }, { status: 401 });
 
   const rows = await d
     .select({
@@ -33,8 +31,8 @@ export async function loader({ context, request }: Route.LoaderArgs) {
       visibility: workflows.visibility,
     })
     .from(workflows)
-    .where(eq(workflows.ownerHandleId, handle.id))
+    .where(eq(workflows.ownerUserId, me.id))
     .orderBy(desc(workflows.createdAt));
 
-  return json({ handle: handle.handle, workflows: rows });
+  return json({ handle: me.handle, workflows: rows });
 }

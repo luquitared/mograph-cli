@@ -2,10 +2,15 @@
 """mograph — push and share AI video workflows.
 
 Subcommands:
-    login                          — generate Ed25519 keypair, claim an anonymous handle
+    login                          — link this machine via GitHub device flow
+    workflow new SLUG              — scaffold a new workflow folder
     workflow push [DIR]            — publish a workflow folder
+    workflow pull SLUG             — download a workflow into ./<slug>/
+    workflow run SLUG              — pull + run pipeline.py on the main timeline
     workflow list                  — list workflows you've pushed
+    workflow rm SLUG               — delete one of your workflows
     workflow open SLUG             — open a workflow page in your browser
+    publish RUN_DIR                — turn a pipeline run dir into a workflow
 
 Config: ~/.config/mograph/credentials.json (override with MOGRAPH_HOME env)
 API:    https://mograph.lucasnegritto7538.workers.dev (override with MOGRAPH_API env)
@@ -119,14 +124,112 @@ def sign_request(privkey_b64: str, method: str, path: str, body: bytes) -> dict:
     }
 
 
+def _github_device_flow(client_id: str) -> str:
+    """Run the GitHub OAuth device flow. Returns an access token."""
+    dev = requests.post(
+        "https://github.com/login/device/code",
+        data={"client_id": client_id, "scope": "read:user user:email"},
+        headers={"Accept": "application/json"},
+        timeout=20,
+    )
+    if not dev.ok:
+        sys.exit(f"github device/code failed: {dev.status_code} {dev.text}")
+    dev_data = dev.json()
+    if "error" in dev_data:
+        sys.exit(
+            f"github error: {dev_data.get('error')} — {dev_data.get('error_description', '')}"
+        )
+    device_code = dev_data["device_code"]
+    user_code = dev_data["user_code"]
+    verify_uri = (
+        dev_data.get("verification_uri_complete") or dev_data["verification_uri"]
+    )
+    interval = max(int(dev_data.get("interval", 5)), 2)
+    expires_in = int(dev_data.get("expires_in", 900))
+
+    print(f"\n  Open this URL in a browser:\n    {verify_uri}\n")
+    print(f"  Enter this code:  {user_code}\n")
+    print(f"  Code expires in {expires_in // 60} minutes.")
+
+    try:
+        webbrowser.open(verify_uri)
+    except Exception:
+        pass
+
+    print("\n  Waiting for authorization (Ctrl-C to stop)…")
+    deadline = time.time() + expires_in
+    while time.time() < deadline:
+        try:
+            tok = requests.post(
+                "https://github.com/login/oauth/access_token",
+                data={
+                    "client_id": client_id,
+                    "device_code": device_code,
+                    "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                },
+                headers={"Accept": "application/json"},
+                timeout=20,
+            )
+            payload = tok.json()
+        except requests.RequestException:
+            time.sleep(interval)
+            continue
+
+        err = payload.get("error")
+        if err == "authorization_pending":
+            time.sleep(interval)
+            continue
+        if err == "slow_down":
+            interval += 5
+            time.sleep(interval)
+            continue
+        if err in ("expired_token", "access_denied"):
+            sys.exit(f"\n✗ {err}: {payload.get('error_description', '')}")
+        if err:
+            sys.exit(
+                f"\n✗ github error: {err} {payload.get('error_description', '')}"
+            )
+        if payload.get("access_token"):
+            return payload["access_token"]
+        time.sleep(interval)
+    sys.exit("\n✗ Timed out before authorization.")
+
+
+def _device_label() -> str:
+    """A short, human-readable label for this machine — shown on /settings."""
+    try:
+        import platform as _platform
+        node = _platform.node() or "unknown"
+        sysname = _platform.system()
+        return f"{node} ({sysname})"
+    except Exception:
+        return "cli"
+
+
 def cmd_login(args, creds):
     if creds and not args.force:
-        print(f"Already logged in as @{creds['handle']}")
-        print(
-            "Use --force to regenerate. Note: regenerating drops access to existing pushes."
-        )
+        print(f"Already linked as @{creds.get('handle', '?')}")
+        if creds.get("github_login"):
+            print(f"  github: @{creds['github_login']}")
+        print(f"  config: {CREDS_FILE}")
+        print("\n  --force re-runs the device flow and rotates the keypair.")
         return
 
+    client_id = (
+        args.client_id
+        or os.environ.get("MOGRAPH_GITHUB_CLIENT_ID")
+        or os.environ.get("GITHUB_CLIENT_ID")
+    )
+    if not client_id:
+        sys.exit(
+            "GITHUB_CLIENT_ID is not set. Add it to .env or pass --client-id.\n"
+            "(Public OAuth client id — the secret stays on the server.)"
+        )
+
+    print(f"Linking this machine to mograph ({args.api})")
+    access_token = _github_device_flow(client_id)
+
+    # Generate a fresh keypair for this device.
     priv = Ed25519PrivateKey.generate()
     priv_bytes = priv.private_bytes(
         encoding=serialization.Encoding.Raw,
@@ -138,28 +241,45 @@ def cmd_login(args, creds):
         format=serialization.PublicFormat.Raw,
     )
     pubkey_b64 = b64std(pub_bytes)
+    privkey_b64 = b64std(priv_bytes)
+
+    # Stage creds so sign_request can use them.
+    body_obj = {
+        "github_access_token": access_token,
+        "label": args.label or _device_label(),
+    }
+    body = json.dumps(body_obj).encode()
+    headers = sign_request(privkey_b64, "POST", "/api/cli/register", body)
+    headers["content-type"] = "application/json"
 
     resp = requests.post(
-        f"{args.api}/api/handles",
-        json={"pubkey": pubkey_b64},
-        timeout=20,
+        f"{args.api}/api/cli/register",
+        data=body,
+        headers=headers,
+        timeout=30,
     )
     if not resp.ok:
-        sys.exit(f"register failed: {resp.status_code} {resp.text}")
-    data = resp.json()
+        sys.exit(f"\n✗ register failed: {resp.status_code} {resp.text}")
+    info = resp.json()
+    user = info.get("user", {})
 
     save_creds(
         {
             "api_base": args.api,
             "pubkey": pubkey_b64,
-            "privkey": b64std(priv_bytes),
-            "handle": data["handle"],
-            "handle_id": data["handle_id"],
+            "privkey": privkey_b64,
+            "handle": user.get("handle", ""),
+            "user_id": user.get("id", ""),
+            "github_login": user.get("github_login"),
+            "display_name": user.get("display_name"),
         }
     )
-    print(f"Logged in as @{data['handle']}")
-    print(f"Keypair stored at {CREDS_FILE}")
-    print("Treat this file like an SSH private key.")
+    print(
+        f"\n✓ Linked as @{user.get('handle', '?')}"
+        + (f" (github.com/{user['github_login']})" if user.get("github_login") else "")
+    )
+    print(f"  Keypair stored at {CREDS_FILE}")
+    print("  Treat this file like an SSH private key.")
 
 
 def parse_workflow_folder(path: Path):
@@ -404,124 +524,6 @@ def cmd_list(args, creds):
     for w in rows:
         title = w["title"]
         print(f"  {w['slug']:<40} {title}")
-
-
-def cmd_claim(args, creds):
-    """Link this CLI's handle to a GitHub account using GitHub's device flow."""
-    if not creds:
-        sys.exit("Not logged in. Run: mograph login")
-
-    client_id = (
-        args.client_id
-        or os.environ.get("MOGRAPH_GITHUB_CLIENT_ID")
-        or os.environ.get("GITHUB_CLIENT_ID")
-    )
-    if not client_id:
-        sys.exit(
-            "GITHUB_CLIENT_ID is not set. Add it to .env or pass --client-id.\n"
-            "(This is the public OAuth client id — the secret stays on the server.)"
-        )
-
-    api = creds["api_base"]
-
-    # 1. Request a device + user code from GitHub.
-    dev = requests.post(
-        "https://github.com/login/device/code",
-        data={"client_id": client_id, "scope": "read:user user:email"},
-        headers={"Accept": "application/json"},
-        timeout=20,
-    )
-    if not dev.ok:
-        sys.exit(f"github device/code failed: {dev.status_code} {dev.text}")
-    dev_data = dev.json()
-    if "error" in dev_data:
-        sys.exit(
-            f"github error: {dev_data.get('error')} — {dev_data.get('error_description', '')}"
-        )
-    device_code = dev_data["device_code"]
-    user_code = dev_data["user_code"]
-    verify_uri = dev_data.get("verification_uri_complete") or dev_data["verification_uri"]
-    interval = max(int(dev_data.get("interval", 5)), 2)
-    expires_in = int(dev_data.get("expires_in", 900))
-
-    print(f"\nClaiming @{creds['handle']} via GitHub")
-    print(f"  Open this URL in a browser:\n")
-    print(f"    {verify_uri}\n")
-    print(f"  Enter this code:  {user_code}\n")
-    print(f"  Code expires in {expires_in // 60} minutes.")
-
-    if not args.no_open:
-        try:
-            webbrowser.open(verify_uri)
-        except Exception:
-            pass
-
-    if args.no_wait:
-        print("\n--no-wait set; not polling for completion.")
-        return
-
-    # 2. Poll GitHub until we get an access_token.
-    print("\nWaiting for you to authorize on GitHub (Ctrl-C to stop)…")
-    deadline = time.time() + expires_in
-    access_token: Optional[str] = None
-    while time.time() < deadline:
-        try:
-            tok = requests.post(
-                "https://github.com/login/oauth/access_token",
-                data={
-                    "client_id": client_id,
-                    "device_code": device_code,
-                    "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
-                },
-                headers={"Accept": "application/json"},
-                timeout=20,
-            )
-            payload = tok.json()
-        except requests.RequestException:
-            time.sleep(interval)
-            continue
-
-        err = payload.get("error")
-        if err == "authorization_pending":
-            time.sleep(interval)
-            continue
-        if err == "slow_down":
-            interval += 5
-            time.sleep(interval)
-            continue
-        if err in ("expired_token", "access_denied"):
-            sys.exit(f"\n✗ {err}: {payload.get('error_description', '')}")
-        if err:
-            sys.exit(f"\n✗ github error: {err} {payload.get('error_description', '')}")
-        if payload.get("access_token"):
-            access_token = payload["access_token"]
-            break
-        time.sleep(interval)
-
-    if not access_token:
-        sys.exit("\n✗ Timed out before authorization.")
-
-    # 3. Tell the server: link my handle to whoever this GitHub token belongs to.
-    body = json.dumps({"github_access_token": access_token}).encode()
-    headers = sign_request(creds["privkey"], "POST", "/api/claim/cli-direct", body)
-    headers["content-type"] = "application/json"
-    resp = requests.post(
-        f"{api}/api/claim/cli-direct",
-        data=body,
-        headers=headers,
-        timeout=30,
-    )
-    if not resp.ok:
-        sys.exit(f"\n✗ link failed: {resp.status_code} {resp.text}")
-    info = resp.json()
-    user = info.get("user", {})
-    user_handle = user.get("handle", "?")
-    gh = user.get("github_login")
-    print(
-        f"\n✓ Linked @{info.get('linked_handle', creds['handle'])} "
-        f"→ @{user_handle}"
-        + (f" (github.com/{gh})" if gh else "")
-    )
 
 
 def cmd_open(args, creds):
@@ -838,11 +840,22 @@ def main():
     )
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    p_login = sub.add_parser("login", help="Generate keypair, claim a handle")
+    p_login = sub.add_parser(
+        "login",
+        help="Link this machine via GitHub device flow (generates an Ed25519 keypair)",
+    )
     p_login.add_argument(
         "--force",
         action="store_true",
-        help="Regenerate even if logged in (loses access to existing pushes)",
+        help="Re-run the device flow even if already linked (rotates the keypair)",
+    )
+    p_login.add_argument(
+        "--client-id",
+        help="GitHub OAuth client id (defaults to $GITHUB_CLIENT_ID in env)",
+    )
+    p_login.add_argument(
+        "--label",
+        help="Human-readable label for this device (defaults to hostname)",
     )
 
     p_wf = sub.add_parser("workflow", help="Manage workflows")
@@ -928,25 +941,6 @@ def main():
         help="Overwrite README/dirs even if non-empty",
     )
 
-    p_claim = sub.add_parser(
-        "claim",
-        help="Link this CLI's anonymous handle to a GitHub account (device flow)",
-    )
-    p_claim.add_argument(
-        "--client-id",
-        help="GitHub OAuth client id (defaults to $GITHUB_CLIENT_ID in env)",
-    )
-    p_claim.add_argument(
-        "--no-wait",
-        action="store_true",
-        help="Print the device code and exit instead of polling for completion",
-    )
-    p_claim.add_argument(
-        "--no-open",
-        action="store_true",
-        help="Don't try to open the verification URL in a browser",
-    )
-
     p_pub = sub.add_parser(
         "publish",
         help="Publish a pipeline run dir as a workflow (auto-detects final mp4 + timeline)",
@@ -972,8 +966,6 @@ def main():
 
     if args.cmd == "login":
         cmd_login(args, creds)
-    elif args.cmd == "claim":
-        cmd_claim(args, creds)
     elif args.cmd == "publish":
         cmd_publish(args, creds)
     elif args.cmd == "workflow":

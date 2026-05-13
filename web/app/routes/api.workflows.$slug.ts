@@ -1,43 +1,38 @@
 import type { Route } from "./+types/api.workflows.$slug";
 import { db } from "../db/client";
 import {
-  anonymousHandles,
+  users,
   workflows,
   workflowVideos,
   workflowFiles,
 } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { getEnv, json } from "../lib/env";
-import { verifyRequest } from "../lib/sig";
+import { authenticate } from "../lib/auth";
 
 /**
  * DELETE /api/workflows/:slug
- * Signed (Ed25519). Owner-only. Deletes DB rows and R2 objects.
+ * Owner-only. Deletes DB rows and R2 objects.
  */
 export async function action({ context, request, params }: Route.ActionArgs) {
   if (request.method !== "DELETE") {
     return new Response("method not allowed", { status: 405 });
   }
   const env = getEnv(context);
-  const d = db(env.DATABASE_URL);
-  const { pubkey } = await verifyRequest(request, new Uint8Array());
+  const authed = await authenticate(request, env);
 
+  const d = db(env.DATABASE_URL);
   const [wf] = await d
     .select({
       id: workflows.id,
       slug: workflows.slug,
-      ownerHandleId: workflows.ownerHandleId,
-      ownerPubkey: anonymousHandles.pubkey,
+      ownerUserId: workflows.ownerUserId,
     })
     .from(workflows)
-    .innerJoin(
-      anonymousHandles,
-      eq(workflows.ownerHandleId, anonymousHandles.id),
-    )
     .where(eq(workflows.slug, params.slug!))
     .limit(1);
   if (!wf) return json({ error: "not found" }, { status: 404 });
-  if (wf.ownerPubkey !== pubkey) {
+  if (wf.ownerUserId !== authed.userId) {
     return json({ error: "not owner" }, { status: 403 });
   }
 
@@ -79,17 +74,16 @@ export async function loader({ context, params }: Route.LoaderArgs) {
       mainVideoId: workflows.mainVideoId,
       visibility: workflows.visibility,
       createdAt: workflows.createdAt,
-      handle: anonymousHandles.handle,
+      handle: users.handle,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
       models: workflows.models,
       clipCount: workflows.clipCount,
       totalDurationS: workflows.totalDurationS,
       totalBytes: workflows.totalBytes,
     })
     .from(workflows)
-    .innerJoin(
-      anonymousHandles,
-      eq(workflows.ownerHandleId, anonymousHandles.id),
-    )
+    .innerJoin(users, eq(workflows.ownerUserId, users.id))
     .where(eq(workflows.slug, slug))
     .limit(1);
 
@@ -128,6 +122,8 @@ export async function loader({ context, params }: Route.LoaderArgs) {
     title: wf.title,
     summary: wf.summary,
     handle: wf.handle,
+    display_name: wf.displayName,
+    avatar_url: wf.avatarUrl,
     created_at: wf.createdAt,
     readme_md: wf.readmeMd,
     models: wf.models,

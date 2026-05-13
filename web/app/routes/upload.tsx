@@ -1,19 +1,41 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { useRef, useState } from "react";
+import { redirect, useNavigate } from "react-router";
 import type { Route } from "./+types/upload";
+import { getEnv } from "../lib/env";
+import { getCurrentSession } from "../lib/session";
+import { db } from "../db/client";
+import { users } from "../db/schema";
+import { eq } from "drizzle-orm";
 import { SiteNav } from "../components/site-nav";
 import { SiteFooter } from "../components/site-footer";
-import { loadOrCreateIdentity, signedFetch, type Identity } from "../lib/browser-keys";
 
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "Share a workflow — mograph" },
     {
       name: "description",
-      content:
-        "Upload a workflow from your browser. Anonymous-first — a keypair is generated locally and stored in this browser.",
+      content: "Upload a workflow from the browser. Sign in with GitHub first.",
     },
   ];
+}
+
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const env = getEnv(context);
+  const session = await getCurrentSession(request, env.SESSION_SECRET);
+  if (!session) {
+    return redirect("/auth/github/start?next=/upload");
+  }
+  const [me] = await db(env.DATABASE_URL)
+    .select({
+      handle: users.handle,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
+    })
+    .from(users)
+    .where(eq(users.id, session.user_id))
+    .limit(1);
+  if (!me) return redirect("/auth/github/start?next=/upload");
+  return { me };
 }
 
 type FileKind = "video" | "timeline" | "md" | "txt";
@@ -25,10 +47,6 @@ function classifyFile(name: string): FileKind | null {
   if (lower.endsWith(".md")) return "md";
   if (lower.endsWith(".txt")) return "txt";
   return null;
-}
-
-function suggestPath(name: string, kind: FileKind): string {
-  return `examples/${name}`;
 }
 
 async function sha256Hex(buf: ArrayBuffer): Promise<string> {
@@ -119,9 +137,8 @@ type StagedFile = {
   isMain: boolean;
 };
 
-export default function UploadPage() {
-  const [identity, setIdentity] = useState<Identity | null>(null);
-  const [identityError, setIdentityError] = useState<string | null>(null);
+export default function UploadPage({ loaderData }: Route.ComponentProps) {
+  const { me } = loaderData;
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [readme, setReadme] = useState(
@@ -134,25 +151,6 @@ export default function UploadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    let mounted = true;
-    loadOrCreateIdentity()
-      .then((id) => {
-        if (mounted) setIdentity(id);
-      })
-      .catch((e: Error) => {
-        if (mounted)
-          setIdentityError(
-            e.message.includes("Ed25519")
-              ? "Your browser doesn't support Ed25519 in WebCrypto. Use Chrome 113+, Safari 17+, or Firefox 130+."
-              : `Couldn't set up your handle: ${e.message}`,
-          );
-      });
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
   function addFiles(list: FileList | null) {
     if (!list) return;
     setStaged((prev) => {
@@ -164,7 +162,7 @@ export default function UploadPage() {
         next.push({
           file,
           kind,
-          path: suggestPath(file.name, kind),
+          path: `examples/${file.name}`,
           isMain: false,
         });
       }
@@ -196,7 +194,6 @@ export default function UploadPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!identity) return;
     setErrorMsg(null);
 
     const videos = staged.filter((s) => s.kind === "video");
@@ -245,13 +242,12 @@ export default function UploadPage() {
       });
 
       setProgress((p) => [...p, "creating workflow…"]);
-      const resp = await signedFetch(
-        identity,
-        "POST",
-        "/api/workflows",
+      const resp = await fetch("/api/workflows", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
         body,
-        "application/json",
-      );
+        credentials: "include",
+      });
       if (!resp.ok) {
         throw new Error(`create failed: ${resp.status} ${await resp.text()}`);
       }
@@ -281,7 +277,9 @@ export default function UploadPage() {
         setProgress((p) => [...p, `uploading ${u.name}…`]);
         const ur = await fetch(u.upload_url, {
           method: "PUT",
-          headers: { "content-type": ctByKind[u.kind] ?? "application/octet-stream" },
+          headers: {
+            "content-type": ctByKind[u.kind] ?? "application/octet-stream",
+          },
           body: buf,
         });
         if (!ur.ok) {
@@ -292,11 +290,10 @@ export default function UploadPage() {
       }
 
       setProgress((p) => [...p, "finalizing…"]);
-      await signedFetch(
-        identity,
-        "POST",
-        `/api/workflows/${info.workflow_id}/complete`,
-      );
+      await fetch(`/api/workflows/${info.workflow_id}/complete`, {
+        method: "POST",
+        credentials: "include",
+      });
 
       setProgress((p) => [...p, `done — opening /${info.slug}`]);
       setTimeout(() => navigate(info.url), 400);
@@ -320,21 +317,15 @@ export default function UploadPage() {
           JSON that produced it. Extra files welcome.
         </p>
 
-        <div className="mt-6 rounded-lg border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-sm flex items-center justify-between gap-4">
+        <div className="mt-6 rounded-lg border border-zinc-200 dark:border-zinc-800 px-4 py-3 text-sm flex items-center gap-3">
+          {me.avatarUrl && (
+            <img src={me.avatarUrl} alt="" className="w-8 h-8 rounded-full" />
+          )}
           <div>
-            <div className="text-xs text-zinc-500 mb-0.5">Posting as</div>
-            <div className="font-mono">
-              {identity ? `@${identity.handle}` : identityError ? "—" : "…"}
-            </div>
-          </div>
-          <div className="text-xs text-zinc-500 max-w-xs text-right">
-            Anonymous handle generated in this browser. Same model as the CLI;
-            we'll add a "claim with GitHub" flow soon.
+            <div className="text-xs text-zinc-500">Posting as</div>
+            <div className="font-mono">@{me.handle}</div>
           </div>
         </div>
-        {identityError && (
-          <p className="mt-3 text-sm text-red-600 dark:text-red-400">{identityError}</p>
-        )}
 
         <form onSubmit={submit} className="mt-10 space-y-6">
           <div>
@@ -352,7 +343,8 @@ export default function UploadPage() {
 
           <div>
             <label className="block text-sm font-medium mb-1.5">
-              Summary <span className="text-zinc-400 font-normal">(one line)</span>
+              Summary{" "}
+              <span className="text-zinc-400 font-normal">(one line)</span>
             </label>
             <input
               type="text"
@@ -471,7 +463,7 @@ export default function UploadPage() {
           <div className="flex items-center gap-3">
             <button
               type="submit"
-              disabled={submitting || !identity}
+              disabled={submitting}
               className="inline-flex items-center gap-2 rounded-full bg-zinc-900 dark:bg-zinc-100 text-zinc-50 dark:text-zinc-900 px-5 py-2.5 text-sm font-medium hover:opacity-90 disabled:opacity-50"
             >
               {submitting ? "Publishing…" : "Publish workflow"}

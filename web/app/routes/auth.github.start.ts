@@ -22,8 +22,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     );
   }
   const url = new URL(request.url);
-  const nextRaw = url.searchParams.get("next") || "/claim";
-  const next = nextRaw.startsWith("/") ? nextRaw : "/claim";
+  const nextRaw = url.searchParams.get("next") || "/workflows";
+  const next = nextRaw.startsWith("/") ? nextRaw : "/workflows";
   const state = randomState();
   const origin = originFor(request, env);
   const callback = `${origin}/auth/github/callback`;

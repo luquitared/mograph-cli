@@ -1,7 +1,7 @@
-import type { Route } from "./+types/api.claim.cli-direct";
+import type { Route } from "./+types/api.cli.register";
 import { db } from "../db/client";
-import { anonymousHandles, users } from "../db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { cliDevices, users } from "../db/schema";
+import { eq } from "drizzle-orm";
 import { getEnv, json } from "../lib/env";
 import { verifyRequest } from "../lib/sig";
 
@@ -20,11 +20,13 @@ async function makeHandleFromGithub(d: ReturnType<typeof db>, login: string): Pr
 }
 
 /**
- * POST /api/claim/cli-direct
- * Body: { github_access_token: string }
- * Signed by the CLI's Ed25519 handle. Server verifies the GitHub token, looks
- * up / creates the user, and links the handle. Used by `mograph claim` after
- * a successful GitHub device-flow exchange.
+ * POST /api/cli/register
+ * Body: { github_access_token: string, label?: string }
+ * Signed by the CLI's Ed25519 keypair.
+ *
+ * Atomic device-flow completion: server verifies the GitHub token, upserts
+ * the user, and binds the CLI's pubkey to that user in cli_devices.
+ * Idempotent — re-running on the same machine just refreshes the row.
  */
 export async function action({ context, request }: Route.ActionArgs) {
   if (request.method !== "POST") {
@@ -34,7 +36,7 @@ export async function action({ context, request }: Route.ActionArgs) {
   const bodyBytes = new Uint8Array(await request.arrayBuffer());
   const { pubkey } = await verifyRequest(request, bodyBytes);
 
-  let body: { github_access_token?: string };
+  let body: { github_access_token?: string; label?: string };
   try {
     body = JSON.parse(new TextDecoder().decode(bodyBytes));
   } catch {
@@ -120,37 +122,43 @@ export async function action({ context, request }: Route.ActionArgs) {
       .returning();
   }
 
-  const [handle] = await d
+  // Upsert the device row by pubkey.
+  const [existingDevice] = await d
     .select()
-    .from(anonymousHandles)
-    .where(eq(anonymousHandles.pubkey, pubkey))
+    .from(cliDevices)
+    .where(eq(cliDevices.pubkey, pubkey))
     .limit(1);
-  if (!handle) {
-    return json({ error: "pubkey not registered" }, { status: 404 });
+  if (existingDevice) {
+    if (existingDevice.userId !== user.id) {
+      return json(
+        { error: "pubkey already bound to another account" },
+        { status: 409 },
+      );
+    }
+    await d
+      .update(cliDevices)
+      .set({
+        label: body.label ?? existingDevice.label,
+        lastUsedAt: new Date(),
+      })
+      .where(eq(cliDevices.id, existingDevice.id));
+  } else {
+    await d.insert(cliDevices).values({
+      userId: user.id,
+      pubkey,
+      label: body.label ?? null,
+      lastUsedAt: new Date(),
+    });
   }
-  if (handle.claimedByUserId && handle.claimedByUserId !== user.id) {
-    return json(
-      { error: "handle already claimed by another user" },
-      { status: 409 },
-    );
-  }
-  await d
-    .update(anonymousHandles)
-    .set({ claimedByUserId: user.id })
-    .where(
-      and(
-        eq(anonymousHandles.id, handle.id),
-        isNull(anonymousHandles.claimedByUserId),
-      ),
-    );
 
   return json({
     ok: true,
     user: {
+      id: user.id,
       handle: user.handle,
       display_name: user.displayName,
       github_login: user.githubLogin,
+      avatar_url: user.avatarUrl,
     },
-    linked_handle: handle.handle,
   });
 }

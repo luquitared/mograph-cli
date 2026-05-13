@@ -1,14 +1,15 @@
 import type { Route } from "./+types/api.workflows";
 import { db } from "../db/client";
 import {
-  anonymousHandles,
+  users,
   workflows,
   workflowVideos,
   workflowFiles,
 } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { getEnv, json } from "../lib/env";
-import { verifyRequest, makeUploadToken } from "../lib/sig";
+import { makeUploadToken } from "../lib/sig";
+import { authenticate } from "../lib/auth";
 
 const RESERVED_SLUGS = new Set(["mine", "new", "edit"]);
 
@@ -38,11 +39,13 @@ type PushBody = {
 };
 
 function slugify(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 60) || "workflow";
+  return (
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+      .slice(0, 60) || "workflow"
+  );
 }
 
 function r2KeyFor(workflowId: string, path: string): string {
@@ -71,16 +74,14 @@ export async function action({ context, request }: Route.ActionArgs) {
   const d = db(env.DATABASE_URL);
 
   const bodyBytes = new Uint8Array(await request.arrayBuffer());
-  const { pubkey } = await verifyRequest(request, bodyBytes);
+  const authed = await authenticate(request, env, bodyBytes);
 
-  const [handle] = await d
-    .select()
-    .from(anonymousHandles)
-    .where(eq(anonymousHandles.pubkey, pubkey))
+  const [me] = await d
+    .select({ id: users.id, handle: users.handle })
+    .from(users)
+    .where(eq(users.id, authed.userId))
     .limit(1);
-  if (!handle) {
-    return json({ error: "pubkey not registered, run mograph login" }, { status: 401 });
-  }
+  if (!me) return json({ error: "user not found" }, { status: 401 });
 
   let body: PushBody;
   try {
@@ -94,26 +95,19 @@ export async function action({ context, request }: Route.ActionArgs) {
 
   const requestedSlug = body.slug ? slugify(body.slug) : null;
   let slug: string;
-  let existingForUpdate: { id: string; ownerPubkey: string } | null = null;
+  let existingForUpdate: { id: string; ownerUserId: string } | null = null;
 
   if (requestedSlug) {
     if (RESERVED_SLUGS.has(requestedSlug)) {
       return json({ error: `slug '${requestedSlug}' is reserved` }, { status: 400 });
     }
     const [existing] = await d
-      .select({
-        id: workflows.id,
-        ownerPubkey: anonymousHandles.pubkey,
-      })
+      .select({ id: workflows.id, ownerUserId: workflows.ownerUserId })
       .from(workflows)
-      .innerJoin(
-        anonymousHandles,
-        eq(workflows.ownerHandleId, anonymousHandles.id),
-      )
       .where(eq(workflows.slug, requestedSlug))
       .limit(1);
     if (existing) {
-      if (existing.ownerPubkey !== pubkey) {
+      if (existing.ownerUserId !== me.id) {
         return json(
           { error: `slug '${requestedSlug}' is taken by another author` },
           { status: 409 },
@@ -158,7 +152,13 @@ export async function action({ context, request }: Route.ActionArgs) {
     0,
   );
   const models = Array.isArray(meta.models)
-    ? Array.from(new Set(meta.models.filter((m) => typeof m === "string" && m).map((m) => m.slice(0, 80)))).slice(0, 24)
+    ? Array.from(
+        new Set(
+          meta.models
+            .filter((m) => typeof m === "string" && m)
+            .map((m) => m.slice(0, 80)),
+        ),
+      ).slice(0, 24)
     : null;
 
   const [wf] = await d
@@ -168,7 +168,7 @@ export async function action({ context, request }: Route.ActionArgs) {
       title: body.title.slice(0, 200),
       summary: body.summary?.slice(0, 500) ?? null,
       readmeMd: body.readme_md.slice(0, 200_000),
-      ownerHandleId: handle.id,
+      ownerUserId: me.id,
       visibility: "public",
       models: models && models.length ? models : null,
       clipCount: typeof meta.clip_count === "number" ? meta.clip_count : null,
@@ -249,7 +249,7 @@ export async function action({ context, request }: Route.ActionArgs) {
     workflow_id: wf.id,
     slug: wf.slug,
     url: `/workflows/${wf.slug}`,
-    handle: handle.handle,
+    handle: me.handle,
     uploads: out,
   });
 }

@@ -31,22 +31,23 @@ export const users = pgTable(
   ],
 );
 
-export const anonymousHandles = pgTable(
-  "anonymous_handles",
+export const cliDevices = pgTable(
+  "cli_devices",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    handle: text("handle").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     pubkey: text("pubkey").notNull(),
-    claimedByUserId: uuid("claimed_by_user_id").references(() => users.id, {
-      onDelete: "set null",
-    }),
+    label: text("label"),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .default(sql`now()`),
   },
   (t) => [
-    uniqueIndex("anon_handle_idx").on(t.handle),
-    uniqueIndex("anon_pubkey_idx").on(t.pubkey),
+    uniqueIndex("cli_devices_pubkey_idx").on(t.pubkey),
+    index("cli_devices_user_idx").on(t.userId),
   ],
 );
 
@@ -58,9 +59,9 @@ export const workflows = pgTable(
     title: text("title").notNull(),
     summary: text("summary"),
     readmeMd: text("readme_md").notNull(),
-    ownerHandleId: uuid("owner_handle_id")
+    ownerUserId: uuid("owner_user_id")
       .notNull()
-      .references(() => anonymousHandles.id, { onDelete: "cascade" }),
+      .references(() => users.id, { onDelete: "cascade" }),
     mainVideoId: uuid("main_video_id"),
     visibility: text("visibility").notNull().default("public"),
     license: text("license").default("CC-BY-4.0"),
@@ -77,7 +78,7 @@ export const workflows = pgTable(
   },
   (t) => [
     uniqueIndex("workflows_slug_idx").on(t.slug),
-    index("workflows_owner_idx").on(t.ownerHandleId),
+    index("workflows_owner_user_idx").on(t.ownerUserId),
     index("workflows_created_idx").on(t.createdAt),
   ],
 );
@@ -119,40 +120,4 @@ export const workflowFiles = pgTable(
       .default(sql`now()`),
   },
   (t) => [index("workflow_files_workflow_idx").on(t.workflowId)],
-);
-
-export const cliTokens = pgTable(
-  "cli_tokens",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    handleId: uuid("handle_id")
-      .notNull()
-      .references(() => anonymousHandles.id, { onDelete: "cascade" }),
-    tokenHash: text("token_hash").notNull(),
-    label: text("label"),
-    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
-    revokedAt: timestamp("revoked_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .default(sql`now()`),
-  },
-  (t) => [
-    uniqueIndex("cli_tokens_hash_idx").on(t.tokenHash),
-    index("cli_tokens_handle_idx").on(t.handleId),
-  ],
-);
-
-export const deviceAuth = pgTable(
-  "device_auth",
-  {
-    code: text("code").primaryKey(),
-    handleId: uuid("handle_id")
-      .notNull()
-      .references(() => anonymousHandles.id, { onDelete: "cascade" }),
-    consumedAt: timestamp("consumed_at", { withTimezone: true }),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .default(sql`now()`),
-  },
 );

@@ -150,8 +150,9 @@ export default function Home() {
             Push a workflow in one command
           </h2>
           <p className="text-zinc-500 max-w-2xl mb-6">
-            Anonymous-first. Generate a keypair on your machine, claim it later
-            if you want to keep your handle.
+            Sign in with GitHub, link the CLI on each machine you use, and
+            anything you generate locally is one command away from a public,
+            re-runnable URL.
           </p>
           <pre className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-5 text-sm overflow-x-auto leading-relaxed">
             <code>
@@ -159,11 +160,11 @@ export default function Home() {
               {"\n"}git clone github.com/yourname/mograph-cli && cd mograph-cli
               {"\n"}python -m pip install -r requirements.txt
               {"\n"}
-              {"\n"}<span className="text-zinc-400"># generate a keypair + handle</span>
-              {"\n"}python scripts/run.py login
+              {"\n"}<span className="text-zinc-400"># GitHub device flow + register this machine</span>
+              {"\n"}python scripts/mograph.py login
               {"\n"}
-              {"\n"}<span className="text-zinc-400"># publish a workflow from a folder</span>
-              {"\n"}python scripts/run.py workflow push docs/workflows/narration-explainer
+              {"\n"}<span className="text-zinc-400"># publish a pipeline run as a shareable workflow</span>
+              {"\n"}python scripts/mograph.py publish runs/your-latest-run
             </code>
           </pre>
         </section>

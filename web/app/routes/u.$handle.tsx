@@ -1,6 +1,6 @@
 import type { Route } from "./+types/u.$handle";
 import { db } from "../db/client";
-import { anonymousHandles, workflows, workflowVideos } from "../db/schema";
+import { users, workflows, workflowVideos } from "../db/schema";
 import { and, desc, eq } from "drizzle-orm";
 import { getEnv } from "../lib/env";
 import { SiteNav } from "../components/site-nav";
@@ -10,10 +10,10 @@ import { WorkflowCard } from "../components/workflow-card";
 export function meta({ data }: Route.MetaArgs) {
   if (!data) return [{ title: "Not found — mograph" }];
   return [
-    { title: `@${data.handle.handle} — mograph` },
+    { title: `@${data.user.handle} — mograph` },
     {
       name: "description",
-      content: `Workflows pushed by @${data.handle.handle}.`,
+      content: `Workflows pushed by @${data.user.handle}.`,
     },
   ];
 }
@@ -21,14 +21,21 @@ export function meta({ data }: Route.MetaArgs) {
 export async function loader({ context, params }: Route.LoaderArgs) {
   const env = getEnv(context);
   const d = db(env.DATABASE_URL);
-  const slug = params.handle!;
+  const handle = params.handle!.toLowerCase();
 
-  const [handle] = await d
-    .select()
-    .from(anonymousHandles)
-    .where(eq(anonymousHandles.handle, slug))
+  const [user] = await d
+    .select({
+      id: users.id,
+      handle: users.handle,
+      displayName: users.displayName,
+      githubLogin: users.githubLogin,
+      avatarUrl: users.avatarUrl,
+      createdAt: users.createdAt,
+    })
+    .from(users)
+    .where(eq(users.handle, handle))
     .limit(1);
-  if (!handle) throw new Response("Not Found", { status: 404 });
+  if (!user) throw new Response("Not Found", { status: 404 });
 
   const rows = await d
     .select({
@@ -36,7 +43,7 @@ export async function loader({ context, params }: Route.LoaderArgs) {
       title: workflows.title,
       summary: workflows.summary,
       createdAt: workflows.createdAt,
-      handle: anonymousHandles.handle,
+      handle: users.handle,
       mainVideoKey: workflowVideos.r2Key,
       mainPosterKey: workflowVideos.posterR2Key,
       models: workflows.models,
@@ -45,41 +52,64 @@ export async function loader({ context, params }: Route.LoaderArgs) {
       totalBytes: workflows.totalBytes,
     })
     .from(workflows)
-    .innerJoin(
-      anonymousHandles,
-      eq(workflows.ownerHandleId, anonymousHandles.id),
-    )
+    .innerJoin(users, eq(workflows.ownerUserId, users.id))
     .leftJoin(workflowVideos, eq(workflows.mainVideoId, workflowVideos.id))
     .where(
       and(
-        eq(workflows.ownerHandleId, handle.id),
+        eq(workflows.ownerUserId, user.id),
         eq(workflows.visibility, "public"),
       ),
     )
     .orderBy(desc(workflows.createdAt));
 
-  return { handle, workflows: rows };
+  return { user, workflows: rows };
 }
 
 export default function Profile({ loaderData }: Route.ComponentProps) {
-  const { handle, workflows: rows } = loaderData;
+  const { user, workflows: rows } = loaderData;
 
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
       <SiteNav />
 
       <main className="mx-auto max-w-6xl px-6 py-16">
-        <div className="flex items-baseline justify-between mb-10">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-widest text-zinc-500 mb-2">
-              Anonymous handle
+        <div className="flex items-start gap-5 mb-10">
+          {user.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt=""
+              className="w-16 h-16 rounded-full border border-zinc-200 dark:border-zinc-800"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-900 grid place-items-center font-mono text-xs">
+              {user.handle.slice(0, 2).toUpperCase()}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="font-mono text-xs uppercase tracking-widest text-zinc-500">
+              Profile
             </p>
-            <h1 className="text-4xl font-medium tracking-tight font-mono">
-              @{handle.handle}
+            <h1 className="text-3xl font-medium tracking-tight">
+              {user.displayName ?? `@${user.handle}`}
             </h1>
-            <p className="mt-1 text-sm text-zinc-500">
+            <div className="mt-1 text-sm text-zinc-500 font-mono">
+              @{user.handle}
+              {user.githubLogin && (
+                <>
+                  {" · "}
+                  <a
+                    href={`https://github.com/${user.githubLogin}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:text-zinc-900 dark:hover:text-zinc-100"
+                  >
+                    github.com/{user.githubLogin}
+                  </a>
+                </>
+              )}
+            </div>
+            <p className="text-sm text-zinc-500 mt-2">
               {rows.length} {rows.length === 1 ? "workflow" : "workflows"}
-              {handle.claimedByUserId ? " · claimed" : ""}
             </p>
           </div>
         </div>
