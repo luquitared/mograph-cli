@@ -307,6 +307,23 @@ def parse_workflow_folder(path: Path):
             break
 
     files = []  # list of (Path, kind, rel_name)
+
+    # Top-level companion files (manifest.json, CLAUDE.md, etc.) — README.md
+    # is excluded since its body becomes the workflow's readme_md.
+    for p in sorted(path.iterdir()):
+        if not p.is_file() or p.name == "README.md":
+            continue
+        ext = p.suffix.lower()
+        if ext == ".json":
+            kind = "pack" if "manifest" in p.stem.lower() else "timeline"
+        elif ext == ".md":
+            kind = "md"
+        elif ext == ".txt":
+            kind = "txt"
+        else:
+            continue
+        files.append((p, kind, p.name))
+
     for sub in ("examples", "videos"):
         d = path / sub
         if not d.exists():
@@ -404,31 +421,35 @@ def cmd_push(args, creds):
         sys.exit(f"Not a directory: {path}")
 
     title, summary, readme, files = parse_workflow_folder(path)
-    if not files:
-        sys.exit(f"No files to publish in {path} (looked in examples/ and videos/)")
 
     videos = [(p, k, n) for (p, k, n) in files if k == "video"]
-    if not videos:
-        sys.exit("Need at least one video (in examples/ or videos/)")
-
-    main_name = args.main
-    if main_name:
-        if not any(
-            n == main_name or os.path.basename(n) == main_name for _, _, n in videos
-        ):
-            sys.exit(f"--main {main_name} not found among videos")
-    elif len(videos) == 1:
-        main_name = videos[0][2]
-    else:
-        print("Multiple videos found:")
-        for i, (_, _, n) in enumerate(videos, 1):
-            print(f"  {i}. {n}")
-        choice = input("Pick the main one [1]: ").strip() or "1"
-        idx = int(choice) - 1
-        main_name = videos[idx][2]
+    main_name: Optional[str] = None
+    if videos:
+        main_name = args.main
+        if main_name:
+            if not any(
+                n == main_name or os.path.basename(n) == main_name for _, _, n in videos
+            ):
+                sys.exit(f"--main {main_name} not found among videos")
+        elif len(videos) == 1:
+            main_name = videos[0][2]
+        else:
+            print("Multiple videos found:")
+            for i, (_, _, n) in enumerate(videos, 1):
+                print(f"  {i}. {n}")
+            choice = input("Pick the main one [1]: ").strip() or "1"
+            idx = int(choice) - 1
+            main_name = videos[idx][2]
+    elif args.main:
+        sys.exit(f"--main {args.main} given but no videos found in {path}")
 
     print(f"Workflow: {title}")
-    print(f"  files: {len(files)} ({len(videos)} videos, main = {main_name})")
+    if videos:
+        print(f"  files: {len(files)} ({len(videos)} videos, main = {main_name})")
+    elif files:
+        print(f"  files: {len(files)} (recipe-only — no example video yet)")
+    else:
+        print(f"  files: 0 (README only)")
 
     manifest = []
     for p, k, rel in files:
