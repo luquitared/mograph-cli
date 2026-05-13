@@ -311,7 +311,7 @@ def parse_workflow_folder(path: Path):
             continue
         s = ln.strip()
         if s and not s.startswith("#"):
-            summary = s
+            summary = _strip_markdown(s)
             break
 
     files = []  # list of (Path, kind, rel_name)
@@ -355,8 +355,24 @@ def parse_workflow_folder(path: Path):
     return title, summary, readme, files
 
 
+def _strip_markdown(s: str) -> str:
+    """Strip inline markdown so a README's first paragraph is safe as plain
+    summary text. Just handles links, emphasis, and code spans — anything
+    fancier wasn't being used in summaries to begin with."""
+    s = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", s)  # [text](url) -> text
+    s = re.sub(r"\*\*([^*]+)\*\*", r"\1", s)         # **bold**
+    s = re.sub(r"\*([^*]+)\*", r"\1", s)             # *italic*
+    s = re.sub(r"`([^`]+)`", r"\1", s)               # `code`
+    return s.strip()
+
+
 def _extract_timeline_metadata(files: list) -> dict:
-    """Walk staged timeline JSON files and aggregate models / clip count / duration."""
+    """Walk staged timeline JSON files and aggregate models / clip count / duration.
+
+    Only counts the visuals track (`type: "video"`). Narration TTS clips
+    don't count toward `clip_count` — viewers think of a beat as one
+    rendered scene, not "one video plus one narration line".
+    """
     models: set[str] = set()
     clip_count = 0
     durations_per_track: list[float] = []
@@ -379,10 +395,20 @@ def _extract_timeline_metadata(files: list) -> dict:
         for track in tracks:
             if not isinstance(track, dict):
                 continue
+            track_type = track.get("type")
+            # Skip narration / audio tracks — only visuals count as "clips"
+            if track_type and track_type != "video":
+                continue
             clips = track.get("clips") if isinstance(track.get("clips"), list) else []
             track_dur = 0.0
             for clip in clips:
                 if not isinstance(clip, dict):
+                    continue
+                # Within a visuals track, only count clips that render to a
+                # video (skip any inline image-only clips from older patterns).
+                source = clip.get("source") if isinstance(clip.get("source"), dict) else {}
+                src_type = source.get("type")
+                if src_type and src_type != "video":
                     continue
                 clip_count += 1
                 model = clip.get("model")

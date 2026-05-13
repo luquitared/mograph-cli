@@ -1,54 +1,59 @@
 # Stick-figure explainer
 
-A style specialization of [`narration-explainer`](../narration-explainer/README.md). Read that first — it covers the two-track shape, `fit_to`, `first_frame.generate`, `generate_audio: false`, stage iteration, the WPS 2.5 budget, run commands, and pitfalls. **Everything here is just the look.**
+Generate short narrated explainer videos in a minimal hand-drawn stick-figure style — black outlines on grey textured paper, AI-narrated, about 40–60 seconds long. Good for educational content where a concrete visual metaphor carries the explanation: how things work, why mechanisms behave the way they do, what's actually happening inside a process you usually just hear about.
 
-## The look
+## What you can make with it
 
-Black-outline stick figures on grey textured paper. One or two accent colors per beat (red for danger, green for stability, gold for value, blue for cool). Lots of negative space. Held-frame whiteboard sketches with small deliberate motion — wobbles, rotations, things sliding into frame. No camera moves. Optional two-panel splits for before/after.
+This recipe is built for topics with namable parts and small visual gags — props, labels, contained mechanisms. Examples it does well:
 
-## Style spec — drop into `defaults`
+- **How a thing works** — a thermos, DNS resolution, refrigeration, an internal combustion engine, the immune response, a pendulum clock
+- **Why a mechanism behaves how it does** — why ice floats, why the sky is blue, why airfoils generate lift, why compounding interest accelerates
+- **A walkthrough of a flow** — how a transaction settles, how a request hits an API gateway, how a vaccine trains a B cell
+- **Concept primers** — what stablecoins are, what a CDN does, what a market maker actually does in the middle of a trade
 
-```json
-"defaults": {
-  "image": {
-    "model": "nano-banana-pro",
-    "aspect_ratio": "16:9",
-    "resolution": "2K",
-    "output_format": "png",
-    "prompt_prefix": "Simple hand-drawn minimal cartoon style on grey textured background, black outlines, stick figures."
-  },
-  "video": {
-    "model": "seedance-2.0-fast",
-    "aspect_ratio": "16:9",
-    "resolution": "480p",
-    "generate_audio": false,
-    "prompt_prefix": "Simple hand-drawn minimal cartoon style on grey textured background, black outlines, stick figures."
-  },
-  "tts": {
-    "voice": "Kore",
-    "voice_prompt": "Casual, friendly, conversational tone. Like explaining to a friend."
-  }
-}
+It's not the right fit for talking-head presenters, cinematic or photoreal styles, recurring named characters, or topics where the visual carries no metaphorical weight (purely numerical / abstract math).
+
+## What you customize
+
+- **Your topic and script** — an 8-line narration (≤30 words per line; 4–15s when spoken) drives the whole video. Write it once; the workflow handles per-beat visuals and timing
+- **Length** — 6 beats lands at ~30 seconds, 8 beats at ~50 seconds, 12 beats at ~70 seconds. Anything past a minute usually wants splitting
+- **Narration voice** — Kore (casual, friendly) is the default; swap for any Gemini TTS voice if you want a different energy (see [`docs/reference/tts-voices.md`](../../reference/tts-voices.md))
+- **Accent colors** — one or two per beat. Red for danger or loss, green for stability or gain, gold for value, blue for cool or calm. Mention them in your prompts and they'll show up consistently
+- **Composition cues** — single-subject scenes for emphasis, two-panel splits for compare/contrast, labeled props and signs for anything with a name that matters
+
+## What stays consistent so you can focus on the topic
+
+Multi-clip AI video usually fights you on three things — visual style drift between clips, narration getting cut off or rushed, and Seedance producing over-cluttered scenes. The recipe pins all three:
+
+- **Look stays the same across every beat.** A `prompt_prefix` on both image and video defaults binds black-outline stick figures on grey paper to every clip the pipeline generates. You don't have to restate the style in every prompt.
+- **Narration and visuals stay in sync.** Each video clip uses `fit_to` to time-stretch itself to the actual TTS duration of its narration line — no clipped audio, no leftover dead frames at the end
+- **Compositions stay clean.** A "One X" prompt convention (`One stick figure sits at one desk...`) keeps Seedance from cramming three characters into a frame
+- **Narration audio doesn't fight Seedance audio.** Seedance's built-in audio generation is disabled — your TTS narration is the soundtrack, full stop
+
+## Use it
+
+Pull the recipe into a local checkout of [mograph-cli](https://github.com/luquitared/mograph-cli):
+
+```
+mograf workflow pull stick-figure-explainer
 ```
 
-The two `prompt_prefix` strings are what bind the look across every clip — don't remove them.
+You get:
 
-## Prompt patterns
+- `README.md` — this page
+- `CLAUDE.md` / `AGENTS.md` — instructions for AI agents authoring new timelines in this style
+- `examples/how-a-thermos-works.json` — the canonical worked example timeline
+- `examples/how-a-thermos-works.mp4` — what that renders to (the video on this page)
 
-After the prefix auto-prepends, write your scene prompt with these:
+Then either:
 
-- **Lead every subject with "One"** — `One stick figure sits at one desk and panics at one laptop showing one red zig-zag price line.` Seedance honors single-subject framing when "one" is explicit, which keeps composition uncluttered.
-- **Concrete labeled props** — `Bitcoin icon`, `golden token`, `wooden bridge`, `bank vault`. Stick figures need recognizable objects to carry meaning. When a name matters, put it on a sign: `counter labeled Stablecoin Exchange`, `Text reads 1 coin = 1 dollar.`
-- **Tiny motion verbs only** — `wobbles`, `pulses softly`, `tips and spills`, `rotates slowly`, `drifts upward`, `nods`. No `pan`, `dolly`, `zoom`, `track` — the look is a sequence of held sketches, not cinematic shots.
-- **Two-panel splits** — `Two-panel cartoon. Left panel: ... . Right panel: ...` for before/after, problem/solution, two characters.
-- **Continue the still in the video** — the video prompt should describe the same scene as `first_frame.generate` + one or two motion verbs. Don't introduce new objects in the video that aren't in the still.
+- **Edit the example timeline** with your own script and scene descriptions and run `python scripts/run.py examples/how-a-thermos-works.json --stage final`
+- **Or hand it to an AI coding agent** (Claude Code, Codex, Cursor) — the `CLAUDE.md` / `AGENTS.md` tell it everything it needs to author a new timeline in this style from a topic you describe
 
-## Don't
+## Cost and timing
 
-- **Recurring named characters** — these are abstract everyperson stick figures. If a recurring cast matters, switch to [`character-asset`](../character-asset/README.md).
-- **Photoreal celebrity/politician likenesses** — Seedance moderation rejects them (E005). Stick figures sidestep this; don't break the abstraction.
-- **Realistic shading or full-color palettes** — keep accents to one or two per beat.
+About 3–8 minutes per render on a warm machine. Roughly $1–3 per video at current model prices — most of it goes to Seedance for the 8 video clips. Iterating on stills only (after you like the script) is cheap; iterating on motion alone is also cheap. See the staged-rendering docs in [narration-explainer](../narration-explainer/README.md) for how to rerun individual stages without redoing the whole pipeline.
 
-## Example
+## Built on
 
-`examples/how-a-thermos-works.json` — 8 beats, ~53s, using the canonical `fit_to` + `first_frame.generate` pattern.
+This is a style specialization of the [narration-explainer](../narration-explainer/README.md) workflow — the underlying two-track shape, timeline format, and staged rendering live there.
