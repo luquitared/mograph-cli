@@ -46,6 +46,32 @@ CONFIG_DIR = Path(
 )
 CREDS_FILE = CONFIG_DIR / "credentials.json"
 
+# Best-effort: load .env from the repo root so GITHUB_CLIENT_ID etc. are
+# available without the user having to export them manually.
+def _load_dotenv() -> None:
+    candidates = [
+        Path.cwd() / ".env",
+        Path(__file__).resolve().parent.parent / ".env",
+    ]
+    for env_path in candidates:
+        if not env_path.is_file():
+            continue
+        try:
+            for line in env_path.read_text().splitlines():
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, _, value = line.partition("=")
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                if key and key not in os.environ:
+                    os.environ[key] = value
+        except OSError:
+            pass
+
+
+_load_dotenv()
+
 VIDEO_EXTS = {".mp4", ".webm", ".mov"}
 
 
@@ -378,6 +404,124 @@ def cmd_list(args, creds):
     for w in rows:
         title = w["title"]
         print(f"  {w['slug']:<40} {title}")
+
+
+def cmd_claim(args, creds):
+    """Link this CLI's handle to a GitHub account using GitHub's device flow."""
+    if not creds:
+        sys.exit("Not logged in. Run: mograph login")
+
+    client_id = (
+        args.client_id
+        or os.environ.get("MOGRAPH_GITHUB_CLIENT_ID")
+        or os.environ.get("GITHUB_CLIENT_ID")
+    )
+    if not client_id:
+        sys.exit(
+            "GITHUB_CLIENT_ID is not set. Add it to .env or pass --client-id.\n"
+            "(This is the public OAuth client id — the secret stays on the server.)"
+        )
+
+    api = creds["api_base"]
+
+    # 1. Request a device + user code from GitHub.
+    dev = requests.post(
+        "https://github.com/login/device/code",
+        data={"client_id": client_id, "scope": "read:user user:email"},
+        headers={"Accept": "application/json"},
+        timeout=20,
+    )
+    if not dev.ok:
+        sys.exit(f"github device/code failed: {dev.status_code} {dev.text}")
+    dev_data = dev.json()
+    if "error" in dev_data:
+        sys.exit(
+            f"github error: {dev_data.get('error')} — {dev_data.get('error_description', '')}"
+        )
+    device_code = dev_data["device_code"]
+    user_code = dev_data["user_code"]
+    verify_uri = dev_data.get("verification_uri_complete") or dev_data["verification_uri"]
+    interval = max(int(dev_data.get("interval", 5)), 2)
+    expires_in = int(dev_data.get("expires_in", 900))
+
+    print(f"\nClaiming @{creds['handle']} via GitHub")
+    print(f"  Open this URL in a browser:\n")
+    print(f"    {verify_uri}\n")
+    print(f"  Enter this code:  {user_code}\n")
+    print(f"  Code expires in {expires_in // 60} minutes.")
+
+    if not args.no_open:
+        try:
+            webbrowser.open(verify_uri)
+        except Exception:
+            pass
+
+    if args.no_wait:
+        print("\n--no-wait set; not polling for completion.")
+        return
+
+    # 2. Poll GitHub until we get an access_token.
+    print("\nWaiting for you to authorize on GitHub (Ctrl-C to stop)…")
+    deadline = time.time() + expires_in
+    access_token: Optional[str] = None
+    while time.time() < deadline:
+        try:
+            tok = requests.post(
+                "https://github.com/login/oauth/access_token",
+                data={
+                    "client_id": client_id,
+                    "device_code": device_code,
+                    "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                },
+                headers={"Accept": "application/json"},
+                timeout=20,
+            )
+            payload = tok.json()
+        except requests.RequestException:
+            time.sleep(interval)
+            continue
+
+        err = payload.get("error")
+        if err == "authorization_pending":
+            time.sleep(interval)
+            continue
+        if err == "slow_down":
+            interval += 5
+            time.sleep(interval)
+            continue
+        if err in ("expired_token", "access_denied"):
+            sys.exit(f"\n✗ {err}: {payload.get('error_description', '')}")
+        if err:
+            sys.exit(f"\n✗ github error: {err} {payload.get('error_description', '')}")
+        if payload.get("access_token"):
+            access_token = payload["access_token"]
+            break
+        time.sleep(interval)
+
+    if not access_token:
+        sys.exit("\n✗ Timed out before authorization.")
+
+    # 3. Tell the server: link my handle to whoever this GitHub token belongs to.
+    body = json.dumps({"github_access_token": access_token}).encode()
+    headers = sign_request(creds["privkey"], "POST", "/api/claim/cli-direct", body)
+    headers["content-type"] = "application/json"
+    resp = requests.post(
+        f"{api}/api/claim/cli-direct",
+        data=body,
+        headers=headers,
+        timeout=30,
+    )
+    if not resp.ok:
+        sys.exit(f"\n✗ link failed: {resp.status_code} {resp.text}")
+    info = resp.json()
+    user = info.get("user", {})
+    user_handle = user.get("handle", "?")
+    gh = user.get("github_login")
+    print(
+        f"\n✓ Linked @{info.get('linked_handle', creds['handle'])} "
+        f"→ @{user_handle}"
+        + (f" (github.com/{gh})" if gh else "")
+    )
 
 
 def cmd_open(args, creds):
@@ -784,6 +928,25 @@ def main():
         help="Overwrite README/dirs even if non-empty",
     )
 
+    p_claim = sub.add_parser(
+        "claim",
+        help="Link this CLI's anonymous handle to a GitHub account (device flow)",
+    )
+    p_claim.add_argument(
+        "--client-id",
+        help="GitHub OAuth client id (defaults to $GITHUB_CLIENT_ID in env)",
+    )
+    p_claim.add_argument(
+        "--no-wait",
+        action="store_true",
+        help="Print the device code and exit instead of polling for completion",
+    )
+    p_claim.add_argument(
+        "--no-open",
+        action="store_true",
+        help="Don't try to open the verification URL in a browser",
+    )
+
     p_pub = sub.add_parser(
         "publish",
         help="Publish a pipeline run dir as a workflow (auto-detects final mp4 + timeline)",
@@ -809,6 +972,8 @@ def main():
 
     if args.cmd == "login":
         cmd_login(args, creds)
+    elif args.cmd == "claim":
+        cmd_claim(args, creds)
     elif args.cmd == "publish":
         cmd_publish(args, creds)
     elif args.cmd == "workflow":

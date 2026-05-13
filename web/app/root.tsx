@@ -9,6 +9,34 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
+import { db } from "./db/client";
+import { users } from "./db/schema";
+import { eq } from "drizzle-orm";
+import { getEnv } from "./lib/env";
+import { getCurrentSession } from "./lib/session";
+
+export async function loader({ request, context }: Route.LoaderArgs) {
+  try {
+    const env = getEnv(context);
+    const session = await getCurrentSession(request, env.SESSION_SECRET);
+    if (!session) return { user: null };
+    const d = db(env.DATABASE_URL);
+    const [user] = await d
+      .select({
+        id: users.id,
+        handle: users.handle,
+        displayName: users.displayName,
+        githubLogin: users.githubLogin,
+        avatarUrl: users.avatarUrl,
+      })
+      .from(users)
+      .where(eq(users.id, session.user_id))
+      .limit(1);
+    return { user: user ?? null };
+  } catch {
+    return { user: null };
+  }
+}
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },

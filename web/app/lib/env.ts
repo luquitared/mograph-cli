@@ -4,6 +4,10 @@ export function getEnv(context: AppLoadContext) {
   const env = context.cloudflare.env as Env & {
     DATABASE_URL?: string;
     UPLOAD_SECRET?: string;
+    SESSION_SECRET?: string;
+    GITHUB_CLIENT_ID?: string;
+    GITHUB_CLIENT_SECRET?: string;
+    APP_ORIGIN?: string;
   };
   if (!env.DATABASE_URL) {
     throw new Error(
@@ -18,6 +22,10 @@ export function getEnv(context: AppLoadContext) {
   return {
     DATABASE_URL: env.DATABASE_URL,
     UPLOAD_SECRET: env.UPLOAD_SECRET,
+    SESSION_SECRET: env.SESSION_SECRET ?? env.UPLOAD_SECRET,
+    GITHUB_CLIENT_ID: env.GITHUB_CLIENT_ID ?? null,
+    GITHUB_CLIENT_SECRET: env.GITHUB_CLIENT_SECRET ?? null,
+    APP_ORIGIN: env.APP_ORIGIN ?? null,
     R2_PUBLIC: env.R2_PUBLIC,
     R2_PRIVATE: env.R2_PRIVATE,
   };

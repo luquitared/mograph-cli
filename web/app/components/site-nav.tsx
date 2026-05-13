@@ -1,6 +1,18 @@
-import { Link, NavLink } from "react-router";
+import { Form, Link, NavLink, useRouteLoaderData } from "react-router";
+
+type RootData = {
+  user: {
+    handle: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+    githubLogin: string | null;
+  } | null;
+};
 
 export function SiteNav() {
+  const root = useRouteLoaderData("root") as RootData | undefined;
+  const user = root?.user ?? null;
+
   return (
     <header className="border-b border-zinc-200/70 dark:border-zinc-800/70 backdrop-blur sticky top-0 z-30 bg-white/70 dark:bg-zinc-950/70">
       <div className="mx-auto max-w-6xl px-6 h-14 flex items-center justify-between">
@@ -32,14 +44,43 @@ export function SiteNav() {
           >
             Share
           </NavLink>
-          <a
-            href="https://github.com/"
-            target="_blank"
-            rel="noreferrer"
-            className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-          >
-            GitHub
-          </a>
+          {user ? (
+            <div className="flex items-center gap-3 pl-2 border-l border-zinc-200 dark:border-zinc-800">
+              <Link
+                to="/claim"
+                className="flex items-center gap-2 text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white"
+              >
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt=""
+                    className="w-6 h-6 rounded-full"
+                  />
+                ) : (
+                  <span className="w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 grid place-items-center font-mono text-[10px]">
+                    {user.handle.slice(0, 2)}
+                  </span>
+                )}
+                <span className="hidden sm:inline">@{user.handle}</span>
+              </Link>
+              <Form method="post" action="/auth/signout">
+                <button
+                  type="submit"
+                  className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 text-xs"
+                >
+                  sign out
+                </button>
+              </Form>
+            </div>
+          ) : (
+            <Link
+              to="/auth/github/start?next=/claim"
+              reloadDocument
+              className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+            >
+              Sign in
+            </Link>
+          )}
         </nav>
       </div>
     </header>
