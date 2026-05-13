@@ -12,7 +12,7 @@ const PAGE_SIZE = 24;
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Workflows — mograph" },
+    { title: "Workflows — mograf" },
     {
       name: "description",
       content: "Community-pushed video workflows you can run with one command.",
@@ -91,7 +91,7 @@ export default function WorkflowsIndex({ loaderData }: Route.ComponentProps) {
               </Link>{" "}
               or run{" "}
               <code className="font-mono text-xs px-1.5 py-0.5 bg-zinc-100 dark:bg-zinc-900 rounded">
-                mograph publish runs/&lt;your-run&gt;
+                mograf publish runs/&lt;your-run&gt;
               </code>{" "}
               from the CLI.
             </p>

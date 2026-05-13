@@ -1,0 +1,2 @@
+[console_scripts]
+mograf = mograf.cli:main

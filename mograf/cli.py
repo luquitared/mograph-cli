@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""mograph — push and share AI video workflows.
+"""mograf — push and share AI video workflows.
 
 Subcommands:
     login                          — link this machine via GitHub device flow
@@ -12,8 +12,8 @@ Subcommands:
     workflow open SLUG             — open a workflow page in your browser
     publish RUN_DIR                — turn a pipeline run dir into a workflow
 
-Config: ~/.config/mograph/credentials.json (override with MOGRAPH_HOME env)
-API:    https://mograph.lucasnegritto7538.workers.dev (override with MOGRAPH_API env)
+Config: ~/.config/mograf/credentials.json (override with MOGRAF_HOME env)
+API:    https://mograf.ai (override with MOGRAF_API env)
 
 A workflow folder is expected to contain:
     README.md                      — title from first H1, body becomes the readme
@@ -44,10 +44,10 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 DEFAULT_API = os.environ.get(
-    "MOGRAPH_API", "https://mograph.lucasnegritto7538.workers.dev"
+    "MOGRAF_API", os.environ.get("MOGRAPH_API", "https://mograph.lucasnegritto7538.workers.dev")
 )
 CONFIG_DIR = Path(
-    os.environ.get("MOGRAPH_HOME", Path.home() / ".config" / "mograph")
+    os.environ.get("MOGRAF_HOME", os.environ.get("MOGRAPH_HOME", str(Path.home() / ".config" / "mograf")))
 )
 CREDS_FILE = CONFIG_DIR / "credentials.json"
 
@@ -217,7 +217,7 @@ def cmd_login(args, creds):
 
     client_id = (
         args.client_id
-        or os.environ.get("MOGRAPH_GITHUB_CLIENT_ID")
+        or os.environ.get("MOGRAF_GITHUB_CLIENT_ID")
         or os.environ.get("GITHUB_CLIENT_ID")
     )
     if not client_id:
@@ -226,7 +226,7 @@ def cmd_login(args, creds):
             "(Public OAuth client id — the secret stays on the server.)"
         )
 
-    print(f"Linking this machine to mograph ({args.api})")
+    print(f"Linking this machine to mograf ({args.api})")
     access_token = _github_device_flow(client_id)
 
     # Generate a fresh keypair for this device.
@@ -398,7 +398,7 @@ def _coerce_duration(v) -> Optional[float]:
 
 def cmd_push(args, creds):
     if not creds:
-        sys.exit("Not logged in. Run: mograph login")
+        sys.exit("Not logged in. Run: mograf login")
     path = Path(args.path).resolve()
     if not path.is_dir():
         sys.exit(f"Not a directory: {path}")
@@ -510,7 +510,7 @@ def cmd_push(args, creds):
 
 def cmd_list(args, creds):
     if not creds:
-        sys.exit("Not logged in. Run: mograph login")
+        sys.exit("Not logged in. Run: mograf login")
     api = creds["api_base"]
     headers = sign_request(creds["privkey"], "GET", "/api/workflows/mine", b"")
     resp = requests.get(f"{api}/api/workflows/mine", headers=headers, timeout=20)
@@ -528,7 +528,7 @@ def cmd_list(args, creds):
 
 def cmd_open(args, creds):
     if not creds:
-        sys.exit("Not logged in. Run: mograph login")
+        sys.exit("Not logged in. Run: mograf login")
     url = f"{creds['api_base']}/workflows/{args.slug}"
     print(url)
     webbrowser.open(url)
@@ -552,7 +552,7 @@ def cmd_workflow_new(args, _creds):
     print(f"  edit  {readme_path}")
     print(f"  add   examples/<your-timeline>.json")
     print(f"  add   videos/<rendered>.mp4   (or place under examples/)")
-    print(f"  push  mograph workflow push {target}")
+    print(f"  push  mograf workflow push {target}")
 
 
 def _readme_template(slug: str, title: Optional[str]) -> str:
@@ -607,7 +607,7 @@ def _find_final_video(run_dir: Path) -> Optional[Path]:
 
 def cmd_publish(args, creds):
     if not creds:
-        sys.exit("Not logged in. Run: mograph login")
+        sys.exit("Not logged in. Run: mograf login")
     run_dir = Path(args.run_dir).resolve()
     if not run_dir.is_dir():
         sys.exit(f"Not a directory: {run_dir}")
@@ -639,7 +639,7 @@ def cmd_publish(args, creds):
     else:
         readme = _auto_readme(title, summary, timeline, final_video.name)
 
-    staging = Path(tempfile.mkdtemp(prefix="mograph-publish-"))
+    staging = Path(tempfile.mkdtemp(prefix="mograf-publish-"))
     try:
         (staging / "examples").mkdir(parents=True)
         (staging / "README.md").write_text(readme)
@@ -703,7 +703,7 @@ def _auto_readme(
 
 def cmd_rm(args, creds):
     if not creds:
-        sys.exit("Not logged in. Run: mograph login")
+        sys.exit("Not logged in. Run: mograf login")
     api = creds["api_base"]
     slug = args.slug
     if not args.yes:
@@ -830,7 +830,7 @@ def cmd_run(args, _creds):
 
 def main():
     ap = argparse.ArgumentParser(
-        prog="mograph",
+        prog="mograf",
         description="Push and share AI video workflows.",
     )
     ap.add_argument(

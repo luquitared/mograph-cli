@@ -21,7 +21,7 @@ export function SiteNav() {
           className="font-mono text-sm tracking-tight flex items-center gap-2"
         >
           <span className="inline-block w-2 h-2 rounded-full bg-fuchsia-500" />
-          mograph
+          mograf
         </Link>
         <nav className="flex items-center gap-6 text-sm">
           <NavLink

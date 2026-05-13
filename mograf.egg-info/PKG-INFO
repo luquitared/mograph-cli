@@ -1,0 +1,141 @@
+Metadata-Version: 2.4
+Name: mograf
+Version: 0.1.0
+Summary: Push and share AI video workflows.
+Author: mograf contributors
+License: MIT
+Project-URL: Homepage, https://mograf.ai
+Classifier: Development Status :: 3 - Alpha
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: MacOS
+Classifier: Operating System :: POSIX
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Multimedia :: Video
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: requests>=2.31.0
+Requires-Dist: cryptography>=42.0.0
+Provides-Extra: pipeline
+Requires-Dist: openai>=2.0.0; extra == "pipeline"
+Requires-Dist: aiohttp>=3.9.0; extra == "pipeline"
+Requires-Dist: pillow>=10.0.0; extra == "pipeline"
+Requires-Dist: elevenlabs>=1.0.0; extra == "pipeline"
+Requires-Dist: google-genai>=1.0.0; extra == "pipeline"
+Requires-Dist: boto3>=1.34.0; extra == "pipeline"
+
+# Mograph CLI
+
+Create videos using AI paired with Claude Code / Codex.
+
+The pipeline takes a **timeline JSON** (tracks of clips) and renders it: image generation → video generation → audio assembly. Mock mode runs the whole thing without API calls.
+
+## Quick start
+
+```bash
+# Run full pipeline from a timeline file
+python pipeline.py --timeline-file my-timeline.json --stage final
+
+# Dry run (show execution plan without running)
+python pipeline.py --timeline-file my-timeline.json --dry-run
+
+# Mock mode (no API calls — uses fixtures)
+python pipeline.py --mock --timeline-file my-timeline.json --stage final
+```
+
+For project-stable run dirs and auto-resume, use the `scripts/run.py` wrapper. To scaffold a new project (timeline + ref manifest + agent notes), use `scripts/init_project.py "Project Name"`.
+
+---
+
+## The three things you'll do most
+
+### 1. Minimal video
+
+One clip, no narration:
+
+```json
+{
+  "version": 1,
+  "project": { "name": "Single Clip" },
+  "tracks": [{
+    "id": "visuals", "type": "video",
+    "clips": [{
+      "id": "vid-1",
+      "source": {
+        "type": "video",
+        "prompt": "A cat on a windowsill watching rain, soft lighting",
+        "model": "seedance-2.0-fast",
+        "duration": 6
+      }
+    }]
+  }]
+}
+```
+
+### 2. Use a reference image
+
+Anchor a clip to a specific look — character sheet, environment, mood-board frame.
+
+```json
+{
+  "id": "vid-1",
+  "source": {
+    "type": "video",
+    "prompt": "Hero approaches the castle gate",
+    "reference_images": ["refs/hero.png", "refs/castle.png"]
+  }
+}
+```
+
+Photoreal-human refs trip Seedance moderation (E005). Stylized refs (anime, claymation, illustration) work fine. To generate refs first, see [`docs/workflows/character-asset/`](docs/workflows/character-asset/).
+
+### 3. Lock the style across clips
+
+Pin a consistent look across every clip with a shared mood-board + a `prompt_prefix`:
+
+```json
+{
+  "defaults": {
+    "video": { "prompt_prefix": "In the same reference image style," }
+  },
+  "tracks": [{
+    "id": "visuals", "type": "video",
+    "clips": [
+      { "id": "vid-1", "source": { "type": "video", "prompt": "fox in pine forest at dawn", "reference_images": ["assets/mood/01.jpg", "assets/mood/02.jpg"] } },
+      { "id": "vid-2", "source": { "type": "video", "prompt": "fox crosses a frozen stream",  "reference_images": ["assets/mood/01.jpg", "assets/mood/02.jpg"] } }
+    ]
+  }]
+}
+```
+
+Prefix is prepended to every clip's prompt; same refs on every clip lets the model average over them. To rip a style or format pack from an existing video, see [`docs/workflows/style-rip/`](docs/workflows/style-rip/) and [`docs/workflows/format-rip/`](docs/workflows/format-rip/).
+
+---
+
+## Workflows — recipes for specific video types
+
+- [`narration-explainer/`](docs/workflows/narration-explainer/) — TTS or pre-recorded VO + per-beat visuals
+- [`news-video/`](docs/workflows/news-video/) — recurring on-screen cast, b-roll cutaways
+- [`music-video/`](docs/workflows/music-video/) — mp3 → Gemini analysis → Seedance cuts → ffmpeg assemble
+- [`format-rip/`](docs/workflows/format-rip/) — clone a video's pacing/structure into a reusable pack
+- [`style-rip/`](docs/workflows/style-rip/) — clone a video's visual style into a reusable pack
+- [`character-asset/`](docs/workflows/character-asset/) — produce a transparent (alpha) character video asset
+- [`video-clone/`](docs/workflows/video-clone/) — recreate an existing video shot-by-shot
+
+## Reference
+
+- [`cli-reference.md`](docs/reference/cli-reference.md) — full CLI argument reference
+- [`pipeline-modes.md`](docs/reference/pipeline-modes.md) — staged execution, exploration, dry-run
+- [`inspecting-runs.md`](docs/reference/inspecting-runs.md) — finding past runs in GCS
+- [`tts-voices.md`](docs/reference/tts-voices.md) — Gemini TTS voice catalog
+- [`e2e-testing.md`](docs/reference/e2e-testing.md) — testing strategy
+- [`timeline/format-reference.md`](docs/reference/timeline/format-reference.md) — every timeline field
+- [`timeline/models.md`](docs/reference/timeline/models.md) — per-model parameters and constraints
+
+## Deployment
+
+Cloud Run + Cloud Build setup lives at [`deployment/`](deployment/) — script + docs together.

@@ -17,7 +17,7 @@ import { WorkflowStatsRow } from "../components/workflow-stats";
 export function meta({ data }: Route.MetaArgs) {
   if (!data) return [{ title: "Not found — mograph" }];
   return [
-    { title: `${data.workflow.title} — mograph` },
+    { title: `${data.workflow.title} — mograf` },
     { name: "description", content: data.workflow.summary ?? undefined },
   ];
 }
@@ -113,13 +113,16 @@ export default function WorkflowDetail({ loaderData }: Route.ComponentProps) {
 
         <div className="mt-6">
           <CopyCommand
-            command={`python scripts/mograph.py workflow pull ${workflow.slug}`}
+            command={`mograf workflow pull ${workflow.slug}`}
           />
           <p className="mt-2 text-xs text-zinc-500">
-            Run this in your <span className="font-mono">mograph-cli</span>{" "}
-            checkout. It downloads the README, example timeline, and main video
-            into <span className="font-mono">./{workflow.slug}/</span> so you
-            can rerun it.
+            Downloads the README, example timeline, and main video into{" "}
+            <span className="font-mono">./{workflow.slug}/</span> so you can
+            rerun it. Install the CLI first:{" "}
+            <code className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-900">
+              uv tool install mograf
+            </code>
+            .
           </p>
         </div>
 

@@ -10,7 +10,7 @@ import { SiteNav } from "../components/site-nav";
 import { SiteFooter } from "../components/site-footer";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Settings — mograph" }];
+  return [{ title: "Settings — mograf" }];
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -186,14 +186,14 @@ function DevicesList({
     <section className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-6">
       <h2 className="text-lg font-medium">Linked CLI devices</h2>
       <p className="text-sm text-zinc-500 mt-1">
-        Each <span className="font-mono">mograph login</span> on a new machine
+        Each <span className="font-mono">mograf login</span> on a new machine
         adds a row here. The keypair never leaves the device.
       </p>
       {devices.length === 0 ? (
         <p className="mt-4 text-sm text-zinc-500">
           No devices yet. Run{" "}
           <code className="font-mono text-xs px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-900">
-            python scripts/mograph.py login
+            mograf login
           </code>{" "}
           on your laptop to link one.
         </p>

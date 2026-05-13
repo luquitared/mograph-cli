@@ -5,7 +5,7 @@ import { SiteFooter } from "../components/site-footer";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "mograph — AI video pipelines, scripted from the CLI" },
+    { title: "mograf — AI video pipelines, scripted from the CLI" },
     {
       name: "description",
       content:
@@ -72,7 +72,7 @@ export default function Home() {
             of video.
           </h1>
           <p className="mt-7 max-w-2xl text-lg text-zinc-600 dark:text-zinc-400">
-            mograph is a declarative pipeline for AI video. Write a timeline,
+            mograf is a declarative pipeline for AI video. Write a timeline,
             run it from the CLI, render with the strongest model for the job.
             Share the recipe so anyone can re-run it.
           </p>
@@ -156,15 +156,14 @@ export default function Home() {
           </p>
           <pre className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-5 text-sm overflow-x-auto leading-relaxed">
             <code>
-              <span className="text-zinc-400"># clone, install</span>
-              {"\n"}git clone github.com/yourname/mograph-cli && cd mograph-cli
-              {"\n"}python -m pip install -r requirements.txt
+              <span className="text-zinc-400"># install the CLI globally (uv recommended; pipx also works)</span>
+              {"\n"}uv tool install mograf
               {"\n"}
               {"\n"}<span className="text-zinc-400"># GitHub device flow + register this machine</span>
-              {"\n"}python scripts/mograph.py login
+              {"\n"}mograf login
               {"\n"}
               {"\n"}<span className="text-zinc-400"># publish a pipeline run as a shareable workflow</span>
-              {"\n"}python scripts/mograph.py publish runs/your-latest-run
+              {"\n"}mograf publish runs/your-latest-run
             </code>
           </pre>
         </section>

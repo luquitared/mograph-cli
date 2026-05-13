@@ -11,7 +11,7 @@ import { SiteFooter } from "../components/site-footer";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Share a workflow — mograph" },
+    { title: "Share a workflow — mograf" },
     {
       name: "description",
       content: "Upload a workflow from the browser. Sign in with GitHub first.",

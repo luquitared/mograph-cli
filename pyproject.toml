@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mograf"
+version = "0.1.0"
+description = "Push and share AI video workflows."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "mograf contributors" }]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Video",
+]
+
+# The CLI itself is intentionally lightweight. It only needs to make signed
+# HTTP requests to the mograf API. The full pipeline deps (Replicate,
+# OpenAI, ElevenLabs, ffmpeg, etc.) live in the optional `[pipeline]` extra
+# below — install them only if you want to run `mograf workflow run` or
+# `pipeline.py` locally.
+dependencies = [
+    "requests>=2.31.0",
+    "cryptography>=42.0.0",
+]
+
+[project.optional-dependencies]
+pipeline = [
+    "openai>=2.0.0",
+    "aiohttp>=3.9.0",
+    "pillow>=10.0.0",
+    "elevenlabs>=1.0.0",
+    "google-genai>=1.0.0",
+    "boto3>=1.34.0",
+]
+
+[project.scripts]
+mograf = "mograf.cli:main"
+
+[project.urls]
+Homepage = "https://mograf.ai"
+
+[tool.setuptools.packages.find]
+include = ["mograf*"]
+exclude = [
+    "web*", "cloudrun*", "tests*", "docs*", "deployment*", "scripts*",
+    "runs*", "timeline*", "generation*", "tts*", "shared*", "assets*",
+    "timelines*", "batch*",
+]

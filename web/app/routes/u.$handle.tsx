@@ -8,9 +8,9 @@ import { SiteFooter } from "../components/site-footer";
 import { WorkflowCard } from "../components/workflow-card";
 
 export function meta({ data }: Route.MetaArgs) {
-  if (!data) return [{ title: "Not found — mograph" }];
+  if (!data) return [{ title: "Not found — mograf" }];
   return [
-    { title: `@${data.user.handle} — mograph` },
+    { title: `@${data.user.handle} — mograf` },
     {
       name: "description",
       content: `Workflows pushed by @${data.user.handle}.`,
