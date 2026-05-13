@@ -1,8 +1,7 @@
 """Cloudflare R2 storage integration for the Cloud Run pipeline.
 
 R2 speaks S3 over HTTPS, so this uses boto3 against the R2 S3-compat
-endpoint. The public interface mirrors the previous gcs_storage.py so
-callers only need to change their import.
+endpoint.
 
 Required environment:
     R2_ACCOUNT_ID
@@ -78,10 +77,6 @@ def parse_uri(uri: str) -> Tuple[str, str]:
     return get_default_bucket(), uri.lstrip("/")
 
 
-# Back-compat alias for the previous module name.
-parse_gcs_uri = parse_uri
-
-
 def _content_type(path: Path) -> Optional[str]:
     ct, _ = mimetypes.guess_type(str(path))
     return ct
@@ -133,7 +128,7 @@ def upload_directory(
     """Recursively upload everything under `local_dir` to `base_uri`.
 
     Returns a dict with:
-      gcs_uris  — r2:// URIs (named for back-compat; old callers use this key)
+      uris        — r2:// URIs of each uploaded object
       signed_urls — presigned GET URLs valid for `signed_url_hours`
     """
     bucket, base_key = parse_uri(base_uri)
@@ -164,7 +159,7 @@ def upload_directory(
             )
         )
 
-    return {"gcs_uris": uris, "signed_urls": signed}
+    return {"uris": uris, "signed_urls": signed}
 
 
 def list_files(uri: str, pattern: Optional[str] = None) -> List[str]:
@@ -202,8 +197,9 @@ def object_exists(uri: str) -> bool:
 class R2Workspace:
     """Local temp workspace synced to an R2 prefix.
 
-    Mirrors the prior `GCSWorkspace` class. `output_uri` may be `r2://...`,
-    `s3://...`, `gs://...` (legacy), or `None` for local-only test runs.
+    `output_uri` may be `r2://...`, `s3://...`, `gs://...` (still parsed for
+    timeline JSON written before the R2 migration), or `None` for local-only
+    test runs.
     """
 
     def __init__(
@@ -216,11 +212,6 @@ class R2Workspace:
         self._is_temp_dir = local_base is None
         self.local_base = local_base or Path(tempfile.mkdtemp(prefix="cloudrun_"))
         self.local_base.mkdir(parents=True, exist_ok=True)
-
-    # Legacy alias retained for callers that referenced `gcs_output_uri`.
-    @property
-    def gcs_output_uri(self) -> Optional[str]:
-        return self.output_uri
 
     @property
     def runs_dir(self) -> Path:
@@ -277,7 +268,7 @@ class R2Workspace:
         if self.is_local_only:
             local_files = [str(p) for p in run_dir.glob("**/*") if p.is_file()]
             return {
-                "gcs_base": str(run_dir),
+                "output_base": str(run_dir),
                 "files": local_files,
                 "signed_urls": local_files,
                 "run_name": output_folder,
@@ -287,8 +278,8 @@ class R2Workspace:
         output_path = f"{self.output_uri.rstrip('/')}/{output_folder}"
         upload_result = upload_directory(run_dir, output_path)
         return {
-            "gcs_base": output_path,
-            "files": upload_result["gcs_uris"],
+            "output_base": output_path,
+            "files": upload_result["uris"],
             "signed_urls": upload_result["signed_urls"],
             "run_name": output_folder,
         }
@@ -297,7 +288,3 @@ class R2Workspace:
         import shutil
         if self._is_temp_dir and self.local_base.exists():
             shutil.rmtree(self.local_base)
-
-
-# Back-compat alias for the class name.
-GCSWorkspace = R2Workspace

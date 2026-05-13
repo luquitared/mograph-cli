@@ -121,3 +121,51 @@ export const workflowFiles = pgTable(
   },
   (t) => [index("workflow_files_workflow_idx").on(t.workflowId)],
 );
+
+export const packs = pgTable(
+  "packs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: text("slug").notNull(),
+    kind: text("kind").notNull(),
+    title: text("title").notNull(),
+    summary: text("summary"),
+    readmeMd: text("readme_md").notNull().default(""),
+    ownerUserId: uuid("owner_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    visibility: text("visibility").notNull().default("public"),
+    totalBytes: bigint("total_bytes", { mode: "number" }),
+    totalFiles: integer("total_files"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [
+    uniqueIndex("packs_slug_idx").on(t.slug),
+    index("packs_kind_idx").on(t.kind),
+    index("packs_owner_user_idx").on(t.ownerUserId),
+    index("packs_created_idx").on(t.createdAt),
+  ],
+);
+
+export const packFiles = pgTable(
+  "pack_files",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    packId: uuid("pack_id")
+      .notNull()
+      .references(() => packs.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    path: text("path").notNull(),
+    r2Key: text("r2_key").notNull(),
+    sizeBytes: bigint("size_bytes", { mode: "number" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => [index("pack_files_pack_idx").on(t.packId)],
+);

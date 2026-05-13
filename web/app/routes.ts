@@ -4,6 +4,8 @@ export default [
   index("routes/home.tsx"),
   route("workflows", "routes/workflows._index.tsx"),
   route("workflows/:slug", "routes/workflows.$slug.tsx"),
+  route("packs", "routes/packs._index.tsx"),
+  route("packs/:slug", "routes/packs.$slug.tsx"),
   route("u/:handle", "routes/u.$handle.tsx"),
   route("upload", "routes/upload.tsx"),
   route("settings", "routes/settings.tsx"),
@@ -21,5 +23,8 @@ export default [
   route("api/workflows/mine", "routes/api.workflows.mine.ts"),
   route("api/workflows/:id/complete", "routes/api.workflows.$id.complete.ts"),
   route("api/workflows/:slug", "routes/api.workflows.$slug.ts"),
+  route("api/packs", "routes/api.packs.ts"),
+  route("api/packs/mine", "routes/api.packs.mine.ts"),
+  route("api/packs/:slug", "routes/api.packs.$slug.ts"),
   route("api/upload/:token", "routes/api.upload.$token.ts"),
 ] satisfies RouteConfig;

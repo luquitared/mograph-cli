@@ -1,6 +1,6 @@
 import type { Route } from "./+types/api.upload.$token";
 import { db } from "../db/client";
-import { workflowFiles } from "../db/schema";
+import { packFiles, workflowFiles } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { getEnv, json } from "../lib/env";
 import { verifyUploadToken } from "../lib/sig";
@@ -43,10 +43,17 @@ export async function action({ context, request, params }: Route.ActionArgs) {
   });
 
   const d = db(env.DATABASE_URL);
-  await d
-    .update(workflowFiles)
-    .set({ sizeBytes: buf.byteLength })
-    .where(eq(workflowFiles.id, payload.fileId));
+  if (payload.table === "pack_files") {
+    await d
+      .update(packFiles)
+      .set({ sizeBytes: buf.byteLength })
+      .where(eq(packFiles.id, payload.fileId));
+  } else {
+    await d
+      .update(workflowFiles)
+      .set({ sizeBytes: buf.byteLength })
+      .where(eq(workflowFiles.id, payload.fileId));
+  }
 
   return json({ ok: true, key: payload.r2Key, bytes: buf.byteLength });
 }

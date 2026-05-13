@@ -12,7 +12,12 @@ so the project stays at a stable path across runs.
 Usage:
     python scripts/init_project.py "My Project Name"
     python scripts/init_project.py "Kalshi Top 5"   --from-pack news-show-v1
-    python scripts/init_project.py "Dating Remix"   --from-pack ig-DXsns8PpVlj --prefix style-packs
+    python scripts/init_project.py "Dating Remix"   --from-pack ig-DXsns8PpVlj
+
+Packs are pulled from the website (https://mograf.ai) via `mograf pack pull`.
+The pack's kind (asset vs style) determines where it lands:
+  asset → runs/asset-packs/<slug>/
+  style → runs/style-packs/<slug>/
 
 After init:
     1. Edit runs/<slug>/refs-manifest.json (add character/scene refs)
@@ -106,14 +111,24 @@ Output lands in this same dir under `videos/`, `images/`, `final/`. `scripts/run
 {pack_note}"""
 
 
-def write_pack_note(pack_id: str, pack_dir: Path) -> str:
+def write_pack_note(pack_slug: str, pack_dir: Path) -> str:
     rel = pack_dir.relative_to(PROJECT_ROOT)
     return (
-        "\n## Asset pack\n\n"
-        f"Pulled `{pack_id}` to `{rel}/`. Use files from there in `reference_images`, "
+        "\n## Pack\n\n"
+        f"Pulled `{pack_slug}` to `{rel}/`. Use files from there in `reference_images`, "
         "`reference_audios`, or `reference_videos` in your timeline. "
         "Packs live outside the project dir so they can be shared across projects.\n"
     )
+
+
+def _resolve_pulled_pack_dir(pack_slug: str) -> Path | None:
+    """`mograf pack pull` puts the pack in runs/{kind}-packs/<slug>/. We don't
+    know the kind ahead of time, so look in both expected locations."""
+    for prefix in ("asset-packs", "style-packs"):
+        candidate = PROJECT_ROOT / "runs" / prefix / pack_slug
+        if candidate.is_dir() and any(candidate.iterdir()):
+            return candidate
+    return None
 
 
 def main() -> int:
@@ -122,12 +137,7 @@ def main() -> int:
     ap.add_argument(
         "--from-pack",
         default=None,
-        help="Pull a named asset/style pack from GCS before scaffolding.",
-    )
-    ap.add_argument(
-        "--prefix",
-        default="asset-packs",
-        help="GCS pack prefix (default: asset-packs; use 'style-packs' for style/format-rip packs).",
+        help="Pull a published pack (asset or style) via `mograf pack pull` before scaffolding.",
     )
     ap.add_argument(
         "--force",
@@ -156,21 +166,32 @@ def main() -> int:
 
     pack_note = ""
     if args.from_pack:
-        pack_dir = PROJECT_ROOT / "runs" / args.prefix / args.from_pack
-        print(f"[init] pulling pack '{args.from_pack}' (--prefix {args.prefix})")
+        print(f"[init] pulling pack '{args.from_pack}' via mograf pack pull")
         rc = subprocess.call(
             [
                 sys.executable,
-                str(PROJECT_ROOT / "scripts" / "asset_pack_pull.py"),
+                "-m",
+                "mograf.cli",
+                "pack",
+                "pull",
                 args.from_pack,
-                "--prefix",
-                args.prefix,
+                "--force",
             ]
         )
         if rc != 0:
-            print(f"asset_pack_pull failed (exit {rc}); aborting init.", file=sys.stderr)
+            print(
+                f"mograf pack pull failed (exit {rc}); aborting init.",
+                file=sys.stderr,
+            )
             return rc
-        pack_note = write_pack_note(args.from_pack, pack_dir)
+        pack_dir = _resolve_pulled_pack_dir(args.from_pack)
+        if pack_dir is None:
+            print(
+                f"warning: could not find pulled pack dir for '{args.from_pack}'",
+                file=sys.stderr,
+            )
+        else:
+            pack_note = write_pack_note(args.from_pack, pack_dir)
 
     timeline_path.write_text(json.dumps(starter_timeline(args.name, slug), indent=2) + "\n")
     manifest_path.write_text(json.dumps(starter_manifest(slug), indent=2) + "\n")

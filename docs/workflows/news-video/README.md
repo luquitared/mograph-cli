@@ -28,8 +28,8 @@ or any other style.
 ## Quick start (using the example pack)
 
 ```bash
-# 1. Pull example assets
-python scripts/asset_pack_pull.py news-show-v1
+# 1. Pull example assets (from mograf.ai/packs)
+mograf pack pull news-show-v1
 # → runs/asset-packs/news-show-v1/{characters,voices,environments,composites}/
 
 # 2. Run an example timeline
@@ -354,8 +354,8 @@ suggested fixes. Use the `biggest_fixes[]` array as a punch list.
 | Script | Purpose |
 |---|---|
 | `scripts/batch_image_gen.py` | Parallel image generation across `gpt-image-2` and `nano-banana-2` from a JSON manifest |
-| `scripts/asset_pack_push.py` | Upload a local asset directory to GCS as a named pack |
-| `scripts/asset_pack_pull.py` | Download a pack from GCS to `runs/asset-packs/<name>/` |
+| `mograf pack push <dir> --kind asset` | Upload a local asset directory as a named pack on mograf.ai |
+| `mograf pack pull <slug>` | Download a pack from mograf.ai into `runs/{asset,style}-packs/<slug>/` |
 | `scripts/analyze_news_clip.py` | Gemini extraction of speaker timestamps from a generated clip (for voice extraction) |
 | `scripts/critique_clip.py` | Gemini critique of a single clip against a brief |
 | `scripts/critique_full_video.py` | Gemini holistic critique of an assembled video |

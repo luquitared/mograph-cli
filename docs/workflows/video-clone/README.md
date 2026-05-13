@@ -73,8 +73,8 @@ ffmpeg -i runs/<project-slug>/final/video_concat.mp4 \
        -map 0:v -map 1:a -c:v copy -shortest \
        runs/<project-slug>/final/video_clone.mp4
 
-# 10. (Optional) Push the pack
-python scripts/asset_pack_push.py runs/style-packs/$SLUG $SLUG --prefix style-packs
+# 10. (Optional) Push the pack (publishes to mograf.ai/packs)
+mograf pack push runs/style-packs/$SLUG --kind style --slug $SLUG
 ```
 
 ---

@@ -82,9 +82,18 @@ export async function verifyRequest(
   return { pubkey };
 }
 
+export type UploadTokenPayload = {
+  fileId: string;
+  r2Key: string;
+  bucket: "public" | "private";
+  table?: "workflow_files" | "pack_files";
+  expectedSha256?: string;
+  expiresAt: number;
+};
+
 export async function makeUploadToken(
   secret: string,
-  payload: { fileId: string; r2Key: string; bucket: "public" | "private"; expectedSha256?: string; expiresAt: number },
+  payload: UploadTokenPayload,
 ): Promise<string> {
   const body = b64url(new TextEncoder().encode(JSON.stringify(payload)));
   const key = await crypto.subtle.importKey(
@@ -105,7 +114,7 @@ export async function makeUploadToken(
 export async function verifyUploadToken(
   secret: string,
   token: string,
-): Promise<{ fileId: string; r2Key: string; bucket: "public" | "private"; expectedSha256?: string; expiresAt: number }> {
+): Promise<UploadTokenPayload> {
   const [body, sig] = token.split(".");
   if (!body || !sig) throw new Response("bad token", { status: 400 });
   const key = await crypto.subtle.importKey(

@@ -35,6 +35,16 @@ export function SiteNav() {
             Workflows
           </NavLink>
           <NavLink
+            to="/packs"
+            className={({ isActive }) =>
+              isActive
+                ? "text-zinc-900 dark:text-zinc-50"
+                : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+            }
+          >
+            Packs
+          </NavLink>
+          <NavLink
             to="/upload"
             className={({ isActive }) =>
               isActive

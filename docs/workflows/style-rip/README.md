@@ -58,8 +58,8 @@ python scripts/style_describe.py \
 python scripts/timeline_validate.py my-timeline.json
 python scripts/run.py my-timeline.json
 
-# 7. (Optional) Push the style-pack to GCS for reuse
-python scripts/asset_pack_push.py runs/style-packs/<slug> <slug> --prefix style-packs
+# 7. (Optional) Push the style-pack to mograf.ai for reuse
+mograf pack push runs/style-packs/<slug> --kind style --slug <slug>
 ```
 
 ---
@@ -169,10 +169,10 @@ specific signal weakens.
 
 ## 5. Reusing a pushed style pack
 
-Once a pack is on GCS, anyone with bucket access can pull it:
+Once a pack is published to mograf.ai, anyone can pull it:
 
 ```bash
-python scripts/asset_pack_pull.py <slug> --prefix style-packs
+mograf pack pull <slug>
 # → runs/style-packs/<slug>/source.mp4, frames/, style.json
 ```
 
@@ -189,10 +189,12 @@ files (`runs/style-packs/<slug>/frames/frame_03.jpg`).
 | Voice doesn't match what the user asked for | Seedance picked a default voice | Describe voice characteristics in detail in the prompt (tone, accent, pace, raspiness) — voice ref WAVs are the next-step lock; this workflow is just style |
 | Source has people but they barely appear | Style frames only have environments | Generate one character sheet first via gpt-image-2 with the style frames as refs, then use that sheet plus a couple style frames in subsequent clips |
 
-## 7. Style packs available on GCS
+## 7. Published style packs
 
-| Pack ID | Style | Use cases |
+Browse all packs at https://mograf.ai/packs?kind=style.
+
+| Pack slug | Style | Use cases |
 |---|---|---|
 | `ig-DW2FRgojpMa` | Retro PS1 low-poly nightscape | UGC, low-poly news, urban night scenes — see `style-pack.manifest.json` |
 
-Pull command: `python scripts/asset_pack_pull.py <id> --prefix style-packs`
+Pull command: `mograf pack pull <slug>`

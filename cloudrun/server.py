@@ -41,8 +41,7 @@ def _default_output_uri() -> Optional[str]:
     """Resolve the default object-storage prefix for pipeline outputs.
 
     Preference order: explicit R2_OUTPUT_URI, then R2_BUCKET_NAME (synthesized
-    as r2://<bucket>/cloudrun-outputs), then the legacy GCS_OUTPUT_BUCKET (still
-    usable because r2_storage.parse_uri accepts gs:// for back-compat).
+    as r2://<bucket>/cloudrun-outputs).
     """
     explicit = os.environ.get("R2_OUTPUT_URI")
     if explicit:
@@ -50,7 +49,7 @@ def _default_output_uri() -> Optional[str]:
     bucket = os.environ.get("R2_BUCKET_NAME") or os.environ.get("R2_BUCKET")
     if bucket:
         return f"r2://{bucket.strip().strip('/')}/cloudrun-outputs"
-    return os.environ.get("GCS_OUTPUT_BUCKET")
+    return None
 
 # Thread pool for running pipeline (avoids asyncio.run() conflicts)
 executor = ThreadPoolExecutor(max_workers=4)
@@ -489,14 +488,14 @@ def _run_timeline_sync(request: GenerateRequest, job_id: str) -> dict:
             videoUrl=final_video_url,
             thumbnailUrl=thumbnail_url,
             durationMs=int(duration * 1000),
-            runDirectory=upload_result["gcs_base"],
+            runDirectory=upload_result["output_base"],
             files=upload_result["files"],
         )
 
         return {
             "success": True,
             "job_id": job_id,
-            "output_uri": upload_result["gcs_base"],
+            "output_uri": upload_result["output_base"],
             "run_name": upload_result["run_name"],
             "files": upload_result["files"],
             "signed_urls": upload_result.get("signed_urls", []),

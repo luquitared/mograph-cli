@@ -119,9 +119,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
         dest="upload_r2",
         metavar="r2://bucket/prefix",
         help="Upload run outputs (mp4 + wav) to R2 and print signed URLs. "
-             "Pass an r2:// (or s3://, gs://) URI, or pass the flag alone to "
-             "use $R2_BUCKET_NAME + 'cloudrun-outputs' (falls back to "
-             "$GCS_OUTPUT_BUCKET for back-compat).",
+             "Pass an r2:// (or s3://) URI, or pass the flag alone to use "
+             "$R2_BUCKET_NAME + 'cloudrun-outputs'.",
     )
     parser.add_argument(
         "--signed-url-days",
@@ -234,10 +233,7 @@ def _upload_run_to_r2(run_dir: Path, uri_arg: str, expiry_days: int) -> None:
 
     if uri_arg == "__env__":
         bucket = os.environ.get("R2_BUCKET_NAME") or os.environ.get("R2_BUCKET")
-        if bucket:
-            uri = f"r2://{bucket.strip().strip('/')}/cloudrun-outputs"
-        else:
-            uri = os.environ.get("GCS_OUTPUT_BUCKET")
+        uri = f"r2://{bucket.strip().strip('/')}/cloudrun-outputs" if bucket else None
     else:
         uri = uri_arg
 

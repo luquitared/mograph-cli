@@ -63,8 +63,8 @@ python scripts/format_describe.py \
 python scripts/timeline_validate.py my-timeline.json
 python scripts/run.py my-timeline.json
 
-# 8. (Optional) Push the pack to GCS for reuse
-python scripts/asset_pack_push.py runs/style-packs/<slug> <slug> --prefix style-packs
+# 8. (Optional) Push the pack to mograf.ai for reuse
+mograf pack push runs/style-packs/<slug> --kind style --slug <slug>
 ```
 
 ---
@@ -232,7 +232,7 @@ timing spec and composites the final.
 See `format-pack.manifest.json` for the registry. Pull command:
 
 ```bash
-python scripts/asset_pack_pull.py <pack-id> --prefix style-packs
+mograf pack pull <pack-id>
 ```
 
 | Pack | Format archetype | Use cases |

@@ -25,7 +25,7 @@ python scripts/format_describe.py \
 # 5. Validate, run, push pack
 python scripts/timeline_validate.py my-timeline.json
 python scripts/run.py my-timeline.json
-python scripts/asset_pack_push.py runs/style-packs/<slug> <slug> --prefix style-packs
+mograf pack push runs/style-packs/<slug> --kind style --slug <slug>
 ```
 
 ## Defaults — pick these
@@ -84,4 +84,4 @@ The "real" format-rip pipeline (silent video + ffmpeg compositing) hasn't been b
 
 ## Format packs available
 
-See `format-pack.manifest.json` for the registry of packs with `format.json`. Pull with `python scripts/asset_pack_pull.py <id> --prefix style-packs`.
+See `format-pack.manifest.json` for the registry of packs with `format.json`. Pull with `mograf pack pull <id>`.

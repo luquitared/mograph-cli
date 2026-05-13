@@ -775,6 +775,241 @@ def cmd_rm(args, creds):
     print(f"✓ Deleted {data['slug']} ({data.get('deleted_objects', 0)} R2 objects)")
 
 
+# ─── Packs ────────────────────────────────────────────────────────────────
+
+PACK_KINDS = ("asset", "style")
+
+# Files we'll silently skip when walking a pack dir.
+PACK_IGNORE_NAMES = {".DS_Store", "Thumbs.db"}
+PACK_IGNORE_SUFFIX = {".tmp", ".part"}
+
+
+def _walk_pack_files(root: Path) -> list[tuple[Path, str]]:
+    """Walk a pack directory, returning [(abs_path, rel_path), ...].
+
+    Pack contents are intentionally unconstrained — anything in the dir
+    gets uploaded. README.md is treated specially by the push command
+    (its body becomes the pack's readme_md) but is also kept as a file
+    so pulls reproduce the original layout.
+    """
+    out: list[tuple[Path, str]] = []
+    for p in sorted(root.rglob("*")):
+        if not p.is_file():
+            continue
+        if p.name in PACK_IGNORE_NAMES:
+            continue
+        if p.suffix.lower() in PACK_IGNORE_SUFFIX:
+            continue
+        rel = p.relative_to(root).as_posix()
+        out.append((p, rel))
+    return out
+
+
+def _parse_pack_readme(root: Path) -> tuple[str, Optional[str], str]:
+    """Extract (title, summary, readme_body) from <root>/README.md if present.
+
+    Falls back to the dir name as title. Summary is the first non-heading
+    line of the body, with light markdown stripping.
+    """
+    readme_path = root / "README.md"
+    if not readme_path.exists():
+        return root.name, None, ""
+    body = readme_path.read_text()
+    title = root.name
+    m = re.search(r"^# +(.+)$", body, re.M)
+    if m:
+        title = m.group(1).strip()
+    summary: Optional[str] = None
+    started = False
+    for ln in body.splitlines():
+        if ln.startswith("# "):
+            started = True
+            continue
+        if not started:
+            continue
+        s = ln.strip()
+        if s and not s.startswith("#"):
+            summary = _strip_markdown(s)
+            break
+    return title, summary, body
+
+
+def cmd_pack_push(args, creds):
+    if not creds:
+        sys.exit("Not logged in. Run: mograf login")
+    if args.kind not in PACK_KINDS:
+        sys.exit(f"--kind must be one of: {', '.join(PACK_KINDS)}")
+    root = Path(args.path).resolve()
+    if not root.is_dir():
+        sys.exit(f"Not a directory: {root}")
+
+    files = _walk_pack_files(root)
+    if not files:
+        sys.exit(f"No files found under {root}")
+
+    title, summary, readme = _parse_pack_readme(root)
+    if args.title:
+        title = args.title
+    if args.summary:
+        summary = args.summary
+
+    print(f"Pack ({args.kind}): {title}")
+    print(f"  files: {len(files)}  ({root})")
+
+    manifest = []
+    for p, rel in files:
+        data = p.read_bytes()
+        manifest.append(
+            {
+                "name": os.path.basename(rel),
+                "path": rel,
+                "size_bytes": len(data),
+                "sha256": hashlib.sha256(data).hexdigest(),
+            }
+        )
+
+    body_obj = {
+        "kind": args.kind,
+        "title": title,
+        "summary": summary,
+        "readme_md": readme,
+        "files": manifest,
+    }
+    slug = args.slug or args.update
+    if slug:
+        body_obj["slug"] = slug
+    body = json.dumps(body_obj, separators=(",", ":")).encode()
+
+    api = creds["api_base"]
+    headers = sign_request(creds["privkey"], "POST", "/api/packs", body)
+    headers["content-type"] = "application/json"
+
+    resp = requests.post(
+        f"{api}/api/packs", data=body, headers=headers, timeout=30
+    )
+    if not resp.ok:
+        sys.exit(f"create failed: {resp.status_code} {resp.text}")
+    info = resp.json()
+
+    file_by_path = {rel: p for p, rel in files}
+    for u in info["uploads"]:
+        local = file_by_path.get(u["path"])
+        if not local:
+            print(f"warn: no local file for {u['path']}", file=sys.stderr)
+            continue
+        print(f"  ⬆ {u['path']} ({local.stat().st_size} bytes)")
+        with open(local, "rb") as fh:
+            ur = requests.put(
+                f"{api}{u['upload_url']}",
+                data=fh,
+                headers={"content-type": "application/octet-stream"},
+                timeout=600,
+            )
+        if not ur.ok:
+            sys.exit(f"upload {u['path']} failed: {ur.status_code} {ur.text}")
+
+    print(f"\n✓ Pushed → {api}{info['url']}")
+
+
+def cmd_pack_list(args, creds):
+    if not creds:
+        sys.exit("Not logged in. Run: mograf login")
+    api = creds["api_base"]
+    headers = sign_request(creds["privkey"], "GET", "/api/packs/mine", b"")
+    resp = requests.get(f"{api}/api/packs/mine", headers=headers, timeout=20)
+    if not resp.ok:
+        sys.exit(f"list failed: {resp.status_code} {resp.text}")
+    data = resp.json()
+    rows = data.get("packs", [])
+    if not rows:
+        print("No packs yet.")
+        return
+    for p in rows:
+        print(f"  {p['kind']:<6} {p['slug']:<40} {p['title']}")
+
+
+def _fetch_pack_manifest(api: str, slug: str) -> dict:
+    resp = requests.get(f"{api}/api/packs/{slug}", timeout=20)
+    if not resp.ok:
+        sys.exit(f"fetch {slug} failed: {resp.status_code} {resp.text}")
+    return resp.json()
+
+
+def _default_pack_target(api_base_unused: str, manifest: dict) -> Path:
+    repo_root = Path(__file__).resolve().parent.parent
+    prefix = "style-packs" if manifest.get("kind") == "style" else "asset-packs"
+    return repo_root / "runs" / prefix / manifest["slug"]
+
+
+def cmd_pack_pull(args, creds):
+    api = args.api
+    slug = args.slug
+    manifest = _fetch_pack_manifest(api, slug)
+    target = Path(args.dir).resolve() if args.dir else _default_pack_target(api, manifest)
+
+    if target.exists() and any(target.iterdir()):
+        if not args.force:
+            sys.exit(
+                f"{target} already exists and is non-empty. Use --force to overwrite."
+            )
+    target.mkdir(parents=True, exist_ok=True)
+
+    print(f"Pulling pack {slug} ({manifest['kind']}) → {target}")
+
+    # Reconstruct README from manifest if not present as a file.
+    readme_in_files = any(
+        f["path"].lower() == "readme.md" for f in manifest.get("files", [])
+    )
+    if manifest.get("readme_md") and not readme_in_files:
+        (target / "README.md").write_text(manifest["readme_md"])
+        print("  ⬇ README.md (from manifest)")
+
+    for f in manifest.get("files", []):
+        rel = f["path"]
+        dest = target / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        url = f["url"]
+        if url.startswith("/"):
+            url = f"{api}{url}"
+        with requests.get(url, stream=True, timeout=600) as r:
+            if not r.ok:
+                sys.exit(f"download {rel} failed: {r.status_code}")
+            with open(dest, "wb") as out:
+                for chunk in r.iter_content(chunk_size=1 << 16):
+                    if chunk:
+                        out.write(chunk)
+        print(f"  ⬇ {rel}")
+
+    print(f"\n✓ Pulled {manifest['title']} @{manifest['handle']}")
+
+
+def cmd_pack_rm(args, creds):
+    if not creds:
+        sys.exit("Not logged in. Run: mograf login")
+    api = creds["api_base"]
+    slug = args.slug
+    if not args.yes:
+        confirm = input(f"Permanently delete pack '{slug}'? [y/N] ").strip().lower()
+        if confirm not in ("y", "yes"):
+            print("aborted")
+            return
+    path = f"/api/packs/{slug}"
+    headers = sign_request(creds["privkey"], "DELETE", path, b"")
+    resp = requests.delete(f"{api}{path}", headers=headers, timeout=60)
+    if not resp.ok:
+        sys.exit(f"delete failed: {resp.status_code} {resp.text}")
+    data = resp.json()
+    print(f"✓ Deleted {data['slug']} ({data.get('deleted_objects', 0)} R2 objects)")
+
+
+def cmd_pack_open(args, creds):
+    if not creds:
+        sys.exit("Not logged in. Run: mograf login")
+    url = f"{creds['api_base']}/packs/{args.slug}"
+    print(url)
+    webbrowser.open(url)
+
+
 def _fetch_manifest(api: str, slug: str) -> dict:
     resp = requests.get(f"{api}/api/workflows/{slug}", timeout=20)
     if not resp.ok:
@@ -996,6 +1231,55 @@ def main():
         help="Overwrite README/dirs even if non-empty",
     )
 
+    p_pk = sub.add_parser("pack", help="Manage asset / style packs")
+    psub = p_pk.add_subparsers(dest="subcmd", required=True)
+
+    p_pk_push = psub.add_parser("push", help="Publish a directory as a pack")
+    p_pk_push.add_argument(
+        "path", help="Local directory (e.g. runs/asset-packs/news-show-v1)"
+    )
+    p_pk_push.add_argument(
+        "--kind",
+        required=True,
+        choices=list(PACK_KINDS),
+        help="Pack kind: asset (refs) or style (style-rip pack)",
+    )
+    p_pk_push.add_argument(
+        "--slug",
+        help="Explicit slug (defaults to slugified title)",
+    )
+    p_pk_push.add_argument(
+        "--update",
+        metavar="SLUG",
+        help="Replace an existing pack you own (alias for --slug, kept for parity)",
+    )
+    p_pk_push.add_argument("--title", help="Override pack title")
+    p_pk_push.add_argument("--summary", help="One-line summary")
+
+    p_pk_pull = psub.add_parser(
+        "pull",
+        help="Download a pack into runs/{asset,style}-packs/<slug>/ (no auth needed)",
+    )
+    p_pk_pull.add_argument("slug")
+    p_pk_pull.add_argument(
+        "--dir",
+        help="Target directory (defaults to runs/<kind>-packs/<slug>)",
+    )
+    p_pk_pull.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite if target exists and is non-empty",
+    )
+
+    psub.add_parser("list", help="List your packs")
+    p_pk_open = psub.add_parser("open", help="Open a pack page in your browser")
+    p_pk_open.add_argument("slug")
+    p_pk_rm = psub.add_parser("rm", help="Delete one of your packs")
+    p_pk_rm.add_argument("slug")
+    p_pk_rm.add_argument(
+        "-y", "--yes", action="store_true", help="Skip the confirmation prompt"
+    )
+
     p_pub = sub.add_parser(
         "publish",
         help="Publish a pipeline run dir as a workflow (auto-detects final mp4 + timeline)",
@@ -1038,6 +1322,17 @@ def main():
             cmd_workflow_new(args, creds)
         elif args.subcmd == "run":
             cmd_run(args, creds)
+    elif args.cmd == "pack":
+        if args.subcmd == "push":
+            cmd_pack_push(args, creds)
+        elif args.subcmd == "pull":
+            cmd_pack_pull(args, creds)
+        elif args.subcmd == "list":
+            cmd_pack_list(args, creds)
+        elif args.subcmd == "open":
+            cmd_pack_open(args, creds)
+        elif args.subcmd == "rm":
+            cmd_pack_rm(args, creds)
 
 
 if __name__ == "__main__":

@@ -7,8 +7,8 @@ For the human-facing strategy, see `README.md`.
 ## How to drive this workflow
 
 ```bash
-# 1. Pull example assets (one-time per machine)
-python scripts/asset_pack_pull.py news-show-v1
+# 1. Pull example assets (one-time per machine; from mograf.ai/packs)
+mograf pack pull news-show-v1
 # → runs/asset-packs/news-show-v1/{characters,voices,environments,composites}/
 
 # 2. Validate before running (catches bad paths, moderation triggers, WPS overflows)
