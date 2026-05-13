@@ -43,6 +43,14 @@ import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+# Force line-buffered stdout/stderr so interactive prompts (device-flow code,
+# progress markers) show up even when the process is backgrounded or piped.
+try:
+    sys.stdout.reconfigure(line_buffering=True)
+    sys.stderr.reconfigure(line_buffering=True)
+except (AttributeError, OSError):
+    pass
+
 DEFAULT_API = os.environ.get(
     "MOGRAF_API", os.environ.get("MOGRAPH_API", "https://mograph.lucasnegritto7538.workers.dev")
 )
