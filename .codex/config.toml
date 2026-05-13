@@ -1,7 +1,0 @@
-[mcp_servers.studio-bridge]
-args = [
-    "/Users/lucasnegritto/projects/mograph-ui/mcp/studio-bridge.ts",
-    "--ws-port",
-    "3002",
-]
-command = "bun"

@@ -49,3 +49,6 @@ mograf.egg-info/
 *.egg-info/
 __pycache__/
 *.egg
+
+# Codex local config (machine-specific MCP setup)
+.codex/
