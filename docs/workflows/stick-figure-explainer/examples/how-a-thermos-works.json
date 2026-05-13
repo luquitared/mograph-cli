@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "project": {
+    "name": "How a Thermos Works",
+    "description": "Minimal hand-drawn stick figure explainer about how a vacuum flask keeps drinks hot"
+  },
+  "defaults": {
+    "image": {
+      "model": "nano-banana-pro",
+      "aspect_ratio": "16:9",
+      "resolution": "2K",
+      "output_format": "png",
+      "prompt_prefix": "Simple hand-drawn minimal cartoon style on grey textured background, black outlines, stick figures."
+    },
+    "video": {
+      "model": "seedance-2.0-fast",
+      "aspect_ratio": "16:9",
+      "resolution": "480p",
+      "generate_audio": false,
+      "prompt_prefix": "Simple hand-drawn minimal cartoon style on grey textured background, black outlines, stick figures."
+    },
+    "tts": {
+      "voice": "Kore",
+      "voice_prompt": "Casual, friendly, conversational tone. Like explaining to a friend."
+    }
+  },
+  "tracks": [
+    {
+      "id": "narration",
+      "type": "narration",
+      "clips": [
+        {"id": "narr-1", "source": {"type": "tts", "text": "Ever wonder why your coffee goes cold in five minutes but a thermos keeps it hot all day?"}},
+        {"id": "narr-2", "source": {"type": "tts", "text": "Heat escapes a regular mug three ways: conduction, convection, and radiation."}},
+        {"id": "narr-3", "source": {"type": "tts", "text": "A thermos is basically two bottles, one inside the other, with a vacuum sealed between them."}},
+        {"id": "narr-4", "source": {"type": "tts", "text": "Conduction needs molecules to bump into each other. A vacuum has no molecules, so heat gets stuck."}},
+        {"id": "narr-5", "source": {"type": "tts", "text": "The inner wall is mirrored, so heat radiating outward just bounces right back into your drink."}},
+        {"id": "narr-6", "source": {"type": "tts", "text": "A tight stopper traps convection currents inside, so warm air can't swirl up and out."}},
+        {"id": "narr-7", "source": {"type": "tts", "text": "The same trick works in reverse, which is why a thermos keeps ice water cold too."}},
+        {"id": "narr-8", "source": {"type": "tts", "text": "So your thermos isn't magic. It just blocks every escape route heat has."}}
+      ]
+    },
+    {
+      "id": "visuals",
+      "type": "video",
+      "clips": [
+        {
+          "id": "vid-1",
+          "fit_to": "narr-1",
+          "source": {
+            "type": "video",
+            "prompt": "One stick figure stands on one snowy hill holding one steaming mug. Three red wavy heat lines rise from the mug and slowly fade. The thermometer needle ticks downward. One snowflake drifts past the figure.",
+            "first_frame": {"generate": {"type": "image", "prompt": "One stick figure stands outside on a snowy hill holding one steaming coffee mug. Three red wavy heat lines rise from the mug. One thermometer beside the figure points down."}}
+          }
+        },
+        {
+          "id": "vid-2",
+          "fit_to": "narr-2",
+          "source": {
+            "type": "video",
+            "prompt": "Three labeled arrows leave one hot mug. The red arrow labeled CONDUCTION pulses downward through the mug wall. The orange arrow labeled CONVECTION curls and rises from the steam. The yellow squiggle labeled RADIATION shimmers outward. Each label highlights in turn.",
+            "first_frame": {"generate": {"type": "image", "prompt": "Three labeled arrows leave one hot mug. One red arrow labeled CONDUCTION points down through the mug wall. One orange arrow labeled CONVECTION curls up from the steam. One yellow squiggle labeled RADIATION points outward."}}
+          }
+        },
+        {
+          "id": "vid-3",
+          "fit_to": "narr-3",
+          "source": {
+            "type": "video",
+            "prompt": "One cutaway thermos bottle stands centered. The label VACUUM in the gap between the inner silver flask and outer silver flask glows softly. A steaming arrow points down into the inner flask. The stopper on top wiggles once.",
+            "first_frame": {"generate": {"type": "image", "prompt": "One large cutaway diagram of one thermos bottle. One inner silver flask sits inside one outer silver flask with one labeled gap VACUUM between them. One stopper sits on top. One steaming arrow points into the inner flask."}}
+          }
+        },
+        {
+          "id": "vid-4",
+          "fit_to": "narr-4",
+          "source": {
+            "type": "video",
+            "prompt": "One zoomed cross section shows two parallel silver walls with one empty VACUUM gap. Three red heat arrows push from the inner wall toward the outer wall. Each arrow halts at one big red X in the gap. The arrows wobble and shrink.",
+            "first_frame": {"generate": {"type": "image", "prompt": "One zoomed cross section of two parallel silver walls with one empty gap between them labeled VACUUM. Three red heat arrows try to cross the gap but each arrow stops at one big red X in the middle of the gap."}}
+          }
+        },
+        {
+          "id": "vid-5",
+          "fit_to": "narr-5",
+          "source": {
+            "type": "video",
+            "prompt": "One thermos inner wall is coated shiny silver labeled MIRROR COATING. One yellow radiation squiggle travels outward, hits the silver wall, and bounces back inward as one mirrored yellow arrow. The reflection pulses once.",
+            "first_frame": {"generate": {"type": "image", "prompt": "One cross section of one thermos inner wall coated shiny silver. One yellow radiation squiggle hits the silver wall and bounces back inward as one mirrored yellow arrow. One small label reads MIRROR COATING."}}
+          }
+        },
+        {
+          "id": "vid-6",
+          "fit_to": "narr-6",
+          "source": {
+            "type": "video",
+            "prompt": "One cutaway thermos has one stopper labeled CORK sealing the top. One curling orange convection arrow rises from the liquid, bumps against the underside of the stopper, and curls back down inside the flask. The stopper holds firm.",
+            "first_frame": {"generate": {"type": "image", "prompt": "One cutaway thermos with one stopper labeled CORK sealing the top. One curling orange convection arrow tries to escape upward but bumps against the stopper and curls back down inside."}}
+          }
+        },
+        {
+          "id": "vid-7",
+          "fit_to": "narr-7",
+          "source": {
+            "type": "video",
+            "prompt": "One thermos on the left labeled HOT lets three faint red heat lines barely leak out. One thermos on the right labeled COLD lets three faint blue cold lines barely leak out. One stick figure stands smiling between them and gives one thumbs up.",
+            "first_frame": {"generate": {"type": "image", "prompt": "One thermos sits on the left labeled HOT with three red heat lines barely leaking out. One mirrored thermos sits on the right labeled COLD with three blue cold lines barely leaking out. One stick figure stands smiling between them."}}
+          }
+        },
+        {
+          "id": "vid-8",
+          "fit_to": "narr-8",
+          "source": {
+            "type": "video",
+            "prompt": "One happy stick figure sits on one rock at the top of one snowy mountain holding one thermos. The figure pours one steaming stream from the thermos into one cup. Three big red heat lines rise from the cup and drift upward. The sun in the corner glows.",
+            "first_frame": {"generate": {"type": "image", "prompt": "One happy stick figure sits on one rock at the top of one snowy mountain holding one thermos and one steaming cup. Three big red heat lines rise from the cup. One sun shines in the corner."}}
+          }
+        }
+      ]
+    }
+  ]
+}
