@@ -44,3 +44,8 @@ assets/makeover-imgs
 assets/makeover-original-imgs
 assets/royal-match-imgs
 assets/coins-images
+# Python build artifacts
+mograf.egg-info/
+*.egg-info/
+__pycache__/
+*.egg
