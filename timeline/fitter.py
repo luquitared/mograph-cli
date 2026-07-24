@@ -76,6 +76,16 @@ async def _apply_speed(
     clip_path: Path, raw_duration: float, target_duration: float,
     media_type: str, run_dir: Path, clip_id: str,
 ) -> Path:
+    if target_duration <= 0:
+        # Almost always a resumed node whose NodeResult carries no duration.
+        # Left as a bare ZeroDivisionError this reads as a generic warning and
+        # the run continues, shipping a video with its narration cut off.
+        raise ValueError(
+            f"Cannot fit to a target duration of {target_duration}. The fit "
+            f"target has no measured duration — usually a resumed clip whose "
+            f"NodeResult was loaded without probing the file. "
+            f"raw_duration={raw_duration}"
+        )
     speed_factor = raw_duration / target_duration
     if speed_factor < MIN_SPEED_FACTOR or speed_factor > MAX_SPEED_FACTOR:
         raise ValueError(

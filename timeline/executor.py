@@ -440,6 +440,22 @@ def _get_failed_dependents(
 # ---------------------------------------------------------------------------
 
 
+def _probe_or_none(path: Path) -> Optional[float]:
+    """Duration of an existing media file, or None if it can't be read.
+
+    Resumed nodes must carry a real duration. Without one, `fit_to` targets
+    resolve to 0.0, `apply_fit` divides by zero, the exception is swallowed as a
+    warning, and the video is assembled shorter than its narration — the tail of
+    the voiceover is silently dropped. See docs/reference/known-issues.md §1.
+    """
+    try:
+        from shared.media import probe_duration
+        return probe_duration(path)
+    except Exception as exc:  # noqa: BLE001 — a bad probe must not kill resume
+        logger.warning("Could not probe duration for %s: %s", path, exc)
+        return None
+
+
 def _load_existing_results(run_dir: Path) -> Dict[str, NodeResult]:
     """Load existing results from a previous run for resume support."""
     results: Dict[str, NodeResult] = {}
@@ -458,7 +474,9 @@ def _load_existing_results(run_dir: Path) -> Dict[str, NodeResult]:
         for p in videos_dir.iterdir():
             if p.is_file() and p.suffix == ".mp4":
                 clip_id = p.stem.removesuffix("_still")
-                results[clip_id] = NodeResult(path=p, duration=None, media_type="video")
+                results[clip_id] = NodeResult(
+                    path=p, duration=_probe_or_none(p), media_type="video"
+                )
 
     # Scan audio/
     audio_dir = run_dir / "audio"
@@ -466,7 +484,9 @@ def _load_existing_results(run_dir: Path) -> Dict[str, NodeResult]:
         for p in audio_dir.iterdir():
             if p.is_file() and p.suffix in {".mp3", ".wav"} and not p.stem.endswith(".timestamps"):
                 clip_id = p.stem.removesuffix("_silence")
-                results[clip_id] = NodeResult(path=p, duration=None, media_type="audio")
+                results[clip_id] = NodeResult(
+                    path=p, duration=_probe_or_none(p), media_type="audio"
+                )
 
     return results
 
