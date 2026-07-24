@@ -16,6 +16,15 @@ runs/
 # E2E generation log (output of tests/e2e_log.py)
 tests/e2e_generation_log.jsonl
 
+# Per-project working assets: reference images, extracted frames, scratch
+# audio, and pipeline output kept next to the timeline that produced it. Same
+# category as runs/ — generated or one-off, not source. They stay on disk; git
+# just doesn't carry them.
+assets/*/
+!assets/*.jpeg
+!assets/*.jpg
+!assets/*.png
+
 # Python
 __pycache__/
 *.pyc
