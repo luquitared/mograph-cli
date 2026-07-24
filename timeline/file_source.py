@@ -125,7 +125,15 @@ async def _resolve_single(
         else:
             end = source.end
 
-        seg_dest = run_dir / "segments" / f"{clip_id}_segment{local_path.suffix}"
+        # extract_audio_segment re-encodes to AAC, so the container has to be
+        # one that accepts AAC. Keeping the source suffix meant an .mp3 music
+        # bed produced "aac into .mp3", which ffmpeg rejects outright:
+        # "Invalid audio stream. Exactly one MP3 audio stream is required."
+        seg_dest = run_dir / "segments" / (
+            f"{clip_id}_segment"
+            + (".m4a" if _infer_media_type(local_path) == "audio"
+               else local_path.suffix)
+        )
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(
             None, extract_audio_segment, local_path, start, end, seg_dest
