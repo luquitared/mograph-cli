@@ -257,32 +257,43 @@ def overlay_audio(
 
 def combine_audio_tracks(
     video_path: Path,
-    narration_path: Path,
+    overlay_path: Path,
     dest: Path,
-    narration_volume: float = 1.0,
-    video_audio_volume: float = 0.3,
-    pad_narration: bool = True,
+    overlay_volume: float = 1.0,
+    base_volume: float = 0.3,
+    pad_overlay: bool = True,
 ) -> None:
-    """Combine video's original audio (model-generated SFX) with narration overlay.
+    """Mix a second audio source into a video's existing audio.
+
+    Named for what the arguments do rather than for the first use case. They
+    used to be `narration_path` / `narration_volume` / `video_audio_volume`,
+    which was accurate when the thing being added was narration and the video
+    carried model SFX. The only caller adds a *music* track to a video whose
+    audio is already the narration — so the names had it exactly backwards and
+    the call site duly passed the music's volume to the narration parameter,
+    burying the voice under the bed.
 
     Args:
-        video_path: Path to video file (with generated audio)
-        narration_path: Path to ElevenLabs narration audio
-        dest: Output path for combined audio file
-        narration_volume: Volume multiplier for narration (default: 1.0 = full volume)
-        video_audio_volume: Volume multiplier for video audio (default: 0.3 = 30%)
-        pad_narration: If True, pad narration with silence to match video duration
+        video_path: Video whose existing audio is the base of the mix
+        overlay_path: Audio to add on top
+        dest: Output path
+        overlay_volume: Volume multiplier for the added audio
+        base_volume: Volume multiplier for the video's own audio
+        pad_overlay: If True, pad the overlay with silence to the video's length
+
+    Note both legs also pass through amix, which normalizes by default — each
+    input is additionally scaled by 1/2.
     """
-    if pad_narration:
+    if pad_overlay:
         filter_complex = (
-            f"[0:a]volume={video_audio_volume}[vaud];"
-            f"[1:a]apad,volume={narration_volume}[narr];"
+            f"[0:a]volume={base_volume}[vaud];"
+            f"[1:a]apad,volume={overlay_volume}[narr];"
             f"[vaud][narr]amix=inputs=2:duration=first:dropout_transition=0[out]"
         )
     else:
         filter_complex = (
-            f"[0:a]volume={video_audio_volume}[vaud];"
-            f"[1:a]volume={narration_volume}[narr];"
+            f"[0:a]volume={base_volume}[vaud];"
+            f"[1:a]volume={overlay_volume}[narr];"
             f"[vaud][narr]amix=inputs=2:duration=longest:dropout_transition=0[out]"
         )
 

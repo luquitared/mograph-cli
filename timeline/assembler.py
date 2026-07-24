@@ -294,13 +294,26 @@ async def _mix_audio_tracks(
 
         # Mix into each existing output variant
         for variant_name, variant_path in list(outputs.items()):
+            # Mix from a pristine copy, never from the variant in place. The
+            # mixed result is moved back over the variant, so assembling twice
+            # into the same run dir — a re-render, a resumed final stage — used
+            # to fold the bed in again and again, attenuating the voice on every
+            # pass. Run dirs now survive across executions, so that is no longer
+            # a rare case.
+            premix = final_dir / f"{variant_path.stem}.premix.mp4"
+            if not premix.exists():
+                shutil.copy2(variant_path, premix)
+
             mixed_dest = final_dir / f"{variant_path.stem}_mixed_{track.id}.mp4"
             media.combine_audio_tracks(
-                variant_path,
+                premix,
                 track_audio,
                 mixed_dest,
-                narration_volume=1.0,
-                video_audio_volume=volume,
+                # The variant's own audio is the narration — it keeps full
+                # level. The track being added is the bed, and it is the one
+                # the timeline's volume applies to.
+                overlay_volume=volume,
+                base_volume=1.0,
             )
             # Replace variant with mixed version
             shutil.move(str(mixed_dest), str(variant_path))
