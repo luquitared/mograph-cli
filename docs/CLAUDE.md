@@ -17,10 +17,12 @@ Each folder is a self-contained recipe for a kind of video. Match the folder to 
 
 ## `reference/` — coding-side reference
 
+- `known-issues.md` — **read before shipping a render.** Silent `fit_to`/audio-truncation bug on resume, Seedance filename collisions, real measured WPS, adversarial QC pass
 - `cli-reference.md` — full CLI argument reference for `pipeline.py`
 - `pipeline-modes.md` — staged execution, exploration, dry-run
 - `inspecting-runs.md` — finding past runs in GCS
 - `tts-voices.md` — Gemini TTS voice catalog and selection guide
+- `script-writer.md` — rules for engaging dialogue: bracket `[cue]` syntax for Gemini TTS text + Seedance prompt, do/don't list, before/after example
 - `e2e-testing.md` — end-to-end testing strategy and generation tracking
 - `timeline/format-reference.md` — every timeline JSON field, type, default, constraint
 - `timeline/models.md` — per-model parameters, constraints, costs

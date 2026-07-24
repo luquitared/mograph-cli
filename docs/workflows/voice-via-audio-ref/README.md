@@ -1,14 +1,20 @@
 # voice-via-audio-ref
 
-**Strategy:** Seedance's built-in dialogue audio is often emotionless. For non-photoreal characters (claymation, 2D, paper-cutout, low-poly 3D), feeding Seedance a clean reference audio via `reference_audios` reliably nudges its generated voice toward the reference's timbre and cadence. Pair it with a `reference_images` of the character (required — Seedance rejects audio-only refs with E006).
+By generating a clean line with Gemini 3.1 Flash TTS and passing that WAV to Seedance as `reference_audios`, you get noticeably better Seedance audio. On longer clips with a lot of narration, Seedance's bare-prompt audio tends to garble — words mush together, sentences slop into each other, the take is unusable. Handing it a reference WAV of the exact line fixes that. This workflow demonstrates the technique simply.
+
+It's also the cure for the other common Seedance audio failure: flat, emotionless dialogue on short clips. Same fix, same mechanics.
+
+Pair the reference WAV with a `reference_images` of the character — Seedance rejects audio-only refs with E006.
 
 The reference audio can come from anywhere clean: Gemini 3.1 Flash TTS, ElevenLabs, an extracted WAV from a prior generation, even a recorded line. This demo uses Gemini 3.1 because it's deeply controllable via inline `[tag]` audio tags and `voice_prompt` direction.
 
 ## When to reach for this
 
-- You're getting flat or emotionless dialogue out of Seedance.
-- The character is **non-photoreal** — lip-sync expectations are loose enough that the Seedance-rendered mouth doesn't have to perfectly match the audio.
-- You want **deterministic control** over the voice personality, accent, or pacing.
+- **Long-narration clips coming out garbled / sloppy.** Seedance loses the plot when it has to invent and pace a long line at the same time. Handing it a pre-paced reference removes one of those jobs.
+- **Flat or emotionless dialogue on shorter clips.** The reference carries the emotional arc into Seedance's take.
+- **You want deterministic control** over the voice personality, accent, or pacing.
+
+Works best on **non-photoreal characters** (claymation, 2D, paper-cutout, low-poly 3D) where lip-sync expectations are loose enough that the Seedance-rendered mouth doesn't have to perfectly match the audio.
 
 If lip-sync precision matters more than voice quality, prefer overlaying TTS on top of Seedance instead — but in our testing on cartoon characters, the overlay approach produced noticeably worse results than letting Seedance generate audio guided by the reference. Reference audio wins on perceived integration.
 

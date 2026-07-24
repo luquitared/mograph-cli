@@ -7,6 +7,11 @@
   "observability": {
     "enabled": true
   },
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "mograf.ai", "custom_domain": true },
+    { "pattern": "www.mograf.ai", "custom_domain": true }
+  ],
   "r2_buckets": [
     { "binding": "R2_PUBLIC", "bucket_name": "mograph-public" },
     { "binding": "R2_PRIVATE", "bucket_name": "mograph-private" }

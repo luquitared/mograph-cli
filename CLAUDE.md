@@ -9,6 +9,7 @@ Create videos using AI paired with Claude Code / Codex
 - Replicate seedance silently truncates the prompt past **2,000 characters**
 - **Creating references / assets** → see [`docs/workflows/character-asset/`](docs/workflows/character-asset/), or scaffold a project + ref manifest with `python scripts/init_project.py "Project Name"`. Published asset/style/format packs land via `--from-pack <id>` (see [`docs/workflows/style-rip/`](docs/workflows/style-rip/) and [`docs/workflows/format-rip/`](docs/workflows/format-rip/))
 - Seedance is still decently unstable. Past 15s (multi-clip), the model has no information about other clips — reference inputs are your friend
+- **Don't report a video or timeline as done/ready when a stated user requirement is unmet.** Lead with unmet requirements as blockers; never bury them as footnotes or call something "production-ready" with a known gap. If a requirement conflicts with the chosen workflow's constraints, stop and surface the trade-off as a decision — do not silently build around it.
 
 ## Multi-clip consistency
 
@@ -20,7 +21,7 @@ Seedance has zero memory between generations. Anything that needs to repeat acro
   - **Character (single or recurring cast)** — a character reference sheet generated once and passed on every clip the character is in.
   - **Voice** — extract 5–10s of WAV from the first generated clip, pass as `reference_audios` thereafter (E006 requires `reference_images` too).
   - **Location / set** — an establishing image of the location passed as a reference on every clip set there.
-- **Some video types tolerate inconsistency.** Explainer videos with a different visual per beat are often fine without binding — each beat is its own world. Confirm with the user before assuming consistency is needed.
+- **Some video types tolerate inconsistency.** Explainer videos with a different visual per beat are often fine without binding — each beat is its own world. Confirm with the user before assuming consistency is needed. **But an explicit request overrides this exception:** if the user asks for a recurring character/mascot/host "throughout", consistency *is* required and "explainers tolerate drift" does not apply — bind it or route to a workflow that can.
 
 Each workflow has its own approach for this — read the workflow's `CLAUDE.md`. If a workflow is silent on consistency, you still need to do it; silence doesn't mean optional.
 
